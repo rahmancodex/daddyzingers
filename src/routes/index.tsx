@@ -32,11 +32,8 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <div className="min-h-dvh bg-background text-foreground pb-20 md:pb-0">
-      {/* Hero */}
-      <Hero />
-
-      {/* Ordering experience (same as /menu) */}
-      <OrderingExperience hideHeader />
+      {/* Ordering experience leads the homepage (includes header + promo carousel) */}
+      <OrderingExperience />
 
       {/* Marketing sections below */}
       <div>
