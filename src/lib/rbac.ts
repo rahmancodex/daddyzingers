@@ -72,11 +72,13 @@ const FULL: Permission[] = [
   "staff.manage",
   "audit.view",
   "deliveries.view",
+  "production.manage",
 ];
 
 export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   owner: FULL,
-  admin: FULL.filter((p) => p !== "staff.manage" || true), // full, but Owner-only guards elsewhere
+  admin: FULL.filter((p) => p !== "production.manage"),
+
   manager: [
     "dashboard.view",
     "orders.view",
