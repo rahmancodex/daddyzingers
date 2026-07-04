@@ -118,8 +118,8 @@ export const adminReports = createServerFn({ method: "POST" })
     }
     const { data: categories } = await supabaseAdmin
       .from("menu_categories")
-      .select("id,name");
-    const categoryMap = new Map<string, string>((categories ?? []).map((c) => [c.id, c.name]));
+      .select("id,label");
+    const categoryMap = new Map<string, string>((categories ?? []).map((c) => [c.id, c.label]));
 
     // Optional category filter (items whose product is in that category)
     let filteredItems = items;
