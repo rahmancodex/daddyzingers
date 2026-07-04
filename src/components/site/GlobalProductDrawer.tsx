@@ -40,9 +40,13 @@ function initSelection(groups: OptionGroup[]): Selection {
 
 export function GlobalProductDrawer() {
   const { id, open } = useDrawer();
-  const item = id ? getMenuItem(id) : null;
+  const { items, categoryOptions } = useMenuData();
+  const item = useMenuItem(id);
 
-  const groups = useMemo<OptionGroup[]>(() => (item ? resolveItemOptions(item) : []), [item]);
+  const groups = useMemo<OptionGroup[]>(
+    () => (item ? resolveItemOptions(item, categoryOptions) : []),
+    [item, categoryOptions],
+  );
 
   const [qty, setQty] = useState(1);
   const [selection, setSelection] = useState<Selection>({});
@@ -66,8 +70,8 @@ export function GlobalProductDrawer() {
 
   const related = useMemo(() => {
     if (!item) return [];
-    return MENU.filter((m) => m.id !== item.id && m.category === item.category).slice(0, 4);
-  }, [item]);
+    return items.filter((m) => m.id !== item.id && m.category === item.category).slice(0, 4);
+  }, [item, items]);
 
   /** Compute base price from `size` group when item has sizes, else item.price */
   const basePrice = useMemo(() => {
