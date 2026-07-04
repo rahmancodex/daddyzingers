@@ -250,7 +250,9 @@ export const favoriteActions = {
 
 export const drawerActions = {
   openById(id: string) {
-    if (!MENU.some((m) => m.id === id)) return;
+    // Menu data is loaded from Supabase; the drawer resolves the item
+    // reactively via `useMenuItem(id)`. If the id is unknown the drawer
+    // simply renders nothing.
     setState({ drawerItemId: id, drawerOpen: true });
   },
   open(item: MenuItem) {
@@ -296,8 +298,3 @@ export const cartDrawerActions = {
   },
 };
 
-/* ---------- Helpers ---------- */
-
-export function getMenuItem(id: string): MenuItem | undefined {
-  return MENU.find((m) => m.id === id);
-}
