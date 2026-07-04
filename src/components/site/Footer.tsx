@@ -88,7 +88,7 @@ function FooterLinkEl({ link }: { link: FooterLink }) {
 
 export function Footer() {
   return (
-    <footer id="contact" className="bg-secondary text-secondary-foreground pt-16 md:pt-24 pb-8 relative overflow-hidden">
+    <footer id="contact" className="bg-secondary text-secondary-foreground pt-14 md:pt-20 pb-8 relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
