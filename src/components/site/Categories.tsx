@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 
 
 
-import { MENU, type MenuCategory } from "@/lib/menu-data";
+import { useMenuItems, type MenuCategory } from "@/lib/menu";
 
 type Cat = {
   name: string;
@@ -29,11 +29,10 @@ const CATS: Cat[] = [
   { name: "Extras & Add-ons", target: "extras", img: catFries, span: "" },
 ];
 
-function countIn(cat: MenuCategory) {
-  return MENU.filter((m) => m.category === cat).length;
-}
-
 export function Categories() {
+  const items = useMenuItems();
+  const countIn = (cat: MenuCategory) => items.filter((m) => m.category === cat).length;
+
   return (
     <section id="categories" className="py-16 md:py-24 bg-surface">
       <div className="container-dz">

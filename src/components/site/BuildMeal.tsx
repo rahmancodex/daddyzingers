@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MENU } from "@/lib/menu-data";
+import { useMenuData } from "@/lib/menu";
 import { cartActions, drawerActions } from "@/lib/store";
 
 
@@ -42,6 +42,7 @@ const STEPS = [
 ] as const;
 
 export function BuildMeal() {
+  const { byId } = useMenuData();
   const [sel, setSel] = useState<Record<string, Opt | undefined>>({});
 
   const total = useMemo(
@@ -177,7 +178,7 @@ export function BuildMeal() {
                     STEPS.forEach((step) => {
                       const opt = sel[step.key];
                       if (!opt || !opt.itemId) return;
-                      const menuItem = MENU.find((m) => m.id === opt.itemId);
+                      const menuItem = byId.get(opt.itemId);
                       if (!menuItem) return;
                       cartActions.add({
                         item: menuItem,

@@ -19,7 +19,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { formatPKR, MENU } from "@/lib/menu-data";
+import { formatPKR, useMenuItems } from "@/lib/menu";
 import { drawerActions } from "@/lib/store";
 import {
   ProgressRing,
@@ -68,6 +68,7 @@ function greetingByHour(d = new Date()) {
 
 function Overview() {
   const { user } = useAuth();
+  const menu = useMenuItems();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [favCount, setFavCount] = useState(0);
@@ -96,7 +97,7 @@ function Overview() {
   const first = (profile?.full_name || user?.email?.split("@")[0] || "").split(" ")[0];
   const points = profile?.reward_points ?? 0;
   const { current: tier, next, progress } = resolveTier(points);
-  const suggestions = MENU.filter((m) => m.tags.includes("bestseller")).slice(0, 3);
+  const suggestions = menu.filter((m) => m.isBestseller || m.tags.includes("bestseller")).slice(0, 3);
   const lastOrder = orders?.[0] ?? null;
 
   return (

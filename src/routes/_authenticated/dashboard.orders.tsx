@@ -5,7 +5,7 @@ import { Package, ReceiptText, RefreshCw, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { formatPKR } from "@/lib/menu-data";
+import { formatPKR } from "@/lib/menu";
 import {
   EmptyState,
   PageHeader,

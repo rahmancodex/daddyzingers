@@ -6,7 +6,7 @@ import { Logo } from "@/components/site/Logo";
 import { LocationSelector } from "./LocationSelector";
 import { AccountMenu } from "./AccountMenu";
 import { useCartCount, useCartTotal, cartDrawerActions } from "@/lib/store";
-import { formatPKR } from "@/lib/menu-data";
+import { formatPKR } from "@/lib/menu";
 import { branchActions, useOrderMethod } from "@/lib/location-store";
 
 export function OrderHeader() {

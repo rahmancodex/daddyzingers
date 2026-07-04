@@ -4,26 +4,28 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MENU, formatPKR, type MenuItem } from "@/lib/menu-data";
+import { formatPKR, useMenuItems, type MenuItem } from "@/lib/menu";
 import {
   drawerActions,
   favoriteActions,
   useFavorites,
 } from "@/lib/store";
 
-const BESTSELLER_IDS = [
-  "double-loaded-zinger",
-  "zinger",
-  "zinger-platter",
-  "loaded-fries",
-] as const;
-
-const ITEMS: MenuItem[] = BESTSELLER_IDS
-  .map((id) => MENU.find((m) => m.id === id))
-  .filter((m): m is MenuItem => Boolean(m));
+/**
+ * Preferred bestsellers, in display order. We first honour `is_bestseller`
+ * flagged items from the DB, then fall back to any items whose `tags`
+ * include "bestseller". Limited to 4.
+ */
+function pickBestsellers(all: MenuItem[]): MenuItem[] {
+  const flagged = all.filter((m) => m.isBestseller);
+  const tagged = all.filter((m) => !m.isBestseller && m.tags.includes("bestseller"));
+  return [...flagged, ...tagged].slice(0, 4);
+}
 
 export function Bestsellers() {
   const favs = useFavorites();
+  const all = useMenuItems();
+  const items = pickBestsellers(all);
 
   const openCustomize = (item: MenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,7 +58,7 @@ export function Bestsellers() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {ITEMS.map((item, i) => {
+          {items.map((item, i) => {
             const fav = favs.includes(item.id);
             return (
               <motion.div

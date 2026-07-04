@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag, Clock, ArrowRight } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cartDrawerActions, useCart, useCartCount, useCartTotal } from "@/lib/store";
-import { formatPKR } from "@/lib/menu-data";
+import { formatPKR } from "@/lib/menu";
 
 /**
  * Native-style bottom sticky cart on mobile.

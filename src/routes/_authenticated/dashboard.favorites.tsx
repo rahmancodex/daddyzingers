@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { formatPKR, MENU } from "@/lib/menu-data";
+import { formatPKR, useMenuData } from "@/lib/menu";
 import { drawerActions } from "@/lib/store";
 import { EmptyState, PageHeader, SkeletonBlock } from "@/components/dashboard/shared";
 
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/favorites")({
 
 function FavoritesPage() {
   const { user } = useAuth();
+  const { byId } = useMenuData();
   const [ids, setIds] = useState<string[] | null>(null);
 
   const load = () => {
@@ -28,7 +29,7 @@ function FavoritesPage() {
   };
   useEffect(load, [user]);
 
-  const items = (ids ?? []).map((id) => MENU.find((m) => m.id === id)).filter(Boolean);
+  const items = (ids ?? []).map((id) => byId.get(id)).filter(Boolean);
 
   return (
     <div className="space-y-6 md:space-y-8">

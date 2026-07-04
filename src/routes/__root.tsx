@@ -18,6 +18,7 @@ import { GlobalSearch } from "../components/site/GlobalSearch";
 import { FloatingCart } from "../components/site/FloatingCart";
 import { CartDrawer } from "../components/order/CartDrawer";
 import { AuthProvider } from "../lib/auth";
+import { menuQueryOptions } from "../lib/menu";
 
 function NotFoundComponent() {
   return (
@@ -80,6 +81,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Prime the shared menu cache on every route match. Non-blocking:
+  // failures leave `useMenuItems()` returning [] and consumers show
+  // their existing empty/loading state instead of crashing the app.
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(menuQueryOptions);
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

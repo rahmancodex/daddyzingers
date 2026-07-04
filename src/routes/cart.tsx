@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { cartActions, useCart, useCartTotal, drawerActions } from "@/lib/store";
 import { checkoutActions, computeTotals, useCheckout, type DeliveryMethod } from "@/lib/checkout-store";
 import { validateCoupon } from "@/lib/coupons";
-import { formatPKR } from "@/lib/menu-data";
+import { formatPKR } from "@/lib/menu";
 import { useState } from "react";
 import { toast } from "sonner";
 

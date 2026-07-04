@@ -6,7 +6,7 @@ import { OrderHeader } from "@/components/order/OrderHeader";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { formatPKR } from "@/lib/menu-data";
+import { formatPKR } from "@/lib/menu";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/order-success/$number")({
