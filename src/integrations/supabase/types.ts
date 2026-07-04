@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      branches: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          delivery_available: boolean
+          delivery_charges: number | null
+          delivery_radius_km: number | null
+          email: string | null
+          estimated_delivery_minutes: number | null
+          google_maps_link: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          manager_name: string | null
+          minimum_order: number | null
+          name: string
+          opening_hours: Json
+          phone: string | null
+          pickup_available: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          delivery_available?: boolean
+          delivery_charges?: number | null
+          delivery_radius_km?: number | null
+          email?: string | null
+          estimated_delivery_minutes?: number | null
+          google_maps_link?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          minimum_order?: number | null
+          name: string
+          opening_hours?: Json
+          phone?: string | null
+          pickup_available?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          delivery_available?: boolean
+          delivery_charges?: number | null
+          delivery_radius_km?: number | null
+          email?: string | null
+          estimated_delivery_minutes?: number | null
+          google_maps_link?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_name?: string | null
+          minimum_order?: number | null
+          name?: string
+          opening_hours?: Json
+          phone?: string | null
+          pickup_available?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coupon_redemptions: {
         Row: {
           coupon_id: string
@@ -573,6 +645,54 @@ export type Database = {
           starts_at?: string | null
           subtitle?: string | null
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_settings: {
+        Row: {
+          brand_assets: Json
+          business_hours: Json
+          contact_info: Json
+          created_at: string
+          delivery_settings: Json
+          id: string
+          maintenance_mode: Json
+          restaurant_info: Json
+          seo_settings: Json
+          singleton: boolean
+          social_media: Json
+          tax_settings: Json
+          updated_at: string
+        }
+        Insert: {
+          brand_assets?: Json
+          business_hours?: Json
+          contact_info?: Json
+          created_at?: string
+          delivery_settings?: Json
+          id?: string
+          maintenance_mode?: Json
+          restaurant_info?: Json
+          seo_settings?: Json
+          singleton?: boolean
+          social_media?: Json
+          tax_settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          brand_assets?: Json
+          business_hours?: Json
+          contact_info?: Json
+          created_at?: string
+          delivery_settings?: Json
+          id?: string
+          maintenance_mode?: Json
+          restaurant_info?: Json
+          seo_settings?: Json
+          singleton?: boolean
+          social_media?: Json
+          tax_settings?: Json
           updated_at?: string
         }
         Relationships: []
