@@ -74,7 +74,7 @@ function CartPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <OrderHeader />
       <main className="pt-24 md:pt-28 pb-24">
         <div className="container-dz">
           <motion.div

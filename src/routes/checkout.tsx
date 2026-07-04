@@ -108,7 +108,7 @@ function CheckoutPage() {
   if (!authLoading && !user) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <OrderHeader />
         <main className="pt-28 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
             <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/10 grid place-items-center mb-6">
@@ -133,7 +133,7 @@ function CheckoutPage() {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <OrderHeader />
         <main className="pt-28 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
             <h1 className="font-display text-3xl font-extrabold">Your cart is empty</h1>
@@ -220,7 +220,7 @@ function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <OrderHeader />
       <main className="pt-24 md:pt-28 pb-32 lg:pb-24">
         <div className="container-dz">
           <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
