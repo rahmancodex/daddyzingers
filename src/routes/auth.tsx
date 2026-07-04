@@ -22,7 +22,7 @@ import { PasswordStrength } from "@/components/auth/PasswordStrength";
 import { PhoneField } from "@/components/auth/PhoneField";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+
 import { useAuth } from "@/lib/auth";
 import {
   emailSchema,
@@ -183,16 +183,16 @@ function GoogleButton() {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
-        const result = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: `${window.location.origin}/auth/callback`,
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
-        if (result.error) {
-          toast.error("Couldn't sign in with Google", { description: result.error.message });
+        if (error) {
+          toast.error("Couldn't sign in with Google", { description: error.message });
           setBusy(false);
-          return;
         }
-        if (result.redirected) return;
-        window.location.href = "/dashboard";
       }}
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
