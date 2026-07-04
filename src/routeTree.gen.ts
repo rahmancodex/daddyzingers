@@ -16,6 +16,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OrderSuccessNumberRouteImport } from './routes/order-success.$number'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
@@ -60,6 +61,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderSuccessNumberRoute = OrderSuccessNumberRouteImport.update({
+  id: '/order-success/$number',
+  path: '/order-success/$number',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/order-success/$number': typeof OrderSuccessNumberRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/order-success/$number': typeof OrderSuccessNumberRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
+  '/order-success/$number': typeof OrderSuccessNumberRoute
   '/_authenticated/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/_authenticated/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/auth/callback'
+    | '/order-success/$number'
     | '/dashboard/addresses'
     | '/dashboard/favorites'
     | '/dashboard/notifications'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/reset-password'
     | '/auth/callback'
+    | '/order-success/$number'
     | '/dashboard/addresses'
     | '/dashboard/favorites'
     | '/dashboard/notifications'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/auth/callback'
+    | '/order-success/$number'
     | '/_authenticated/dashboard/addresses'
     | '/_authenticated/dashboard/favorites'
     | '/_authenticated/dashboard/notifications'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   MenuRoute: typeof MenuRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  OrderSuccessNumberRoute: typeof OrderSuccessNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order-success/$number': {
+      id: '/order-success/$number'
+      path: '/order-success/$number'
+      fullPath: '/order-success/$number'
+      preLoaderRoute: typeof OrderSuccessNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -446,6 +466,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   MenuRoute: MenuRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  OrderSuccessNumberRoute: OrderSuccessNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

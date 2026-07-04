@@ -208,7 +208,7 @@ function CheckoutPage() {
       });
       cartActions.clear();
       checkoutActions.reset();
-      navigate({ to: "/dashboard/orders" });
+      navigate({ to: "/order-success/$number", params: { number: order.order_number } });
     } catch (err) {
       toast.error("Could not place your order", {
         description: err instanceof Error ? err.message : "Please try again.",
@@ -372,7 +372,7 @@ function Stepper({ current, onJump }: { current: StepIdx; onJump: (s: StepIdx) =
 /* -------------------- Step 1: Method -------------------- */
 
 const METHODS: { id: DeliveryMethod; label: string; desc: string; icon: React.ComponentType<{ className?: string }>; soon?: boolean }[] = [
-  { id: "delivery", label: "Delivery", desc: "18–28 min to your door", icon: Bike },
+  { id: "delivery", label: "Delivery", desc: "~29 min to your door", icon: Bike },
   { id: "pickup", label: "Pickup", desc: "Ready in ~10 minutes", icon: Store },
   { id: "dinein", label: "Dine-in", desc: "Coming soon", icon: UtensilsCrossed, soon: true },
 ];
@@ -688,11 +688,10 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function estWindow(method: DeliveryMethod, lines: number) {
+function estWindow(method: DeliveryMethod, _lines: number) {
   if (method === "pickup") return "in 10–15 min";
   if (method === "dinein") return "on arrival";
-  const base = 18 + Math.min(15, lines * 2);
-  return `in ${base}–${base + 10} min`;
+  return "in ~29 min";
 }
 
 /* -------------------- Order Summary -------------------- */
