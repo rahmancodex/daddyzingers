@@ -158,18 +158,8 @@ function MenuPage() {
     drawerActions.open(item);
   };
 
-  const quickAdd = (item: MenuItem) => {
-    cartActions.add({
-      item,
-      qty: 1,
-      customizationIds: [],
-      upgradeIds: [],
-      notes: "",
-    });
-    toast.success(`${item.name} added`, {
-      description: `${formatPKR(item.price)} · Ready in ~${item.prepTime} min`,
-    });
-  };
+
+
 
 
   const scrollToCategory = (id: MenuCategory) => {
