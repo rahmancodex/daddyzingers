@@ -107,20 +107,21 @@ export function Navbar() {
           <Button variant="ghost" size="icon" aria-label="Search" onClick={() => searchActions.open()}>
             <Search className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            aria-label="Cart"
-            onClick={() => cartToast(count, total)}
-          >
-            <ShoppingBag className="h-4 w-4" />
-            {count > 0 && (
-              <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">
-                {count}
-              </Badge>
-            )}
-          </Button>
+          <Link to="/cart" aria-label="Cart">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              aria-label="Cart"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {count > 0 && (
+                <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">
+                  {count}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           {user ? (
             <Link to="/dashboard" className="ml-1">
               <Button variant="ghost" size="sm" className="gap-2 pl-1 pr-3">
