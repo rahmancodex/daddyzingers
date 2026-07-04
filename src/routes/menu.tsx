@@ -28,7 +28,6 @@ import {
   type MenuItem,
 } from "@/lib/menu-data";
 import {
-  cartActions,
   drawerActions,
   favoriteActions,
   useFavorites,
