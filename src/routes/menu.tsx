@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Search,
   X,
@@ -16,7 +17,6 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
-import { ProductDrawer } from "@/components/site/ProductDrawer";
 import { Button } from "@/components/ui/button";
 import {
   CATEGORIES,
@@ -27,6 +27,12 @@ import {
   type MenuCategory,
   type MenuItem,
 } from "@/lib/menu-data";
+import {
+  cartActions,
+  drawerActions,
+  favoriteActions,
+  useFavorites,
+} from "@/lib/store";
 import heroBurger from "@/assets/hero-burger.jpg";
 
 export const Route = createFileRoute("/menu")({
