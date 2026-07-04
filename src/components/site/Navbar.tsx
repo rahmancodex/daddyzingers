@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
+import { Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/site/Logo";
 
-const NAV = [
-  { label: "Home", href: "#home" },
-  { label: "Menu", href: "#menu" },
-  { label: "Deals", href: "#deals" },
-  { label: "About", href: "#why" },
-  { label: "Contact", href: "#contact" },
+type NavItem = { label: string; href?: string; to?: string };
+const NAV: NavItem[] = [
+  { label: "Home", to: "/" },
+  { label: "Menu", to: "/menu" },
+  { label: "Deals", href: "/#deals" },
+  { label: "About", href: "/#why" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export function Navbar() {
@@ -35,27 +38,39 @@ export function Navbar() {
       }`}
     >
       <div className="container-dz flex items-center justify-between h-16 md:h-20">
-        <a href="#home" className="flex items-center gap-2 group">
-          <div className="relative h-10 w-10 rounded-xl bg-primary grid place-items-center shadow-[var(--shadow-glow)] group-hover:scale-105 transition-transform">
-            <Flame className="h-5 w-5 text-primary-foreground" />
+        <Link to="/" hash="home" className="flex items-center gap-2.5 group">
+          <div className="relative h-11 w-11 rounded-xl bg-brand-black grid place-items-center overflow-hidden shadow-[var(--shadow-glow)] group-hover:scale-105 transition-transform">
+            <Logo className="h-9 w-9 object-contain" />
           </div>
           <div className="leading-tight">
             <div className="font-display text-lg font-extrabold tracking-tight">Daddy Zinger</div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">Crafted crave</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">Choice of the family</div>
           </div>
-        </a>
+        </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
-          {NAV.map((n) => (
-            <a
-              key={n.label}
-              href={n.href}
-              className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
-            >
-              {n.label}
-              <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
-            </a>
-          ))}
+          {NAV.map((n) =>
+            n.to ? (
+              <Link
+                key={n.label}
+                to={n.to}
+                className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
+                activeProps={{ className: "text-foreground" }}
+              >
+                {n.label}
+                <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+              </Link>
+            ) : (
+              <a
+                key={n.label}
+                href={n.href}
+                className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
+              >
+                {n.label}
+                <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+              </a>
+            )
+          )}
         </nav>
 
         <div className="hidden md:flex items-center gap-1.5">
@@ -69,9 +84,11 @@ export function Navbar() {
           <Button variant="ghost" size="sm" className="gap-1.5">
             <User className="h-4 w-4" /> Login
           </Button>
-          <Button className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] ml-2 font-semibold">
-            Order Now
-          </Button>
+          <Link to="/menu">
+            <Button className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] ml-2 font-semibold">
+              Order Now
+            </Button>
+          </Link>
         </div>
 
         <button
@@ -93,16 +110,27 @@ export function Navbar() {
             className="lg:hidden overflow-hidden border-t border-border bg-background/95 backdrop-blur-xl"
           >
             <div className="container-dz py-4 flex flex-col gap-1">
-              {NAV.map((n) => (
-                <a
-                  key={n.label}
-                  href={n.href}
-                  onClick={() => setOpen(false)}
-                  className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
-                >
-                  {n.label}
-                </a>
-              ))}
+              {NAV.map((n) =>
+                n.to ? (
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
+                  >
+                    {n.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={n.label}
+                    href={n.href}
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
+                  >
+                    {n.label}
+                  </a>
+                )
+              )}
               <div className="flex gap-2 pt-3">
                 <Button variant="outline" className="flex-1"><User className="h-4 w-4" />Login</Button>
                 <Button className="flex-1 bg-primary text-primary-foreground">Order Now</Button>

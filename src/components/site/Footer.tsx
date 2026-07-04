@@ -1,4 +1,5 @@
-import { Flame, Instagram, Facebook, Twitter, Youtube, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { Instagram, Facebook, Twitter, Youtube, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { Logo } from "@/components/site/Logo";
 
 const COLS = [
   {
@@ -23,9 +24,9 @@ export function Footer() {
         <div className="grid lg:grid-cols-[1.4fr_2fr_1.2fr] gap-12 pb-12 border-b border-white/10">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2 mb-5">
-              <div className="h-10 w-10 rounded-xl bg-primary grid place-items-center shadow-[var(--shadow-glow)]">
-                <Flame className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="h-11 w-11 rounded-xl bg-brand-black grid place-items-center overflow-hidden shadow-[var(--shadow-glow)]">
+                <Logo className="h-9 w-9 object-contain" />
               </div>
               <div className="font-display text-xl font-extrabold">Daddy Zinger</div>
             </div>

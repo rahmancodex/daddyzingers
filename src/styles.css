@@ -328,3 +328,12 @@
     radial-gradient(oklch(0 0 0 / 0.025) 1px, transparent 1px);
   background-size: 4px 4px;
 }
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
