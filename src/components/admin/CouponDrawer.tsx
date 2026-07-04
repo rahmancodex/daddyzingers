@@ -66,8 +66,7 @@ export function CouponDrawer({ open, onOpenChange, initial, onSaved }: Props) {
   }, [open, initial]);
 
   const mut = useMutation({
-    mutationFn: (v: Parameters<typeof adminUpsertCoupon>[0]["data"]) =>
-      upsert({ data: v }),
+    mutationFn: (v: Record<string, unknown>) => upsert({ data: v as never }),
     onSuccess: () => {
       toast.success(initial?.id ? "Coupon updated" : "Coupon created");
       onSaved();
