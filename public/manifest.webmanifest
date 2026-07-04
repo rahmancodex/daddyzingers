@@ -1,0 +1,19 @@
+{
+  "name": "Daddy Zinger",
+  "short_name": "Daddy Zinger",
+  "description": "Premium Pakistani fast-food. Order online for pickup or delivery.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f0e",
+  "theme_color": "#0f0f0e",
+  "categories": ["food", "shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

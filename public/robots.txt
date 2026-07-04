@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /auth
+Disallow: /auth/
+Disallow: /checkout
+Disallow: /cart
+Disallow: /reset-password
+Disallow: /order-success
+
+Sitemap: https://daddyzingers.lovable.app/sitemap.xml
