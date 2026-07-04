@@ -133,8 +133,9 @@ export function Hero() {
               <Zap className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Avg. delivery</div>
-              <div className="text-sm font-bold">18 min</div>
+              <div className="text-xs text-muted-foreground">Est. delivery</div>
+              <div className="text-sm font-bold">29 minutes</div>
+
             </div>
           </motion.div>
 
