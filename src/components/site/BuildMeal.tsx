@@ -182,8 +182,6 @@ export function BuildMeal() {
                       cartActions.add({
                         item: menuItem,
                         qty: 1,
-                        customizationIds: [],
-                        upgradeIds: [],
                         notes: "",
                       });
                       added++;
