@@ -149,7 +149,7 @@ export function GlobalProductDrawer() {
     <Sheet open={open} onOpenChange={(v) => !v && drawerActions.close()}>
       <SheetContent
         side="right"
-        className="p-0 w-full sm:max-w-md md:max-w-lg bg-background border-l border-border flex flex-col h-full [&>button]:hidden"
+        className="p-0 w-full sm:max-w-md md:max-w-lg lg:max-w-xl bg-background border-l border-border flex flex-col h-full [&>button]:hidden"
       >
         {item && (
           <>
