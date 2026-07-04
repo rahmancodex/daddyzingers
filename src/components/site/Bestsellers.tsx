@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MENU, formatPKR, type MenuItem } from "@/lib/menu-data";
 import {
-  cartActions,
   drawerActions,
   favoriteActions,
   useFavorites,
@@ -26,19 +25,11 @@ const ITEMS: MenuItem[] = BESTSELLER_IDS
 export function Bestsellers() {
   const favs = useFavorites();
 
-  const quickAdd = (item: MenuItem, e: React.MouseEvent) => {
+  const openCustomize = (item: MenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    cartActions.add({
-      item,
-      qty: 1,
-      customizationIds: [],
-      upgradeIds: [],
-      notes: "",
-    });
-    toast.success(`${item.name} added`, {
-      description: `${formatPKR(item.price)} · Ready in ~${item.prepTime} min`,
-    });
+    drawerActions.open(item);
   };
+
 
   const toggleFav = (item: MenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -125,7 +116,7 @@ export function Bestsellers() {
                     </div>
                     <Button
                       size="sm"
-                      onClick={(e) => quickAdd(item, e)}
+                      onClick={(e) => openCustomize(item, e)}
                       className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] gap-1 h-9 rounded-full font-semibold"
                     >
                       <Plus className="h-4 w-4" /> Add

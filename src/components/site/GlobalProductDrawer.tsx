@@ -394,8 +394,22 @@ export function GlobalProductDrawer() {
                       {related.map((r) => (
                         <button
                           key={r.id}
-                          onClick={() => drawerActions.swap(r)}
-                          className="group text-left rounded-xl overflow-hidden border border-border bg-card hover:shadow-[var(--shadow-card-hover)] transition-all"
+                          onClick={() => {
+                            // Save current customized product to cart BEFORE swapping
+                            // so no in-progress work is silently discarded.
+                            cartActions.add({
+                              item,
+                              qty,
+                              customizationIds: [...selectedCustom],
+                              upgradeIds: [...selectedUpgrades],
+                              notes,
+                            });
+                            toast.success(`${item.name} added`, {
+                              description: `Opening ${r.name}…`,
+                            });
+                            drawerActions.swap(r);
+                          }}
+                          className="group text-left rounded-xl overflow-hidden border border-border bg-card hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 transition-all"
                         >
                           <div className="aspect-square overflow-hidden bg-secondary">
                             <img
