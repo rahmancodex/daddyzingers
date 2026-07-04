@@ -171,6 +171,28 @@ export function BuildMeal() {
                 </div>
                 <Button
                   disabled={chosenCount < 4}
+                  onClick={() => {
+                    if (chosenCount < 4) return;
+                    let added = 0;
+                    STEPS.forEach((step) => {
+                      const opt = sel[step.key];
+                      if (!opt || !opt.itemId) return;
+                      const menuItem = MENU.find((m) => m.id === opt.itemId);
+                      if (!menuItem) return;
+                      cartActions.add({
+                        item: menuItem,
+                        qty: 1,
+                        customizationIds: [],
+                        upgradeIds: [],
+                        notes: "",
+                      });
+                      added++;
+                    });
+                    toast.success("Your combo is in the cart", {
+                      description: `${added} item${added !== 1 ? "s" : ""} · Rs ${total}`,
+                    });
+                    setSel({});
+                  }}
                   className="w-full h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] font-semibold disabled:opacity-40"
                 >
                   {chosenCount < 4 ? `Pick ${4 - chosenCount} more` : "Add meal to cart"}
