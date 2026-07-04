@@ -253,7 +253,7 @@ export const adminUpdateCustomerLoyalty = createServerFn({ method: "POST" })
       patch.daddy_pass_renews_at = data.daddy_pass_renews_at;
     if (data.admin_notes !== undefined) patch.admin_notes = data.admin_notes;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await supabase.from("profiles").update(patch).eq("id", data.id);
+    const { error } = await supabase.from("profiles").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
