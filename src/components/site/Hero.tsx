@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ShoppingBag, ChevronDown, Leaf, ShieldCheck, Zap, Sparkles } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import heroBurger from "@/assets/hero-burger.jpg";
