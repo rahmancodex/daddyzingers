@@ -6,7 +6,7 @@ import heroBurger from "@/assets/hero-burger.jpg";
 
 export function DownloadApp() {
   return (
-    <section className="py-24 md:py-32 bg-secondary text-secondary-foreground relative overflow-hidden">
+    <section className="py-16 md:py-24 bg-secondary text-secondary-foreground relative overflow-hidden">
       <div className="absolute inset-0 opacity-40" style={{ background: "var(--gradient-radial-glow)" }} aria-hidden />
       <div className="container-dz relative grid lg:grid-cols-2 gap-16 items-center">
         <div>

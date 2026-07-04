@@ -17,7 +17,7 @@ export function Reviews() {
   const next = () => setI((v) => (v + 1) % REVIEWS.length);
 
   return (
-    <section className="py-24 md:py-32 bg-surface">
+    <section className="py-16 md:py-24 bg-surface">
       <div className="container-dz">
         <div className="max-w-2xl mb-14">
           <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-3">06 — Reviews</div>
