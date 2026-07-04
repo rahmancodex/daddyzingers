@@ -132,6 +132,15 @@ export const checkoutActions = {
   setPayment(p: CheckoutState["paymentMethod"]) {
     setState({ paymentMethod: p });
   },
+  setUseNewAddress(v: boolean) {
+    setState({ useNewAddress: v });
+  },
+  setNewAddress(patch: Partial<NewAddressDraft>) {
+    setState({ newAddress: { ...state.newAddress, ...patch } });
+  },
+  resetNewAddress() {
+    setState({ newAddress: EMPTY_NEW_ADDRESS, useNewAddress: false });
+  },
   reset() {
     setState(DEFAULT);
   },
