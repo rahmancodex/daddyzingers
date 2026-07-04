@@ -223,29 +223,29 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* HEADER */}
-              <div className="px-5 pt-5 md:px-6 md:pt-6">
-                <div className="flex items-start justify-between gap-3">
+              <div className="px-5 pt-5 md:px-7 md:pt-7">
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="font-display text-2xl md:text-[28px] font-extrabold tracking-tight leading-tight">
+                    <h2 className="font-display text-[22px] md:text-[28px] font-extrabold tracking-tight leading-[1.15]">
                       {item.name}
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                    <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                       {item.shortDescription}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-xl md:text-2xl font-extrabold text-primary tabular-nums">
+                    <div className="text-xl md:text-2xl font-extrabold text-primary tabular-nums leading-none">
                       {formatPKR(unitPrice)}
                     </div>
                     {addonsTotal > 0 && (
-                      <div className="text-[11px] text-muted-foreground line-through tabular-nums">
+                      <div className="mt-1 text-[11px] text-muted-foreground line-through tabular-nums">
                         {formatPKR(basePrice)}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-4 flex flex-wrap gap-1.5">
                   <MetaChip icon={<Star className="h-3 w-3 fill-primary text-primary" />}>
                     {item.rating} · {item.reviews.toLocaleString()}
                   </MetaChip>
@@ -255,7 +255,7 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* OPTION GROUPS */}
-              <div className="px-5 md:px-6 py-5 space-y-5">
+              <div className="px-5 md:px-7 py-6 space-y-6">
                 {groups.map((g) => (
                   <OptionGroupBlock
                     key={g.id}
