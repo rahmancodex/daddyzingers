@@ -55,7 +55,8 @@ import {
   formatPKR,
   initialsFrom,
 } from "@/lib/admin-customers";
-import { STATUS_LABEL, STATUS_STYLE, type AdminOrderStatus } from "@/lib/admin-orders";
+import { STATUS_LABEL, STATUS_STYLE } from "@/lib/admin-orders";
+import type { AdminOrderStatus } from "@/lib/admin-orders.functions";
 
 type Props = {
   open: boolean;
@@ -353,10 +354,10 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
                                 <Badge
                                   className={cn(
                                     "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                    statusStyle(o.status as never),
+                                    STATUS_STYLE[o.status as AdminOrderStatus],
                                   )}
                                 >
-                                  {statusLabel(o.status as never)}
+                                  {STATUS_LABEL[o.status as AdminOrderStatus]}
                                 </Badge>
                               </td>
                               <td className="px-2 py-3 text-xs capitalize text-muted-foreground">
