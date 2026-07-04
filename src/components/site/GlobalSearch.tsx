@@ -40,16 +40,19 @@ export function GlobalSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const results = useMemo(() => {
+  const menu = useMenuItems();
+  const results = useMemo<MenuItem[]>(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return [] as typeof MENU;
-    return MENU.filter(
-      (m) =>
-        m.name.toLowerCase().includes(s) ||
-        m.shortDescription.toLowerCase().includes(s) ||
-        m.ingredients.some((i) => i.toLowerCase().includes(s)),
-    ).slice(0, 8);
-  }, [q]);
+    if (!s) return [];
+    return menu
+      .filter(
+        (m) =>
+          m.name.toLowerCase().includes(s) ||
+          m.shortDescription.toLowerCase().includes(s) ||
+          m.ingredients.some((i) => i.toLowerCase().includes(s)),
+      )
+      .slice(0, 8);
+  }, [q, menu]);
 
   const commitRecent = (term: string) => {
     const next = [term, ...recent.filter((r) => r.toLowerCase() !== term.toLowerCase())].slice(0, 6);
