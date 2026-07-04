@@ -78,12 +78,33 @@ async function logAudit(params: {
 export const adminMe = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+    let { data, error } = await context.supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
-    const roles = ((data ?? []).map((r: any) => r.role) as AppRole[]).filter(Boolean);
+    let roles = ((data ?? []).map((r: any) => r.role) as AppRole[]).filter(Boolean);
+
+    // Bootstrap: if no Owner exists anywhere and this user has no role, grant Owner.
+    if (roles.length === 0) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { count } = await supabaseAdmin
+        .from("user_roles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "owner");
+      if ((count ?? 0) === 0) {
+        await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id: context.userId, role: "owner", assigned_by: context.userId });
+        await supabaseAdmin.from("staff_profiles").upsert({
+          user_id: context.userId,
+          status: "active",
+          created_by: context.userId,
+        });
+        roles = ["owner"];
+      }
+    }
+
     const top = roles.length
       ? [...roles].sort((a, b) => ROLE_ORDER[a] - ROLE_ORDER[b])[0]
       : null;
