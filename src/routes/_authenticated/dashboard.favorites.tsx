@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { formatPKR, MENU } from "@/lib/menu-data";
+import { formatPKR, useMenuData } from "@/lib/menu";
 import { drawerActions } from "@/lib/store";
 import { EmptyState, PageHeader, SkeletonBlock } from "@/components/dashboard/shared";
 
