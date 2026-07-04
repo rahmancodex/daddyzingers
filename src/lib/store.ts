@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { MENU, type MenuItem } from "./menu-data";
+import type { MenuItem } from "./menu";
 
 /* ============================================================ */
 /*  A tiny global store with localStorage persistence.          */
