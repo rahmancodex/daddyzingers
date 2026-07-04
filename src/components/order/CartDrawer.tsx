@@ -115,10 +115,10 @@ export function CartDrawer() {
         ) : (
           <>
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              {/* Method */}
+              {/* Order summary: method + branch + eta */}
               <div className="p-4 md:p-5 border-b border-border">
                 <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">
-                  How would you like it?
+                  Order type
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {METHODS.map((m) => {
@@ -140,14 +140,24 @@ export function CartDrawer() {
                     );
                   })}
                 </div>
-                <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5 text-primary" />
-                  Estimated {checkout.method === "pickup" ? "pickup" : "delivery"} in{" "}
-                  <span className="font-semibold text-foreground">
-                    {checkout.method === "pickup" ? "~10 min" : `${branch.etaMin}–${branch.etaMax} min`}
-                  </span>
+                <div className="mt-3 rounded-xl bg-secondary/60 border border-border p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                      {checkout.method === "pickup" ? "Pickup branch" : checkout.method === "dinein" ? "Dine-in branch" : "Delivering from"}
+                    </div>
+                    <div className="font-display font-bold text-sm truncate">{branch.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{branch.address}</div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Estimated ready</div>
+                    <div className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                      <Clock className="h-3.5 w-3.5" />
+                      {checkout.method === "pickup" ? "~10 min" : `${branch.etaMin}–${branch.etaMax} min`}
+                    </div>
+                  </div>
                 </div>
               </div>
+
 
               {/* Items */}
               <ul className="divide-y divide-border">
