@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminPlaceholder } from "@/components/admin/AdminPlaceholder";
+import { MenuContent } from "@/components/admin/MenuContent";
 
 export const Route = createFileRoute("/admin/menu")({
   ssr: false,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin/menu")({
   }),
   component: () => (
     <AdminShell>
-      <AdminPlaceholder
-        title="Menu"
-        description="Manage menu items, sizes, options and availability."
-      />
+      <MenuContent />
     </AdminShell>
   ),
 });
