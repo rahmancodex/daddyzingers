@@ -302,7 +302,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
+function SignUpForm({ onNeedsVerification }: { onNeedsVerification: (email: string) => void }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
