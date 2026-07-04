@@ -169,6 +169,14 @@ function AuthPage() {
             onBack={() => setMode("phone")}
           />
         )}
+
+        {mode === "verify" && (
+          <VerifyEmailStep
+            key="verify"
+            email={verifyEmail}
+            onBack={() => setMode("auth")}
+          />
+        )}
       </AnimatePresence>
     </AuthShell>
   );
