@@ -42,6 +42,7 @@ const STEPS = [
 ] as const;
 
 export function BuildMeal() {
+  const { byId } = useMenuData();
   const [sel, setSel] = useState<Record<string, Opt | undefined>>({});
 
   const total = useMemo(
