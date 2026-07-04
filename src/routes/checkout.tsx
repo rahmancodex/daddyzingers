@@ -82,12 +82,26 @@ function CheckoutPage() {
 
   const placeOrderFn = useServerFn(placeOrder);
 
-  // Redirect if cart empty
+  // Auto-populate contact phone from the signed-in user's profile so the
+  // Place Order button doesn't silently stay disabled.
   useEffect(() => {
-    if (cart.length === 0 && !placing) {
-      // keep it non-blocking: user gets a nudge on the page
+    if (!user || checkout.contactPhone.trim().length >= 8) return;
+    const metaPhone = (user.user_metadata?.phone as string | undefined)?.trim();
+    if (metaPhone && metaPhone.length >= 8) {
+      checkoutActions.setContact({ contactPhone: metaPhone });
+      return;
     }
-  }, [cart.length, placing]);
+    supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const p = (data?.phone ?? "").trim();
+        if (p.length >= 8) checkoutActions.setContact({ contactPhone: p });
+      });
+  }, [user, checkout.contactPhone]);
+
 
   // Auth gate — render inline sign-in prompt
   if (!authLoading && !user) {
@@ -251,21 +265,30 @@ function CheckoutPage() {
                     Continue <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
-                  <Button
-                    onClick={handlePlace}
-                    disabled={!canPlace || placing}
-                    className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold h-12 px-6"
-                  >
-                    {placing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing order…
-                      </>
-                    ) : (
-                      <>
-                        Place order · {formatPKR(totals.total)}
-                      </>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <Button
+                      onClick={handlePlace}
+                      disabled={!canPlace || placing}
+                      className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold h-12 px-6"
+                    >
+                      {placing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing order…
+                        </>
+                      ) : (
+                        <>Place order · {formatPKR(totals.total)}</>
+                      )}
+                    </Button>
+                    {!canPlace && !placing && (
+                      <p className="text-[11px] text-destructive">
+                        {checkout.method === "delivery" && !checkout.selectedAddressId
+                          ? "Select a delivery address to continue"
+                          : checkout.contactPhone.trim().length < 8
+                            ? "Add a valid phone number (Step 2) to continue"
+                            : "Add an item to continue"}
+                      </p>
                     )}
-                  </Button>
+                  </div>
                 )}
               </div>
             </div>

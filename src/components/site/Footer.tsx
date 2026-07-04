@@ -96,13 +96,13 @@ export function Footer() {
         {/* Top: brand + branches highlight */}
         <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] pb-12 border-b border-white/10">
           <div>
-            <Link to="/" className="inline-flex items-center gap-3 mb-5 group">
-              <div className="h-14 w-14 rounded-2xl bg-brand-black grid place-items-center overflow-hidden shadow-[var(--shadow-glow)] ring-1 ring-primary/30 group-hover:scale-105 transition-transform">
-                <Logo className="h-11 w-11 object-contain" />
+            <Link to="/" className="inline-flex items-center gap-3 mb-5 group" aria-label="Daddy Zinger — Home">
+              <div className="h-16 w-16 rounded-2xl overflow-hidden ring-1 ring-primary/30 shadow-[var(--shadow-glow)] group-hover:scale-[1.04] transition-transform">
+                <Logo className="h-full w-full object-cover" />
               </div>
               <div>
                 <div className="font-display text-2xl font-extrabold tracking-tight">Daddy Zinger</div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-white/50">Choice of the family</div>
+                <div className="text-[10px] uppercase tracking-[0.28em] text-white/50">Choice of the family</div>
               </div>
             </Link>
             <p className="text-white/65 text-sm md:text-base leading-relaxed max-w-md">
