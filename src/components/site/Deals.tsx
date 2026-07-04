@@ -57,27 +57,28 @@ export function Deals() {
   const c = useCountdown(6);
 
   return (
-    <section id="deals" className="py-24 md:py-32 bg-surface">
+    <section id="deals" className="py-16 md:py-24 bg-surface">
       <div className="container-dz">
-        <div className="grid lg:grid-cols-[1fr_auto] items-end gap-8 mb-12">
+        <div className="grid lg:grid-cols-[1fr_auto] items-end gap-6 md:gap-8 mb-8 md:mb-12">
           <div>
-            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-3">04 — Limited time</div>
-            <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight max-w-2xl">
+            <div className="text-[10px] md:text-xs uppercase tracking-[0.25em] text-muted-foreground mb-2 md:mb-3">04 — Limited time</div>
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight max-w-2xl">
               Deals that end<br />
               <span className="text-gradient-brand">before your hunger.</span>
             </h2>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl bg-background border border-border px-5 py-4 shadow-[var(--shadow-2)]">
-            <div className="h-10 w-10 rounded-full bg-primary grid place-items-center">
+          <div className="flex items-center gap-3 md:gap-4 rounded-2xl bg-background border border-border px-4 py-3 md:px-5 md:py-4 shadow-[var(--shadow-2)]">
+            <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary grid place-items-center shrink-0">
               <Clock className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2" suppressHydrationWarning>
               <CountdownUnit value={c.h} label="Hours" />
               <CountdownUnit value={c.m} label="Min" />
               <CountdownUnit value={c.s} label="Sec" />
             </div>
           </div>
         </div>
+
 
         <div className="grid md:grid-cols-3 gap-6">
           {DEALS.map((d, i) => (
