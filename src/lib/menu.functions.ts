@@ -66,11 +66,12 @@ function publicClientCandidates(): PublicClientCandidate[] {
   const seen = new Set<string>();
   const candidates: PublicClientCandidate[] = [];
   for (const pair of envPairs) {
-    if (!pair.url || !pair.key) continue;
-    const fingerprint = `${pair.url}\n${pair.key}`;
+    const { label, url, key } = pair;
+    if (!url || !key) continue;
+    const fingerprint = `${url}\n${key}`;
     if (seen.has(fingerprint)) continue;
     seen.add(fingerprint);
-    candidates.push({ ...pair, supabase: createPublicClient(pair.url, pair.key) });
+    candidates.push({ label, url, key, supabase: createPublicClient(url, key) });
   }
 
   if (!candidates.length) {
