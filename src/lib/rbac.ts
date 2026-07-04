@@ -155,4 +155,6 @@ export const ROUTE_PERMISSION: Record<string, Permission> = {
   "/admin/settings": "settings.manage",
   "/admin/staff": "staff.view",
   "/admin/audit-logs": "audit.view",
+  "/admin/production": "production.manage",
+
 };
