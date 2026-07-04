@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Navbar } from "@/components/site/Navbar";
-import { Hero } from "@/components/site/Hero";
+import { OrderingExperience } from "@/components/order/OrderingExperience";
 import { Categories } from "@/components/site/Categories";
 import { Bestsellers } from "@/components/site/Bestsellers";
 import { WhyUs } from "@/components/site/WhyUs";
@@ -31,10 +30,12 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <Navbar />
-      <main>
-        <Hero />
+    <div className="min-h-dvh bg-background text-foreground pb-20 md:pb-0">
+      {/* Ordering experience (same as /menu) */}
+      <OrderingExperience />
+
+      {/* Marketing sections below */}
+      <div>
         <Categories />
         <Bestsellers />
         <WhyUs />
@@ -43,7 +44,8 @@ function Home() {
         <Reviews />
         <Gallery />
         <DownloadApp />
-      </main>
+      </div>
+
       <Footer />
     </div>
   );
