@@ -19,7 +19,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { formatPKR, MENU } from "@/lib/menu-data";
+import { formatPKR, useMenuItems } from "@/lib/menu";
 import { drawerActions } from "@/lib/store";
 import {
   ProgressRing,
