@@ -265,21 +265,30 @@ function CheckoutPage() {
                     Continue <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
-                  <Button
-                    onClick={handlePlace}
-                    disabled={!canPlace || placing}
-                    className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold h-12 px-6"
-                  >
-                    {placing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing order…
-                      </>
-                    ) : (
-                      <>
-                        Place order · {formatPKR(totals.total)}
-                      </>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <Button
+                      onClick={handlePlace}
+                      disabled={!canPlace || placing}
+                      className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold h-12 px-6"
+                    >
+                      {placing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing order…
+                        </>
+                      ) : (
+                        <>Place order · {formatPKR(totals.total)}</>
+                      )}
+                    </Button>
+                    {!canPlace && !placing && (
+                      <p className="text-[11px] text-destructive">
+                        {checkout.method === "delivery" && !checkout.selectedAddressId
+                          ? "Select a delivery address to continue"
+                          : checkout.contactPhone.trim().length < 8
+                            ? "Add a valid phone number (Step 2) to continue"
+                            : "Add an item to continue"}
+                      </p>
                     )}
-                  </Button>
+                  </div>
                 )}
               </div>
             </div>
