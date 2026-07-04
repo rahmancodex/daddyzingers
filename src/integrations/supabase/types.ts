@@ -14,6 +14,348 @@ export type Database = {
   }
   public: {
     Tables: {
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          discount_pkr: number
+          id: string
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          discount_pkr: number
+          id?: string
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          discount_pkr?: number
+          id?: string
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          branch_id: string | null
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          expires_at: string | null
+          flat_pkr: number | null
+          id: string
+          is_active: boolean
+          label: string
+          max_discount_pkr: number | null
+          min_subtotal_pkr: number
+          per_user_limit: number
+          percent: number | null
+          starts_at: string | null
+          updated_at: string
+          usage_count: number
+          usage_limit: number | null
+        }
+        Insert: {
+          branch_id?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: string
+          expires_at?: string | null
+          flat_pkr?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+          max_discount_pkr?: number | null
+          min_subtotal_pkr?: number
+          per_user_limit?: number
+          percent?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Update: {
+          branch_id?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          expires_at?: string | null
+          flat_pkr?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_discount_pkr?: number | null
+          min_subtotal_pkr?: number
+          per_user_limit?: number
+          percent?: number | null
+          starts_at?: string | null
+          updated_at?: string
+          usage_count?: number
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
+      menu_categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          label: string
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id: string
+          image_url?: string | null
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      menu_item_sizes: {
+        Row: {
+          id: string
+          item_id: string
+          label: string
+          price_pkr: number
+          size_key: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          label: string
+          price_pkr: number
+          size_key: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          label?: string
+          price_pkr?: number
+          size_key?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_sizes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_items: {
+        Row: {
+          allergens: string[]
+          calories: number
+          category_id: string
+          created_at: string
+          gallery_urls: string[]
+          id: string
+          image_url: string | null
+          ingredients: string[]
+          is_available: boolean
+          is_bestseller: boolean
+          is_featured: boolean
+          is_hidden: boolean
+          long_description: string | null
+          name: string
+          prep_time_min: number
+          price_pkr: number
+          rating: number
+          reviews_count: number
+          short_description: string | null
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string[]
+          calories?: number
+          category_id: string
+          created_at?: string
+          gallery_urls?: string[]
+          id: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_available?: boolean
+          is_bestseller?: boolean
+          is_featured?: boolean
+          is_hidden?: boolean
+          long_description?: string | null
+          name: string
+          prep_time_min?: number
+          price_pkr?: number
+          rating?: number
+          reviews_count?: number
+          short_description?: string | null
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string[]
+          calories?: number
+          category_id?: string
+          created_at?: string
+          gallery_urls?: string[]
+          id?: string
+          image_url?: string | null
+          ingredients?: string[]
+          is_available?: boolean
+          is_bestseller?: boolean
+          is_featured?: boolean
+          is_hidden?: boolean
+          long_description?: string | null
+          name?: string
+          prep_time_min?: number
+          price_pkr?: number
+          rating?: number
+          reviews_count?: number
+          short_description?: string | null
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_choices: {
+        Row: {
+          choice_key: string
+          group_id: string
+          id: string
+          label: string
+          price_delta_pkr: number
+          sort_order: number
+        }
+        Insert: {
+          choice_key: string
+          group_id: string
+          id?: string
+          label: string
+          price_delta_pkr?: number
+          sort_order?: number
+        }
+        Update: {
+          choice_key?: string
+          group_id?: string
+          id?: string
+          label?: string
+          price_delta_pkr?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_choices_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "option_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_groups: {
+        Row: {
+          category_id: string | null
+          group_key: string
+          id: string
+          is_required: boolean
+          item_id: string | null
+          label: string
+          selection_type: string
+          sort_order: number
+        }
+        Insert: {
+          category_id?: string | null
+          group_key: string
+          id?: string
+          is_required?: boolean
+          item_id?: string | null
+          label: string
+          selection_type: string
+          sort_order?: number
+        }
+        Update: {
+          category_id?: string | null
+          group_key?: string
+          id?: string
+          is_required?: boolean
+          item_id?: string | null
+          label?: string
+          selection_type?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_groups_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_groups_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           id: string
@@ -55,42 +397,66 @@ export type Database = {
       orders: {
         Row: {
           address_snapshot: Json | null
+          branch_id: string | null
+          coupon_code: string | null
           created_at: string
           delivery_fee_pkr: number
+          discount_pkr: number
+          estimated_delivery_minutes: number | null
+          fulfillment_method: string
           id: string
           notes: string | null
           order_number: string
           payment_method: string
-          status: string
+          schedule_at: string | null
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
           subtotal_pkr: number
+          tax_pkr: number
           total_pkr: number
           updated_at: string
           user_id: string
         }
         Insert: {
           address_snapshot?: Json | null
+          branch_id?: string | null
+          coupon_code?: string | null
           created_at?: string
           delivery_fee_pkr?: number
+          discount_pkr?: number
+          estimated_delivery_minutes?: number | null
+          fulfillment_method?: string
           id?: string
           notes?: string | null
           order_number?: string
           payment_method?: string
-          status?: string
+          schedule_at?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
           subtotal_pkr?: number
+          tax_pkr?: number
           total_pkr?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           address_snapshot?: Json | null
+          branch_id?: string | null
+          coupon_code?: string | null
           created_at?: string
           delivery_fee_pkr?: number
+          discount_pkr?: number
+          estimated_delivery_minutes?: number | null
+          fulfillment_method?: string
           id?: string
           notes?: string | null
           order_number?: string
           payment_method?: string
-          status?: string
+          schedule_at?: string | null
+          special_instructions?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
           subtotal_pkr?: number
+          tax_pkr?: number
           total_pkr?: number
           updated_at?: string
           user_id?: string
@@ -153,6 +519,57 @@ export type Database = {
           reward_points?: number
           total_orders?: number
           total_spend_pkr?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      promo_banners: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          cta_link: string | null
+          cta_text: string | null
+          desktop_image_url: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          mobile_image_url: string | null
+          sort_order: number
+          starts_at: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          cta_link?: string | null
+          cta_text?: string | null
+          desktop_image_url?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          mobile_image_url?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          cta_link?: string | null
+          cta_text?: string | null
+          desktop_image_url?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          mobile_image_url?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title?: string
           updated_at?: string
         }
         Relationships: []
@@ -228,7 +645,14 @@ export type Database = {
       generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      order_status:
+        | "pending"
+        | "confirmed"
+        | "preparing"
+        | "ready"
+        | "out_for_delivery"
+        | "delivered"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -355,6 +779,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: [
+        "pending",
+        "confirmed",
+        "preparing",
+        "ready",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+      ],
+    },
   },
 } as const
