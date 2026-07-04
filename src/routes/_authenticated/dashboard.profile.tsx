@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Cake, Check, Copy, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PageHeader } from "./dashboard.orders";
+import { PageHeader, SectionHeader } from "@/components/dashboard/shared";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profile")({
   head: () => ({ meta: [{ title: "Profile — Daddy Zinger" }] }),
@@ -18,39 +18,50 @@ export const Route = createFileRoute("/_authenticated/dashboard/profile")({
 
 const schema = z.object({
   full_name: z.string().trim().min(2, "Enter your name").max(80),
-  phone: z
-    .string()
-    .trim()
-    .max(20)
-    .optional()
-    .or(z.literal("")),
-  avatar_url: z
-    .string()
-    .trim()
-    .url("Enter a valid URL")
-    .max(500)
-    .optional()
-    .or(z.literal("")),
+  phone: z.string().trim().max(20).optional().or(z.literal("")),
+  avatar_url: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
+  birthday: z.string().optional().or(z.literal("")),
 });
+
+type Form = z.input<typeof schema>;
+
+type Profile = {
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  birthday: string | null;
+  referral_code: string | null;
+  favorite_category: string | null;
+};
 
 function ProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ full_name: "", phone: "", avatar_url: "" });
+  const [copied, setCopied] = useState(false);
+  const [form, setForm] = useState<Form>({
+    full_name: "",
+    phone: "",
+    avatar_url: "",
+    birthday: "",
+  });
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("full_name, phone, avatar_url")
+      .select("full_name, phone, avatar_url, birthday, referral_code, favorite_category")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
+        const p = data as Profile | null;
+        setProfile(p);
         setForm({
-          full_name: data?.full_name ?? "",
-          phone: data?.phone ?? "",
-          avatar_url: data?.avatar_url ?? "",
+          full_name: p?.full_name ?? "",
+          phone: p?.phone ?? "",
+          avatar_url: p?.avatar_url ?? "",
+          birthday: p?.birthday ?? "",
         });
         setLoading(false);
       });
@@ -65,13 +76,58 @@ function ProfilePage() {
       .join("")
       .toUpperCase() || "?";
 
-  if (loading) return <div className="h-64 rounded-2xl bg-muted/30 animate-pulse" />;
+  if (loading) {
+    return <div className="h-64 rounded-2xl bg-muted/30 animate-pulse" />;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 md:space-y-8">
       <PageHeader title="Profile" subtitle="How you appear in the Daddy Zinger family." />
+
+      {/* Banner */}
+      <section className="relative overflow-hidden rounded-3xl border border-border">
+        <div className="h-28 md:h-36 bg-gradient-to-br from-primary/40 via-primary/20 to-accent/30" />
+        <div className="relative -mt-12 md:-mt-14 px-5 md:px-7 pb-6 md:pb-7 flex flex-col md:flex-row md:items-end gap-4 md:gap-6 bg-card">
+          <Avatar className="h-24 w-24 md:h-28 md:w-28 ring-4 ring-card shadow-[var(--shadow-2)]">
+            <AvatarImage src={form.avatar_url || undefined} alt="" />
+            <AvatarFallback className="bg-primary/15 text-primary font-bold text-2xl">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1 pt-2 md:pt-0">
+            <div className="font-display text-2xl font-extrabold truncate">
+              {form.full_name || user?.email?.split("@")[0]}
+            </div>
+            <div className="text-sm text-muted-foreground truncate">{user?.email}</div>
+            {profile?.referral_code && (
+              <div className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                Referral code:
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(profile.referral_code!);
+                      setCopied(true);
+                      toast.success("Code copied");
+                      setTimeout(() => setCopied(false), 1500);
+                    } catch {
+                      toast.error("Couldn't copy");
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 font-mono font-semibold text-foreground hover:border-primary/40 transition-colors"
+                >
+                  {profile.referral_code}
+                  {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Edit profile */}
       <form
-        className="rounded-2xl border border-border bg-card p-6 space-y-5 max-w-2xl"
+        className="rounded-2xl border border-border bg-card p-5 md:p-7 space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!user) return;
@@ -84,6 +140,7 @@ function ProfilePage() {
               full_name: parsed.data.full_name,
               phone: parsed.data.phone || null,
               avatar_url: parsed.data.avatar_url || null,
+              birthday: parsed.data.birthday || null,
             })
             .eq("id", user.id);
           setSaving(false);
@@ -91,51 +148,88 @@ function ProfilePage() {
           toast.success("Profile updated");
         }}
       >
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 ring-2 ring-primary/30">
-            <AvatarImage src={form.avatar_url || undefined} alt="" />
-            <AvatarFallback className="bg-primary/15 text-primary font-bold text-lg">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <Label>Avatar URL</Label>
-            <Input
-              value={form.avatar_url}
-              onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
-              placeholder="https://…"
-              className="mt-1"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Paste a link to an image. Uploads coming soon.
+        <SectionHeader title="Edit profile" kicker="Personal" />
+
+        <div className="space-y-1.5">
+          <Label>Avatar URL</Label>
+          <Input
+            value={form.avatar_url}
+            onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+            placeholder="https://…"
+            className="h-11"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Paste a link to an image. Uploads coming soon.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label>Full name</Label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                required
+                className="pl-9 h-11"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Birthday</Label>
+            <div className="relative">
+              <Cake className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={form.birthday ?? ""}
+                onChange={(e) => setForm({ ...form, birthday: e.target.value })}
+                className="pl-9 h-11"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input value={user?.email ?? ""} disabled className="pl-9 h-11 opacity-70" />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Email changes require verification.
             </p>
           </div>
-        </div>
-        <div className="space-y-1">
-          <Label>Full name</Label>
-          <Input
-            value={form.full_name}
-            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            required
-          />
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label>Email</Label>
-            <Input value={user?.email ?? ""} disabled className="opacity-70" />
-            <p className="text-[11px] text-muted-foreground">Email changes require verification.</p>
-          </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <Label>Phone</Label>
-            <Input
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="03xx xxxxxxx"
-            />
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={form.phone ?? ""}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="03xx xxxxxxx"
+                className="pl-9 h-11"
+              />
+            </div>
           </div>
         </div>
-        <div className="pt-2">
-          <Button type="submit" disabled={saving}>
+
+        {profile?.favorite_category && (
+          <div className="rounded-xl border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+            Your most-ordered category:{" "}
+            <span className="font-semibold text-foreground capitalize">
+              {profile.favorite_category}
+            </span>
+          </div>
+        )}
+
+        <div className="pt-1">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="h-11 px-6 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] font-semibold"
+          >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
           </Button>
         </div>
