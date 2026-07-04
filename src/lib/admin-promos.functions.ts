@@ -2,6 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// All admin CRUD needs to see inactive/expired/scheduled rows too, so we use
+// the service-role client (RLS bypassed). Access is still gated by
+// requireSupabaseAuth — callers must be a signed-in admin user.
+
+async function admin() {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
+}
+
 // ------------------------------------------------------------------
 // Coupons
 // ------------------------------------------------------------------
@@ -25,8 +34,9 @@ const CouponInputSchema = z.object({
 
 export const adminListCoupons = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .handler(async () => {
+    const supabase = await admin();
+    const { data, error } = await supabase
       .from("coupons")
       .select(
         "id,code,label,description,discount_type,percent,flat_pkr,max_discount_pkr,min_subtotal_pkr,usage_limit,per_user_limit,usage_count,starts_at,expires_at,is_active,created_at,updated_at",
@@ -39,7 +49,8 @@ export const adminListCoupons = createServerFn({ method: "GET" })
 export const adminUpsertCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => CouponInputSchema.parse(raw))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
+    const supabase = await admin();
     const payload = {
       code: data.code.trim().toUpperCase(),
       label: data.label.trim(),
@@ -56,14 +67,11 @@ export const adminUpsertCoupon = createServerFn({ method: "POST" })
       is_active: data.is_active,
     };
     if (data.id) {
-      const { error } = await context.supabase
-        .from("coupons")
-        .update(payload)
-        .eq("id", data.id);
+      const { error } = await supabase.from("coupons").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabase
       .from("coupons")
       .insert(payload)
       .select("id")
@@ -77,8 +85,9 @@ export const adminToggleCoupon = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) =>
     z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(raw),
   )
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+  .handler(async ({ data }) => {
+    const supabase = await admin();
+    const { error } = await supabase
       .from("coupons")
       .update({ is_active: data.is_active })
       .eq("id", data.id);
@@ -89,8 +98,9 @@ export const adminToggleCoupon = createServerFn({ method: "POST" })
 export const adminDeleteCoupon = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("coupons").delete().eq("id", data.id);
+  .handler(async ({ data }) => {
+    const supabase = await admin();
+    const { error } = await supabase.from("coupons").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -115,8 +125,9 @@ const BannerInputSchema = z.object({
 
 export const adminListBanners = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
+  .handler(async () => {
+    const supabase = await admin();
+    const { data, error } = await supabase
       .from("promo_banners")
       .select(
         "id,title,subtitle,cta_text,cta_link,desktop_image_url,mobile_image_url,sort_order,starts_at,ends_at,is_active,created_at,updated_at",
@@ -129,7 +140,8 @@ export const adminListBanners = createServerFn({ method: "GET" })
 export const adminUpsertBanner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => BannerInputSchema.parse(raw))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
+    const supabase = await admin();
     const payload = {
       title: data.title.trim(),
       subtitle: data.subtitle?.trim() || null,
@@ -143,14 +155,14 @@ export const adminUpsertBanner = createServerFn({ method: "POST" })
       is_active: data.is_active,
     };
     if (data.id) {
-      const { error } = await context.supabase
+      const { error } = await supabase
         .from("promo_banners")
         .update(payload)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await supabase
       .from("promo_banners")
       .insert(payload)
       .select("id")
@@ -164,8 +176,9 @@ export const adminToggleBanner = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) =>
     z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(raw),
   )
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+  .handler(async ({ data }) => {
+    const supabase = await admin();
+    const { error } = await supabase
       .from("promo_banners")
       .update({ is_active: data.is_active })
       .eq("id", data.id);
@@ -176,11 +189,9 @@ export const adminToggleBanner = createServerFn({ method: "POST" })
 export const adminDeleteBanner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("promo_banners")
-      .delete()
-      .eq("id", data.id);
+  .handler(async ({ data }) => {
+    const supabase = await admin();
+    const { error } = await supabase.from("promo_banners").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -188,43 +199,35 @@ export const adminDeleteBanner = createServerFn({ method: "POST" })
 export const adminReorderBanners = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) =>
-    z
-      .object({
-        ids: z.array(z.string().uuid()).min(1),
-      })
-      .parse(raw),
+    z.object({ ids: z.array(z.string().uuid()).min(1) }).parse(raw),
   )
-  .handler(async ({ data, context }) => {
-    // Bulk-update sort_order according to array position.
+  .handler(async ({ data }) => {
+    const supabase = await admin();
     await Promise.all(
       data.ids.map((id, index) =>
-        context.supabase
-          .from("promo_banners")
-          .update({ sort_order: index })
-          .eq("id", id),
+        supabase.from("promo_banners").update({ sort_order: index }).eq("id", id),
       ),
     );
     return { ok: true };
   });
 
 // ------------------------------------------------------------------
-// Promo stats for admin dashboard
+// Promo stats for the dashboard
 // ------------------------------------------------------------------
 
 export const adminPromoStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const nowIso = new Date().toISOString();
-    const { data: coupons, error: cErr } = await context.supabase
-      .from("coupons")
-      .select("id,is_active,starts_at,expires_at");
+  .handler(async () => {
+    const supabase = await admin();
+    const [{ data: coupons, error: cErr }, { data: banners, error: bErr }] =
+      await Promise.all([
+        supabase.from("coupons").select("id,is_active,starts_at,expires_at"),
+        supabase.from("promo_banners").select("id,is_active,starts_at,ends_at"),
+      ]);
     if (cErr) throw new Error(cErr.message);
-    const { data: banners, error: bErr } = await context.supabase
-      .from("promo_banners")
-      .select("id,is_active,starts_at,ends_at");
     if (bErr) throw new Error(bErr.message);
 
-    const now = new Date(nowIso);
+    const now = new Date();
     let active_coupons = 0;
     let expired_coupons = 0;
     let scheduled_promotions = 0;
