@@ -100,29 +100,59 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          birthday: string | null
           created_at: string
+          daddy_pass_renews_at: string | null
+          daddy_pass_status: string
+          favorite_category: string | null
           full_name: string | null
           id: string
+          loyalty_tier: string
           marketing_opt_in: boolean
           phone: string | null
+          referral_code: string | null
+          referral_count: number
+          reward_points: number
+          total_orders: number
+          total_spend_pkr: number
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
+          daddy_pass_renews_at?: string | null
+          daddy_pass_status?: string
+          favorite_category?: string | null
           full_name?: string | null
           id: string
+          loyalty_tier?: string
           marketing_opt_in?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referral_count?: number
+          reward_points?: number
+          total_orders?: number
+          total_spend_pkr?: number
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
+          daddy_pass_renews_at?: string | null
+          daddy_pass_status?: string
+          favorite_category?: string | null
           full_name?: string | null
           id?: string
+          loyalty_tier?: string
           marketing_opt_in?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referral_count?: number
+          reward_points?: number
+          total_orders?: number
+          total_spend_pkr?: number
           updated_at?: string
         }
         Relationships: []
@@ -195,7 +225,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_referral_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never

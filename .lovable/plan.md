@@ -1,81 +1,106 @@
+# Phase 4A — Authentication & Customer Identity
 
-# Premium Ordering Experience Redesign
+Scope: authentication surfaces + profile foundation only. Homepage, Menu, Cart, Checkout untouched. No color/type/branding changes — reuse the existing Daddy Zinger tokens (brand black, primary red, display font) already used in `src/routes/auth.tsx`.
 
-Evolve the ordering flow (menu, header on menu/cart/checkout, drawers, cart, checkout, footer) into an app-like premium experience while preserving the existing Daddy Zinger colors, typography, logo, and homepage branding.
+## 1. Audit (what exists today)
 
-## Scope boundaries
-- **Untouched**: Homepage sections (Hero, Bestsellers, Deals, Categories, BuildMeal, WhyUs, Reviews, Gallery, DownloadApp), design tokens in `styles.css`, brand identity, logo asset, auth pages, dashboard pages, Supabase schema/logic.
-- **Homepage Navbar stays** the current marketing navbar. The new ordering header is scoped to ordering routes (`/menu`, `/cart`, `/checkout`).
+- `src/routes/auth.tsx` — email/password + Google via `lovable.auth.signInWithOAuth`, Tabs (signin/signup), forgot-password inline link. Good design baseline — extend, don't redesign.
+- `src/routes/auth.callback.tsx` — OAuth return.
+- `src/routes/reset-password.tsx` — password reset.
+- `src/routes/_authenticated/route.tsx` — integration-managed gate (do not touch).
+- `src/lib/auth.tsx` — `AuthProvider` with `session`, `user`, `signOut`.
+- `profiles` table: `id, full_name, avatar_url, phone, marketing_opt_in, created_at, updated_at`. `handle_new_user` trigger seeds it.
+- No phone/OTP, no birthday, no rewards/loyalty fields, no OTP UI component, no password strength meter, no welcome/onboarding screen.
 
-## 1. Ordering shell (new)
-- New `src/components/order/OrderHeader.tsx`: sticky, glass background using existing tokens. Contents:
-  - Logo (existing `Logo` component)
-  - Location selector (Popover) — Lodhran Branch (default) / Bahawalpur Branch, persisted to `localStorage` via a tiny `location-store.ts`
-  - Search food (opens existing `GlobalSearch`)
-  - Offers link → `/menu#deals`
-  - Rewards link → `/dashboard/rewards`
-  - Account (avatar dropdown → login or dashboard links, reuses `useAuth`)
-  - Cart button with live count/total → `/cart`
-- New `src/components/order/MobileBottomNav.tsx`: fixed bottom bar (Menu / Offers / Cart / Account) shown on `<md` for ordering routes only.
-- `menu.tsx`, `cart.tsx`, `checkout.tsx` render `<OrderHeader />` in place of the marketing `<Navbar />` and add bottom padding for the mobile bottom nav.
+## 2. Database (single migration)
 
-## 2. Menu page redesign (`src/routes/menu.tsx`)
-- Top: promo carousel `PromoCarousel.tsx` (embla, existing carousel primitive) with 3 slides built from existing deal art + brand gradients.
-- Layout: `md:grid md:grid-cols-[240px_1fr]` — sticky category sidebar on desktop, horizontal scroll chip strip on mobile (sticky under header).
-- Category sidebar uses `scrollspy`: highlights the section in view via IntersectionObserver; clicking scrolls with header offset.
-- Product cards redesigned in `ProductCard.tsx`:
-  - Large 4:3 image, bestseller/spicy badges, star rating (existing menu-data rating field or fallback 4.6), 1-line description, price, heart favorite (toggle with `favorites-store.ts` persisted to localStorage + optional Supabase sync if user), `Customize` primary CTA.
-  - Whole card and CTA both call `drawerActions.open(item)` (no direct add).
+Extend `profiles` — additive, nullable, safe with existing rows:
 
-## 3. Product drawer upgrade (`GlobalProductDrawer.tsx`)
-Restructure existing drawer:
-- Hero image at top (larger, gradient overlay w/ badges).
-- Sections: Description → Meal upgrades → Add-ons → Extras → Special instructions (textarea) → Quantity stepper.
-- Sticky footer: live total (already computed) + `Add to cart · PKR X` button with spring animation.
-- Preserve existing swap-on-related behavior and cart commit.
+```
+alter table public.profiles add column if not exists birthday date;
+alter table public.profiles add column if not exists avatar_url text;      -- already exists, no-op guard
+alter table public.profiles add column if not exists reward_points integer not null default 0;
+alter table public.profiles add column if not exists loyalty_tier text not null default 'bronze';
+alter table public.profiles add column if not exists daddy_pass_status text not null default 'none'; -- none | active | cancelled
+alter table public.profiles add column if not exists daddy_pass_renews_at timestamptz;
+alter table public.profiles add column if not exists referral_code text unique;
+alter table public.profiles add column if not exists referral_count integer not null default 0;
+alter table public.profiles add column if not exists total_orders integer not null default 0;
+alter table public.profiles add column if not exists total_spend_pkr integer not null default 0;
+alter table public.profiles add column if not exists favorite_category text;
+```
 
-## 4. Floating cart + Cart drawer
-- Keep `FloatingCart` but expand into a wider pill on `md+` showing item count and total (already close). On mobile hide it when the bottom nav is present (bottom nav has its own cart tab).
-- New `CartDrawer.tsx` (right-side `Sheet`): items with qty steppers, remove, recommended add-ons (top 3 sides not in cart), coupon input (uses existing `coupons.ts`), delivery estimate "≈ 29 min", totals block, "Checkout" CTA linking to `/checkout`.
-- `/cart` route keeps existing full page (works as fallback for direct nav). `FloatingCart` opens the drawer instead of navigating; nav cart button also opens drawer.
+Update `handle_new_user` to also generate a `referral_code` (short random, unique) and copy `birthday` from `raw_user_meta_data` when present. Grants already exist on `profiles` — no changes needed. Types file regenerates automatically.
 
-## 5. Checkout polish (`src/routes/checkout.tsx`)
-- Keep existing 4-step logic. Visual polish only:
-  - Progress stepper with numbered pills + connecting bar animated on step change.
-  - Method cards larger, iconized (Delivery/Pickup/Dine-in) with fee shown.
-  - Add "Estimated delivery: 29 minutes" badge in summary.
-  - Promo code inline on Review step (reuses `validateCoupon`).
-- No logic changes to `placeOrder` or checkout store.
+## 3. Reusable primitives (new)
 
-## 6. Footer
-Existing footer already contains brand, branches, hours, quick links, contact, socials. Add compact "Get the app" block (App Store / Play Store placeholder buttons using `soonToast`) above the bottom bar. That's the only footer change.
+- `src/components/auth/PasswordStrength.tsx` — 4-step meter (length, mixed case, number, symbol) + live requirement checklist.
+- `src/components/auth/PasswordField.tsx` — Input with show/hide toggle, aria-label, forwardRef.
+- `src/components/auth/PhoneField.tsx` — Pakistan-only phone input. Accepts `+92XXXXXXXXXX` or `03XXXXXXXXX`; normalizes to E.164 `+92…`. Zod schema `pkPhoneSchema` exported for reuse.
+- `src/components/auth/OtpInput.tsx` — thin wrapper over existing shadcn `InputOTP` (6 slots, auto-focus, auto-advance, paste). Countdown + Resend handled by parent.
+- `src/components/auth/AuthShell.tsx` — extracts the current split brand-panel + card layout from `auth.tsx` so signin/signup/phone/otp/welcome all share the exact same shell (spacing, ambient glows, logo, mobile fallback).
+- `src/lib/auth-schemas.ts` — Zod: `emailSchema`, `passwordSchema` (min 8 + strength), `pkPhoneSchema`, `otpSchema`, `birthdaySchema` (age ≥ 13), `registerSchema`.
 
-## 7. Mobile
-- `OrderHeader` collapses: logo + location on row 1, search + cart on row 2; offers/rewards/account move to `MobileBottomNav`.
-- All drawers use full-height sheets on mobile (`h-[92dvh]`).
-- Cart drawer becomes bottom sheet on `<md`, right sheet on `md+` (using `useIsMobile`).
-- Larger touch targets (min 44px) on all steppers/buttons in drawer + cart.
+Reuses existing shadcn primitives (Input, Label, Button, Tabs, Checkbox, InputOTP, Sonner toast) and framer-motion — no new deps.
 
-## Technical details
-- New files:
-  - `src/lib/location-store.ts` (branch selection)
-  - `src/lib/favorites-store.ts` (heart toggle w/ localStorage, optional Supabase upsert to existing `favorites` table if present; else localStorage only)
-  - `src/components/order/OrderHeader.tsx`
-  - `src/components/order/LocationSelector.tsx`
-  - `src/components/order/AccountMenu.tsx`
-  - `src/components/order/MobileBottomNav.tsx`
-  - `src/components/order/PromoCarousel.tsx`
-  - `src/components/order/CategorySidebar.tsx`
-  - `src/components/order/CategoryChips.tsx`
-  - `src/components/order/ProductCard.tsx`
-  - `src/components/order/CartDrawer.tsx`
-- Edited:
-  - `src/routes/menu.tsx`, `src/routes/cart.tsx`, `src/routes/checkout.tsx`
-  - `src/components/site/GlobalProductDrawer.tsx` (visual restructure)
-  - `src/components/site/FloatingCart.tsx` (open drawer on md, hide on mobile when bottom nav)
-  - `src/components/site/Footer.tsx` (add app download block)
-- Homepage `Navbar.tsx`: untouched. `Bestsellers.tsx` on homepage: untouched (still opens drawer as it already does).
+## 4. Auth route restructure
 
-## Non-goals
-- No new backend tables. No changes to `placeOrder`, auth, checkout store shape, or Supabase migrations.
-- No token, color, or font changes.
+Convert `src/routes/auth.tsx` into a mode-switcher (Tabs stay for Sign in / Create account; adds a "Continue with phone" secondary CTA under Google):
+
+- **Sign in**: email/password (existing) + Google (existing) + "Continue with phone" → phone step.
+- **Create account** (expanded): Full name, Email, PK phone, Password (with strength + show/hide), Confirm password, Birthday (date input, ≥13), Terms checkbox (required), Marketing opt-in (optional). On submit → `supabase.auth.signUp` with `data: { full_name, phone, birthday, marketing_opt_in }` — trigger picks them up. On successful session → `/welcome`.
+- **Phone step** (`?mode=phone`): PK phone entry → "Send code". Architecture-only: calls a stub `sendPhoneOtp` server fn that returns `{ ok: true, devHint }` and toasts "SMS provider not connected yet — architecture ready." No Supabase phone auth activation.
+- **OTP step** (`?mode=otp`): 6-digit InputOTP, 60s countdown, resend, verify stub `verifyPhoneOtp` — clearly marked as future integration.
+- **Remember me** checkbox on sign-in (Supabase JS already persists by default; when unchecked, we call `supabase.auth.signOut({ scope: 'local' })` on `beforeunload` — minimal, honest behavior).
+- Apple button rendered as disabled "Coming soon" chip alongside Google (architecture placeholder, no wiring).
+
+All transitions use framer-motion fade+slide (already in project). Reuse existing card, glow, and typography — no new colors.
+
+## 5. Welcome / onboarding route
+
+New public route `src/routes/welcome.tsx` (SSR-safe; if no session, redirect to `/auth`).
+
+- Three-step slide (framer-motion): 1) "Welcome to the family, {name}" 2) Rewards & Points intro 3) Daddy Pass coming-soon teaser card.
+- Skip + Continue buttons; final CTA → `/dashboard`.
+- Purely presentational — reads profile via existing client.
+
+## 6. Phone OTP architecture stub
+
+`src/lib/phone-otp.functions.ts`:
+
+- `sendPhoneOtp({ phone })` — validates PK phone, returns `{ ok: true, provider: 'stub' }`. Comment block documents where Twilio/Vonage/WhatsApp Cloud API would plug in.
+- `verifyPhoneOtp({ phone, code })` — accepts any 6-digit code in dev; returns `{ ok: false, reason: 'not_implemented' }` in prod so it can't be used to bypass auth. No session issued.
+
+Documented in file header as Phase-4A architecture placeholder.
+
+## 7. Session / security scaffolding (types only)
+
+`src/lib/account-security.ts` — exports TS types + stub functions for `TrustedDevice`, `LoginEvent`, `TwoFactorMethod`, `DaddyPassPlan`. No DB tables yet, no UI. Comments describe intended tables so Phase 4B can lift straight in.
+
+## 8. QA pass
+
+- Responsive check at 360, 414, 570 (current viewport), 768, 1024, 1440.
+- Keyboard tab order through every field; visible focus rings (already on shadcn Input).
+- ARIA labels on icon-only toggles (show/hide password).
+- Toasts via existing sonner.
+- Verify no changes leaked into Home / Menu / Cart / Checkout by grepping edited files.
+
+## Files
+
+**New**
+- `src/components/auth/AuthShell.tsx`
+- `src/components/auth/PasswordField.tsx`
+- `src/components/auth/PasswordStrength.tsx`
+- `src/components/auth/PhoneField.tsx`
+- `src/components/auth/OtpInput.tsx`
+- `src/lib/auth-schemas.ts`
+- `src/lib/phone-otp.functions.ts`
+- `src/lib/account-security.ts`
+- `src/routes/welcome.tsx`
+- one Supabase migration (profiles fields + trigger update)
+
+**Edited**
+- `src/routes/auth.tsx` — refactor to use AuthShell + expanded sign-up + phone/OTP mode + Apple placeholder + Remember-me.
+
+**Untouched**
+- Homepage, Menu, Cart, Checkout, existing design tokens, Supabase client files, `_authenticated` gate.
