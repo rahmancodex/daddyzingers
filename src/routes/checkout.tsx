@@ -463,10 +463,11 @@ function MethodStep() {
 
 /* -------------------- Step 2: Address -------------------- */
 
-function AddressStep() {
+function AddressStep({ bindRef }: { bindRef: React.MutableRefObject<{ prepare: () => Promise<boolean> } | null> }) {
   const { user } = useAuth();
   const checkout = useCheckout();
   const [addresses, setAddresses] = useState<Address[] | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const load = () => {
     if (!user) return;
@@ -478,13 +479,71 @@ function AddressStep() {
       .then(({ data }) => {
         const list = (data as Address[]) ?? [];
         setAddresses(list);
-        if (!checkout.selectedAddressId && list.length > 0) {
+        if (list.length === 0) {
+          checkoutActions.setUseNewAddress(true);
+        } else if (!checkout.selectedAddressId && !checkout.useNewAddress) {
           const def = list.find((a) => a.is_default) ?? list[0];
           checkoutActions.setAddress(def.id);
         }
       });
   };
   useEffect(load, [user]);
+
+  // Expose a validate+save handler for the parent's Continue button.
+  useEffect(() => {
+    bindRef.current = {
+      prepare: async () => {
+        const showForm = checkout.useNewAddress || (addresses !== null && addresses.length === 0);
+        if (!showForm) {
+          if (!checkout.selectedAddressId) {
+            toast.error("Select a delivery address");
+            return false;
+          }
+          return true;
+        }
+        const d = checkout.newAddress;
+        const missing: string[] = [];
+        if (!d.recipient_name.trim()) missing.push("full name");
+        if (d.phone.trim().length < 8) missing.push("phone");
+        if (!d.address_line.trim()) missing.push("address");
+        if (!d.city.trim()) missing.push("city");
+        if (missing.length > 0) {
+          toast.error(`Please fill: ${missing.join(", ")}`);
+          return false;
+        }
+        if (!user) return false;
+        setSaving(true);
+        const { data, error } = await supabase
+          .from("user_addresses")
+          .insert({
+            user_id: user.id,
+            label: "Home",
+            recipient_name: d.recipient_name.trim(),
+            phone: d.phone.trim(),
+            address_line: d.address_line.trim(),
+            city: d.city.trim(),
+            area: d.area.trim() || null,
+            notes: d.notes.trim() || null,
+            is_default: (addresses?.length ?? 0) === 0,
+          })
+          .select("*")
+          .maybeSingle();
+        setSaving(false);
+        if (error || !data) {
+          toast.error("Could not save address", { description: error?.message });
+          return false;
+        }
+        const saved = data as Address;
+        checkoutActions.setAddress(saved.id);
+        if (d.phone.trim().length >= 8) {
+          checkoutActions.setContact({ contactPhone: d.phone.trim() });
+        }
+        checkoutActions.resetNewAddress();
+        return true;
+      },
+    };
+    return () => { bindRef.current = null; };
+  }, [bindRef, checkout.useNewAddress, checkout.selectedAddressId, checkout.newAddress, addresses, user]);
 
   if (checkout.method !== "delivery") {
     return (
@@ -494,59 +553,82 @@ function AddressStep() {
     );
   }
 
+  const showForm = checkout.useNewAddress || (addresses !== null && addresses.length === 0);
+  const hasSaved = (addresses?.length ?? 0) > 0;
+
   return (
     <Section title="Delivery address">
       {addresses === null ? (
         <div className="text-sm text-muted-foreground">Loading addresses…</div>
-      ) : addresses.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-6 text-center">
-          <MapPin className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-4">No saved addresses yet.</p>
-          <Link to="/dashboard/addresses">
-            <Button variant="outline" className="border-border">
-              <Plus className="h-4 w-4 mr-1" /> Add address
-            </Button>
-          </Link>
-        </div>
       ) : (
         <>
-          <RadioGroup
-            value={checkout.selectedAddressId ?? ""}
-            onValueChange={(v) => checkoutActions.setAddress(v)}
-            className="space-y-2"
-          >
-            {addresses.map((a) => (
-              <label
-                key={a.id}
-                htmlFor={`addr-${a.id}`}
-                className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
-                  checkout.selectedAddressId === a.id
-                    ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
-                    : "border-border hover:border-foreground/30"
-                }`}
-              >
-                <RadioGroupItem id={`addr-${a.id}`} value={a.id} className="mt-1" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display font-bold text-sm">{a.label}</span>
-                    {a.is_default && <Badge variant="outline" className="text-[10px]">Default</Badge>}
+          {hasSaved && !showForm && (
+            <RadioGroup
+              value={checkout.selectedAddressId ?? ""}
+              onValueChange={(v) => checkoutActions.setAddress(v)}
+              className="space-y-2"
+            >
+              {addresses!.map((a) => (
+                <label
+                  key={a.id}
+                  htmlFor={`addr-${a.id}`}
+                  className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition-all ${
+                    checkout.selectedAddressId === a.id
+                      ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
+                      : "border-border hover:border-foreground/30"
+                  }`}
+                >
+                  <RadioGroupItem id={`addr-${a.id}`} value={a.id} className="mt-1" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-bold text-sm">{a.label}</span>
+                      {a.is_default && <Badge variant="outline" className="text-[10px]">Default</Badge>}
+                    </div>
+                    <div className="text-sm text-foreground/80 mt-0.5">{a.address_line}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {[a.area, a.city].filter(Boolean).join(", ")}
+                    </div>
+                    {a.notes && (
+                      <div className="text-xs italic text-muted-foreground mt-1">Instructions: {a.notes}</div>
+                    )}
                   </div>
-                  <div className="text-sm text-foreground/80 mt-0.5">{a.address_line}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {[a.area, a.city].filter(Boolean).join(", ")}
-                  </div>
-                  {a.notes && (
-                    <div className="text-xs italic text-muted-foreground mt-1">Instructions: {a.notes}</div>
-                  )}
+                </label>
+              ))}
+            </RadioGroup>
+          )}
+
+          {hasSaved && !showForm && (
+            <button
+              type="button"
+              onClick={() => checkoutActions.setUseNewAddress(true)}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary hover:underline"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add new address
+            </button>
+          )}
+
+          {showForm && (
+            <div className="space-y-4">
+              {hasSaved && (
+                <button
+                  type="button"
+                  onClick={() => checkoutActions.setUseNewAddress(false)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Use a saved address
+                </button>
+              )}
+              <NewAddressForm />
+              {saving && (
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Saving address…
                 </div>
-              </label>
-            ))}
-          </RadioGroup>
-          <div className="mt-4">
-            <Link to="/dashboard/addresses" className="text-xs uppercase tracking-wider text-primary hover:underline">
-              + Manage addresses
-            </Link>
-          </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                We'll save this to your account so you can reuse it on your next order.
+              </p>
+            </div>
+          )}
         </>
       )}
 
@@ -554,6 +636,40 @@ function AddressStep() {
         <ContactFields />
       </div>
     </Section>
+  );
+}
+
+function NewAddressForm() {
+  const checkout = useCheckout();
+  const d = checkout.newAddress;
+  const set = (patch: Partial<typeof d>) => checkoutActions.setNewAddress(patch);
+  return (
+    <div className="grid sm:grid-cols-2 gap-4">
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="na-name">Full name *</Label>
+        <Input id="na-name" value={d.recipient_name} onChange={(e) => set({ recipient_name: e.target.value })} placeholder="e.g. Ali Raza" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="na-phone">Phone number *</Label>
+        <Input id="na-phone" type="tel" value={d.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="03XX-XXXXXXX" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="na-city">City *</Label>
+        <Input id="na-city" value={d.city} onChange={(e) => set({ city: e.target.value })} placeholder="Lahore" />
+      </div>
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="na-addr">Address *</Label>
+        <Input id="na-addr" value={d.address_line} onChange={(e) => set({ address_line: e.target.value })} placeholder="House / street / building" />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="na-area">Area / neighbourhood</Label>
+        <Input id="na-area" value={d.area} onChange={(e) => set({ area: e.target.value })} placeholder="DHA Phase 5" />
+      </div>
+      <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor="na-notes">Delivery notes (optional)</Label>
+        <Textarea id="na-notes" rows={2} maxLength={300} value={d.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Ring the bell twice, gate code…" />
+      </div>
+    </div>
   );
 }
 
