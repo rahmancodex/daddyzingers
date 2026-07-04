@@ -97,7 +97,7 @@ function Overview() {
   const first = (profile?.full_name || user?.email?.split("@")[0] || "").split(" ")[0];
   const points = profile?.reward_points ?? 0;
   const { current: tier, next, progress } = resolveTier(points);
-  const suggestions = MENU.filter((m) => m.tags.includes("bestseller")).slice(0, 3);
+  const suggestions = menu.filter((m) => m.isBestseller || m.tags.includes("bestseller")).slice(0, 3);
   const lastOrder = orders?.[0] ?? null;
 
   return (
