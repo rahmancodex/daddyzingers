@@ -19,8 +19,11 @@ import {
   Truck,
   Users,
   XCircle,
+  CalendarClock,
+  Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
+import { adminPromoStats } from "@/lib/admin-promos.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -144,6 +147,66 @@ function LiveStatsGrid() {
 
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {stats.map((s) => (
+        <StatCard key={s.label} stat={s} />
+      ))}
+    </div>
+  );
+}
+
+
+function PromoStatsGrid() {
+  const qc = useQueryClient();
+  const fetchStats = useServerFn(adminPromoStats);
+  const q = useQuery({
+    queryKey: ["admin", "promo-stats"],
+    queryFn: () => fetchStats({ data: undefined }),
+    refetchInterval: 60_000,
+  });
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-promos")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "coupons" },
+        () => qc.invalidateQueries({ queryKey: ["admin", "promo-stats"] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "promo_banners" },
+        () => qc.invalidateQueries({ queryKey: ["admin", "promo-stats"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+  if (q.isLoading || !q.data) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  const d = q.data;
+  const stats: Stat[] = [
+    { label: "Active Coupons", value: String(d.active_coupons), icon: Ticket, tone: "primary" },
+    { label: "Active Banners", value: String(d.active_banners), icon: ImageIcon, tone: "info" },
+    {
+      label: "Scheduled Promos",
+      value: String(d.scheduled_promotions),
+      icon: CalendarClock,
+      tone: "warning",
+    },
+    { label: "Expired Coupons", value: String(d.expired_coupons), icon: XCircle, tone: "neutral" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {stats.map((s) => (
         <StatCard key={s.label} stat={s} />
       ))}
@@ -503,6 +566,8 @@ export function AdminDashboardContent() {
       </div>
 
       <LiveStatsGrid />
+
+      <PromoStatsGrid />
 
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminPlaceholder } from "@/components/admin/AdminPlaceholder";
+import { CouponsContent } from "@/components/admin/CouponsContent";
 
 export const Route = createFileRoute("/admin/coupons")({
   ssr: false,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin/coupons")({
   }),
   component: () => (
     <AdminShell>
-      <AdminPlaceholder
-        title="Coupons"
-        description="Create and manage discount coupons and campaigns."
-      />
+      <CouponsContent />
     </AdminShell>
   ),
 });
