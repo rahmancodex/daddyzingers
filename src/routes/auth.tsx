@@ -83,6 +83,7 @@ function AuthPage() {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [mode, setMode] = useState<Mode>("auth");
   const [phone, setPhone] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState("");
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard" });
