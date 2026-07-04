@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPin, Plus, Star, Trash2, Pencil } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Briefcase,
+  Home as HomeIcon,
+  MapPin,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,10 +18,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "./dashboard.index";
-import { PageHeader } from "./dashboard.orders";
+import { EmptyState, PageHeader, SkeletonBlock } from "@/components/dashboard/shared";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard/addresses")({
   head: () => ({ meta: [{ title: "Addresses — Daddy Zinger" }] }),
@@ -41,6 +57,13 @@ const schema = z.object({
   notes: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
+function iconForLabel(label: string) {
+  const l = label.toLowerCase();
+  if (l.includes("home")) return HomeIcon;
+  if (l.includes("office") || l.includes("work")) return Briefcase;
+  return MapPin;
+}
+
 function AddressesPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState<Address[] | null>(null);
@@ -59,105 +82,160 @@ function AddressesPage() {
   useEffect(load, [user]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <PageHeader title="Address book" subtitle="Send orders to the right door, every time." />
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" /> Add address
-        </Button>
-      </div>
+    <div className="space-y-6 md:space-y-8">
+      <PageHeader
+        title="Address book"
+        subtitle="Send orders to the right door, every time."
+        action={
+          <Button
+            className="h-11 px-5 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] font-semibold"
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> Add address
+          </Button>
+        }
+      />
 
       {rows === null ? (
-        <div className="h-40 rounded-2xl bg-muted/30 animate-pulse" />
+        <div className="grid md:grid-cols-2 gap-4">
+          <SkeletonBlock className="h-40" />
+          <SkeletonBlock className="h-40" />
+        </div>
       ) : rows.length === 0 ? (
         <EmptyState
           icon={MapPin}
           title="No addresses yet"
           body="Add your home or office so checkout takes seconds."
+          cta={{ label: "Add address", to: "/dashboard/addresses" }}
         />
       ) : (
         <ul className="grid md:grid-cols-2 gap-4">
-          {rows.map((a) => (
-            <li
-              key={a.id}
-              className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{a.label}</span>
-                    {a.is_default && (
-                      <Badge className="bg-primary/15 text-primary border-primary/30">
-                        <Star className="h-3 w-3" /> Default
-                      </Badge>
+          {rows.map((a, i) => {
+            const Icon = iconForLabel(a.label);
+            return (
+              <motion.li
+                key={a.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.03 }}
+                className={cn(
+                  "relative overflow-hidden rounded-2xl border p-5 md:p-6 transition-all hover:shadow-[var(--shadow-2)]",
+                  a.is_default
+                    ? "border-primary/40 bg-gradient-to-br from-primary/10 to-transparent"
+                    : "border-border bg-card hover:border-primary/40",
+                )}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className={cn(
+                      "h-11 w-11 rounded-xl grid place-items-center shrink-0",
+                      a.is_default
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/10 text-primary",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{a.label}</span>
+                      {a.is_default && (
+                        <Badge className="bg-primary/15 text-primary border-primary/30">
+                          <Star className="h-3 w-3" /> Default
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-sm text-foreground/85 mt-1.5">
+                      {a.address_line}
+                      {a.area ? `, ${a.area}` : ""}, {a.city}
+                    </div>
+                    {a.recipient_name && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {a.recipient_name}
+                        {a.phone ? ` · ${a.phone}` : ""}
+                      </div>
+                    )}
+                    {a.notes && (
+                      <div className="mt-2 text-xs italic text-muted-foreground line-clamp-2">
+                        "{a.notes}"
+                      </div>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {a.address_line}
-                    {a.area ? `, ${a.area}` : ""}, {a.city}
-                  </div>
-                  {a.recipient_name && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {a.recipient_name}
-                      {a.phone ? ` · ${a.phone}` : ""}
-                    </div>
-                  )}
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {!a.is_default && (
+                <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-border/60">
+                  {!a.is_default && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!user) return;
+                        await supabase
+                          .from("user_addresses")
+                          .update({ is_default: false })
+                          .eq("user_id", user.id);
+                        const { error } = await supabase
+                          .from("user_addresses")
+                          .update({ is_default: true })
+                          .eq("id", a.id);
+                        if (error) return toast.error(error.message);
+                        toast.success("Default address updated");
+                        load();
+                      }}
+                    >
+                      <Star className="h-3.5 w-3.5" /> Set default
+                    </Button>
+                  )}
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditing(a);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
                     onClick={async () => {
-                      if (!user) return;
-                      await supabase
-                        .from("user_addresses")
-                        .update({ is_default: false })
-                        .eq("user_id", user.id);
                       const { error } = await supabase
                         .from("user_addresses")
-                        .update({ is_default: true })
+                        .delete()
                         .eq("id", a.id);
                       if (error) return toast.error(error.message);
-                      toast.success("Default address updated");
+                      toast.success("Address deleted");
                       load();
                     }}
                   >
-                    <Star className="h-3.5 w-3.5" /> Set default
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
                   </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setEditing(a);
-                    setDialogOpen(true);
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    const { error } = await supabase.from("user_addresses").delete().eq("id", a.id);
-                    if (error) return toast.error(error.message);
-                    toast.success("Address deleted");
-                    load();
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                </Button>
+                </div>
+              </motion.li>
+            );
+          })}
+
+          {/* Add address tile */}
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+              className="w-full h-full min-h-[188px] rounded-2xl border border-dashed border-border hover:border-primary/50 bg-card/40 hover:bg-primary/5 p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-all"
+            >
+              <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center">
+                <Plus className="h-5 w-5" />
               </div>
-            </li>
-          ))}
+              <div className="font-semibold text-sm text-foreground">Add a new address</div>
+              <div className="text-xs">Home, office or anywhere you'd like your Zinger.</div>
+            </button>
+          </li>
         </ul>
       )}
 
@@ -287,12 +365,10 @@ function AddressDialog({
               rows={2}
             />
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <Checkbox
               checked={form.is_default}
-              onChange={(e) => setForm({ ...form, is_default: e.target.checked })}
-              className="h-4 w-4 accent-[hsl(var(--primary))]"
+              onCheckedChange={(v) => setForm({ ...form, is_default: v === true })}
             />
             Make this my default address
           </label>
