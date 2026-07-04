@@ -32,6 +32,9 @@ export const BRANCHES: Branch[] = [
 ];
 
 const LS_KEY = "dz_branch_v1";
+const LS_METHOD = "dz_order_method_v1";
+
+export type OrderMethod = "delivery" | "pickup";
 
 function load(): Branch["id"] {
   if (typeof window === "undefined") return "lodhran";
@@ -44,13 +47,26 @@ function load(): Branch["id"] {
   return "lodhran";
 }
 
+function loadMethod(): OrderMethod {
+  if (typeof window === "undefined") return "delivery";
+  try {
+    const v = localStorage.getItem(LS_METHOD);
+    if (v === "delivery" || v === "pickup") return v;
+  } catch {
+    /* ignore */
+  }
+  return "delivery";
+}
+
 let currentId: Branch["id"] = load();
+let currentMethod: OrderMethod = loadMethod();
 const listeners = new Set<() => void>();
 
 function emit() {
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(LS_KEY, currentId);
+      localStorage.setItem(LS_METHOD, currentMethod);
     } catch {
       /* ignore */
     }
@@ -70,9 +86,24 @@ export function useBranch(): Branch {
   return BRANCHES.find((b) => b.id === id) ?? BRANCHES[0];
 }
 
+export function useOrderMethod(): OrderMethod {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      return () => listeners.delete(cb);
+    },
+    () => currentMethod,
+    () => "delivery" as OrderMethod,
+  );
+}
+
 export const branchActions = {
   set(id: Branch["id"]) {
     currentId = id;
+    emit();
+  },
+  setMethod(m: OrderMethod) {
+    currentMethod = m;
     emit();
   },
 };
