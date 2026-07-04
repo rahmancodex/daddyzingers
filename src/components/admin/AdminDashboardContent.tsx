@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -24,6 +26,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { adminOrderStats } from "@/lib/admin-orders.functions";
+import { formatPKR } from "@/lib/admin-orders";
 
 // -----------------------------------------------------------------------------
 // Stat cards
@@ -37,15 +43,6 @@ type Stat = {
   icon: LucideIcon;
   tone: "primary" | "success" | "warning" | "info" | "destructive" | "neutral";
 };
-
-const STATS: Stat[] = [
-  { label: "Today's Orders", value: "128", delta: "+12.4%", trend: "up", icon: ShoppingBag, tone: "primary" },
-  { label: "Revenue Today", value: "PKR 184,320", delta: "+8.1%", trend: "up", icon: DollarSign, tone: "success" },
-  { label: "Pending Orders", value: "14", delta: "3 new", trend: "up", icon: Clock, tone: "warning" },
-  { label: "Preparing", value: "22", delta: "+2", trend: "up", icon: ChefHat, tone: "info" },
-  { label: "Delivered", value: "86", delta: "+18.2%", trend: "up", icon: PackageCheck, tone: "success" },
-  { label: "Cancelled", value: "6", delta: "-1.4%", trend: "down", icon: XCircle, tone: "destructive" },
-];
 
 const TONE: Record<Stat["tone"], string> = {
   primary: "bg-primary/15 text-foreground",
@@ -91,6 +88,69 @@ function StatCard({ stat }: { stat: Stat }) {
     </div>
   );
 }
+
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-1)]">
+      <Skeleton className="h-10 w-10 rounded-xl" />
+      <Skeleton className="mt-4 h-3 w-24 rounded" />
+      <Skeleton className="mt-2 h-7 w-32 rounded" />
+    </div>
+  );
+}
+
+function LiveStatsGrid() {
+  const qc = useQueryClient();
+  const fetchStats = useServerFn(adminOrderStats);
+  const q = useQuery({
+    queryKey: ["admin", "order-stats"],
+    queryFn: () => fetchStats({ data: undefined }),
+    refetchInterval: 30_000,
+  });
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => qc.invalidateQueries({ queryKey: ["admin", "order-stats"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+  if (q.isLoading || !q.data) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  const d = q.data;
+  const stats: Stat[] = [
+    { label: "Today's Orders", value: String(d.today_orders), icon: ShoppingBag, tone: "primary" },
+    { label: "Revenue Today", value: formatPKR(d.today_revenue_pkr), icon: DollarSign, tone: "success" },
+    { label: "Pending", value: String(d.pending), icon: Clock, tone: "warning" },
+    { label: "Preparing", value: String(d.preparing + d.confirmed), icon: ChefHat, tone: "info" },
+    { label: "Delivered", value: String(d.delivered), icon: PackageCheck, tone: "success" },
+    { label: "Cancelled", value: String(d.cancelled), icon: XCircle, tone: "destructive" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {stats.map((s) => (
+        <StatCard key={s.label} stat={s} />
+      ))}
+    </div>
+  );
+}
+
 
 // -----------------------------------------------------------------------------
 // Revenue chart placeholder
@@ -442,11 +502,8 @@ export function AdminDashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {STATS.map((s) => (
-          <StatCard key={s.label} stat={s} />
-        ))}
-      </div>
+      <LiveStatsGrid />
+
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

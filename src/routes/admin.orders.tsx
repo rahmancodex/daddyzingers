@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminPlaceholder } from "@/components/admin/AdminPlaceholder";
+import { OrdersContent } from "@/components/admin/OrdersContent";
 
 export const Route = createFileRoute("/admin/orders")({
   ssr: false,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin/orders")({
   }),
   component: () => (
     <AdminShell>
-      <AdminPlaceholder
-        title="Orders"
-        description="Manage incoming, active and completed customer orders."
-      />
+      <OrdersContent />
     </AdminShell>
   ),
 });
