@@ -49,7 +49,9 @@ export type Permission =
   | "staff.view"
   | "staff.manage"
   | "audit.view"
-  | "deliveries.view";
+  | "deliveries.view"
+  | "production.manage";
+
 
 const FULL: Permission[] = [
   "dashboard.view",
