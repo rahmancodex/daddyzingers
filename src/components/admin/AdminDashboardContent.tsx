@@ -439,11 +439,8 @@ export function AdminDashboardContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {STATS.map((s) => (
-          <StatCard key={s.label} stat={s} />
-        ))}
-      </div>
+      <LiveStatsGrid />
+
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
