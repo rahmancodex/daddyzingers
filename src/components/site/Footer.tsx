@@ -141,8 +141,8 @@ export function Footer() {
         </div>
 
         {/* Middle: nav + contact */}
-        <div className="grid gap-10 md:gap-12 md:grid-cols-2 lg:grid-cols-[2fr_1.1fr] py-12 border-b border-white/10">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+        <div className="grid gap-10 md:gap-12 md:grid-cols-2 lg:grid-cols-[2fr_1.1fr] py-10 md:py-12 border-b border-white/10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8">
             {COLS.map((col) => (
               <div key={col.title}>
                 <div className="text-[10px] uppercase tracking-[0.25em] text-white/45 mb-4 font-semibold">
