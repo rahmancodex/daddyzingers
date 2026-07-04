@@ -22,7 +22,7 @@ import {
   type DeliveryMethod,
 } from "@/lib/checkout-store";
 import { validateCoupon } from "@/lib/coupons";
-import { MENU, formatPKR } from "@/lib/menu-data";
+import { formatPKR, useMenuItems } from "@/lib/menu";
 import { useBranch } from "@/lib/location-store";
 
 const METHODS: { id: DeliveryMethod; label: string; icon: React.ComponentType<{ className?: string }>; soon?: boolean }[] = [
