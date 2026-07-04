@@ -67,37 +67,45 @@ export function PromoCarousel() {
 
   return (
     <section className="relative">
-      <div className="container-dz pt-4 md:pt-6">
-        <div className="relative h-[280px] sm:h-[320px] md:h-[380px] rounded-3xl overflow-hidden border border-border bg-brand-black">
+      <div className="container-dz pt-5 md:pt-8">
+        <div className="mb-3 md:mb-4 flex items-end justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Today's offers</div>
+            <h2 className="font-display text-lg md:text-xl font-extrabold tracking-tight leading-tight mt-0.5">
+              Fresh deals, hot from the kitchen
+            </h2>
+          </div>
+        </div>
+        <div className="relative h-[168px] sm:h-[196px] md:h-[224px] rounded-2xl md:rounded-3xl overflow-hidden border border-border bg-brand-black">
           <AnimatePresence mode="wait">
             {SLIDES.map((s, i) =>
               i === index ? (
                 <motion.div
                   key={s.id}
-                  initial={{ opacity: 0, scale: 1.03 }}
+                  initial={{ opacity: 0, scale: 1.02 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.99 }}
-                  transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
+                  transition={{ duration: 0.6, ease: [0.25, 1, 0.5, 1] }}
                   className="absolute inset-0"
                 >
                   <img src={s.image} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-45" />
                   <div className={`absolute inset-0 bg-gradient-to-r ${s.accent}`} />
                   <div className="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/70 to-transparent" />
                   <div className="relative h-full flex items-center">
-                    <div className="p-6 sm:p-8 md:p-12 max-w-lg text-white">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 border border-primary/40 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-3">
+                    <div className="px-5 sm:px-7 md:px-10 py-4 max-w-lg text-white">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 border border-primary/40 text-primary text-[9px] font-bold uppercase tracking-[0.22em] mb-2">
                         <s.Icon className="h-3 w-3" /> {s.eyebrow}
                       </div>
-                      <h2 className="font-display text-2xl sm:text-3xl md:text-5xl font-extrabold leading-[1.05] tracking-tight">
+                      <h3 className="font-display text-lg sm:text-2xl md:text-3xl font-extrabold leading-[1.1] tracking-tight">
                         {s.title}
-                      </h2>
-                      <p className="mt-2 md:mt-3 text-sm md:text-base text-white/75 max-w-md">{s.subtitle}</p>
+                      </h3>
+                      <p className="mt-1 md:mt-1.5 text-xs md:text-sm text-white/75 max-w-md line-clamp-2">{s.subtitle}</p>
                       <Link
                         to={s.href}
                         hash={s.hash}
-                        className="mt-4 md:mt-6 inline-flex items-center gap-2 h-11 md:h-12 px-5 rounded-full bg-primary text-primary-foreground font-semibold text-sm md:text-base shadow-[var(--shadow-glow)] hover:scale-[1.02] transition-transform"
+                        className="mt-3 inline-flex items-center gap-1.5 h-9 md:h-10 px-4 rounded-full bg-primary text-primary-foreground font-semibold text-xs md:text-sm shadow-[var(--shadow-glow)] hover:scale-[1.02] transition-transform"
                       >
-                        {s.cta} <ArrowRight className="h-4 w-4" />
+                        {s.cta} <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
                   </div>
@@ -107,13 +115,13 @@ export function PromoCarousel() {
           </AnimatePresence>
 
           {/* Dots */}
-          <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex gap-1.5 z-10">
+          <div className="absolute bottom-3 right-3 md:bottom-4 md:right-4 flex gap-1.5 z-10">
             {SLIDES.map((s, i) => (
               <button
                 key={s.id}
                 onClick={() => setIndex(i)}
                 aria-label={`Slide ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${i === index ? "w-8 bg-primary" : "w-2 bg-white/40 hover:bg-white/70"}`}
+                className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-primary" : "w-1.5 bg-white/40 hover:bg-white/70"}`}
               />
             ))}
           </div>
