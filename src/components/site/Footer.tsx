@@ -94,7 +94,7 @@ export function Footer() {
 
       <div className="container-dz relative">
         {/* Top: brand + branches highlight */}
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] pb-12 border-b border-white/10">
+        <div className="grid gap-8 md:gap-10 lg:grid-cols-[1.2fr_1fr] pb-10 md:pb-12 border-b border-white/10">
           <div>
             <Link to="/" className="inline-flex items-center gap-3 mb-5 group" aria-label="Daddy Zinger — Home">
               <div className="h-16 w-16 rounded-2xl overflow-hidden ring-1 ring-primary/30 shadow-[var(--shadow-glow)] group-hover:scale-[1.04] transition-transform">
