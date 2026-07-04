@@ -25,19 +25,11 @@ const ITEMS: MenuItem[] = BESTSELLER_IDS
 export function Bestsellers() {
   const favs = useFavorites();
 
-  const quickAdd = (item: MenuItem, e: React.MouseEvent) => {
+  const openCustomize = (item: MenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    cartActions.add({
-      item,
-      qty: 1,
-      customizationIds: [],
-      upgradeIds: [],
-      notes: "",
-    });
-    toast.success(`${item.name} added`, {
-      description: `${formatPKR(item.price)} · Ready in ~${item.prepTime} min`,
-    });
+    drawerActions.open(item);
   };
+
 
   const toggleFav = (item: MenuItem, e: React.MouseEvent) => {
     e.stopPropagation();
