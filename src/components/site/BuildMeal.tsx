@@ -178,7 +178,7 @@ export function BuildMeal() {
                     STEPS.forEach((step) => {
                       const opt = sel[step.key];
                       if (!opt || !opt.itemId) return;
-                      const menuItem = MENU.find((m) => m.id === opt.itemId);
+                      const menuItem = byId.get(opt.itemId);
                       if (!menuItem) return;
                       cartActions.add({
                         item: menuItem,
