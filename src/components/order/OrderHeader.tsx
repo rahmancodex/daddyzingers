@@ -7,12 +7,12 @@ import { LocationSelector } from "./LocationSelector";
 import { AccountMenu } from "./AccountMenu";
 import { useCartCount, useCartTotal, cartDrawerActions } from "@/lib/store";
 import { formatPKR } from "@/lib/menu-data";
-import { branchActions, useOrderMethod } from "@/lib/location-store";
+import { checkoutActions, useCheckout } from "@/lib/checkout-store";
 
 export function OrderHeader() {
   const count = useCartCount();
   const total = useCartTotal();
-  const method = useOrderMethod();
+  const method = useCheckout().method;
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -47,13 +47,13 @@ export function OrderHeader() {
           <div className="hidden md:inline-flex items-center gap-0.5 p-1 rounded-full border border-border bg-card/70 backdrop-blur ml-2">
             <MethodBtn
               active={method === "delivery"}
-              onClick={() => branchActions.setMethod("delivery")}
+              onClick={() => checkoutActions.setMethod("delivery")}
               icon={<Bike className="h-3.5 w-3.5" />}
               label="Delivery"
             />
             <MethodBtn
               active={method === "pickup"}
-              onClick={() => branchActions.setMethod("pickup")}
+              onClick={() => checkoutActions.setMethod("pickup")}
               icon={<Store className="h-3.5 w-3.5" />}
               label="Pickup"
             />
@@ -108,14 +108,14 @@ export function OrderHeader() {
         <div className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border bg-card/70 shrink-0">
           <MethodBtn
             active={method === "delivery"}
-            onClick={() => branchActions.setMethod("delivery")}
+            onClick={() => checkoutActions.setMethod("delivery")}
             icon={<Bike className="h-3.5 w-3.5" />}
             label="Delivery"
             compact
           />
           <MethodBtn
             active={method === "pickup"}
-            onClick={() => branchActions.setMethod("pickup")}
+            onClick={() => checkoutActions.setMethod("pickup")}
             icon={<Store className="h-3.5 w-3.5" />}
             label="Pickup"
             compact
