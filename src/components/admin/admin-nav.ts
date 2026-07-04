@@ -10,8 +10,10 @@ import {
   Settings,
   ShieldCheck,
   ScrollText,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
+
 
 export type AdminNavItem = {
   label: string;
