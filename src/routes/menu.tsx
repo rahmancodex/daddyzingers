@@ -440,7 +440,7 @@ function MenuPage() {
                         fav={favs.has(item.id)}
                         onFav={() => toggleFav(item)}
                         onOpen={() => openItem(item)}
-                        onQuickAdd={() => quickAdd(item)}
+                        onQuickAdd={() => openItem(item)}
                       />
                     ))}
                   </div>
