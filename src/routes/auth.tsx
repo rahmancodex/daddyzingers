@@ -146,7 +146,7 @@ function AuthPage() {
                 <SignInForm onSuccess={() => router.navigate({ to: "/dashboard" })} />
               </TabsContent>
               <TabsContent value="signup">
-                <SignUpForm onSwitch={() => setTab("signin")} />
+                <SignUpForm onNeedsVerification={(email) => { setVerifyEmail(email); setMode("verify"); }} />
               </TabsContent>
             </Tabs>
           </motion.div>
