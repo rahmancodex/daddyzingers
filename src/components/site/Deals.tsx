@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { drawerActions } from "@/lib/store";
 import catDeals from "@/assets/cat-deals.jpg";
 import itemZinger from "@/assets/item-zinger.jpg";
 import itemChicken from "@/assets/item-chicken.jpg";
@@ -31,10 +32,21 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
-const DEALS = [
-  { title: "Family Feast", desc: "4 zingers, 10 wings, large fries, 1.5L drink.", price: 2499, old: 3400, discount: 27, img: catDeals, tone: "primary" as const },
-  { title: "Solo Crush Combo", desc: "Signature zinger, medium fries, drink.", price: 899, old: 1199, discount: 25, img: itemZinger, tone: "dark" as const },
-  { title: "Wing Wednesday", desc: "10 pcs fire-glazed wings + garlic dip.", price: 749, old: 999, discount: 25, img: itemChicken, tone: "red" as const },
+type Deal = {
+  itemId: string;
+  title: string;
+  desc: string;
+  price: number;
+  old: number;
+  discount: number;
+  img: string;
+  tone: "primary" | "dark" | "red";
+};
+
+const DEALS: Deal[] = [
+  { itemId: "zinger-platter", title: "Family Feast", desc: "Zinger Platter · 2 zingers, loaded fries, drink & dips.", price: 1290, old: 1700, discount: 24, img: catDeals, tone: "primary" },
+  { itemId: "loaded-zinger", title: "Solo Crush Combo", desc: "Loaded Zinger — cheese, jalapeños, olives, house mayo.", price: 650, old: 820, discount: 21, img: itemZinger, tone: "dark" },
+  { itemId: "hot-wings", title: "Fire Wings Wednesday", desc: "6 pcs Buffalo-style hot wings with cool ranch.", price: 420, old: 560, discount: 25, img: itemChicken, tone: "red" },
 ];
 
 export function Deals() {
