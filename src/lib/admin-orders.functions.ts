@@ -101,15 +101,11 @@ async function attachCustomers<T extends { user_id: string; address_snapshot: Js
 
   return rows.map((r) => {
     const p = pmap.get(r.user_id);
-    const snap = r.address_snapshot ?? {};
-    const snapName =
-      typeof snap === "object" && snap && "recipient_name" in snap
-        ? ((snap as Json).recipient_name as string | null | undefined)
-        : null;
-    const snapPhone =
-      typeof snap === "object" && snap && "phone" in snap
-        ? ((snap as Json).phone as string | null | undefined)
-        : null;
+    const snap = (r.address_snapshot && typeof r.address_snapshot === "object" && !Array.isArray(r.address_snapshot)
+      ? (r.address_snapshot as { [key: string]: Json | undefined })
+      : {}) as { recipient_name?: unknown; phone?: unknown };
+    const snapName = typeof snap.recipient_name === "string" ? snap.recipient_name : null;
+    const snapPhone = typeof snap.phone === "string" ? snap.phone : null;
     return {
       ...r,
       customer_name: p?.full_name ?? snapName ?? null,
