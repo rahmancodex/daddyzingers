@@ -145,7 +145,8 @@ export const placeOrder = createServerFn({ method: "POST" })
       throw new Error(itemsError.message);
     }
 
-    // Record redemption + increment usage counter (admin, since coupons is service-role only).
+    // Record redemption + bump global usage counter. Coupons is service-role
+    // only, so this must go through the admin client.
     if (couponId && discount > 0) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin.from("coupon_redemptions").insert({
@@ -154,18 +155,15 @@ export const placeOrder = createServerFn({ method: "POST" })
         order_id: order.id,
         discount_pkr: discount,
       });
-      await supabaseAdmin.rpc as unknown; // no-op guard for tree-shakers
+      const { data: current } = await supabaseAdmin
+        .from("coupons")
+        .select("usage_count")
+        .eq("id", couponId)
+        .single();
       await supabaseAdmin
         .from("coupons")
-        .update({ usage_count: (await supabaseAdmin.from("coupons").select("usage_count").eq("id", couponId).single()).data?.usage_count ?? 0 })
+        .update({ usage_count: (current?.usage_count ?? 0) + 1 })
         .eq("id", couponId);
-      // Best-effort atomic increment via SQL bump (ignore failure).
-      try {
-        await supabaseAdmin
-          .from("coupons")
-          .update({ usage_count: ((await supabaseAdmin.from("coupons").select("usage_count").eq("id", couponId).single()).data?.usage_count ?? 0) + 1 })
-          .eq("id", couponId);
-      } catch { /* ignore */ }
     }
 
     return order;
