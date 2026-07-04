@@ -4,7 +4,7 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
-import { defineLovableTanstackConfig } from "@lovable.dev/vite-tanstack-config";
+import { defineConfig as defineLovableTanstackConfig } from "@lovable.dev/vite-tanstack-config";
 
 function getServerFunctionId({ functionName }: { filename: string; functionName: string }) {
   const publicName = functionName.replace(/_createServerFn_handler(?:_\d+)?$/, "");
