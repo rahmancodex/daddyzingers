@@ -231,7 +231,15 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           password: pw.data,
         });
         setSubmitting(false);
-        if (error) return toast.error("Sign-in failed", { description: error.message });
+        if (error) {
+          const msg = error.message?.toLowerCase() ?? "";
+          if (msg.includes("confirm") || msg.includes("verif") || (error as { code?: string }).code === "email_not_confirmed") {
+            return toast.error("Email not verified", {
+              description: "Your email hasn't been verified yet. Please check your inbox and click the verification link.",
+            });
+          }
+          return toast.error("Sign-in failed", { description: error.message });
+        }
         // "Remember me" hint — session persistence is handled by the SDK;
         // if unchecked, ask the browser to drop the session on tab close.
         if (!remember) {
