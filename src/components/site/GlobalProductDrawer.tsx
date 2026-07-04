@@ -131,7 +131,7 @@ export function GlobalProductDrawer() {
       upgradeEntries,
       basePriceOverride: basePrice,
     });
-    toast.success(`${qty} × ${item.name} added to basket`, {
+    toast.success(`${qty} × ${item.name} added`, {
       description: `Subtotal ${formatPKR(subtotal)}`,
     });
     drawerActions.close();
@@ -256,8 +256,6 @@ export function GlobalProductDrawer() {
 
               {/* OPTION GROUPS */}
               <div className="px-5 md:px-6 py-5 space-y-5">
-                {item.category === "drinks" && <DrinkPicker currentId={item.id} />}
-
                 {groups.map((g) => (
                   <OptionGroupBlock
                     key={g.id}
@@ -266,7 +264,6 @@ export function GlobalProductDrawer() {
                     onToggle={(c) => toggle(g, c)}
                   />
                 ))}
-
 
                 {/* Quantity + notes */}
                 <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
@@ -351,7 +348,7 @@ export function GlobalProductDrawer() {
 
                 {related.length > 0 && (
                   <div>
-                    <SectionLabel>Pair it with</SectionLabel>
+                    <SectionLabel>You might also love</SectionLabel>
                     <div className="grid grid-cols-2 gap-2.5">
                       {related.map((r) => (
                         <button
@@ -400,7 +397,7 @@ export function GlobalProductDrawer() {
                 className="w-full h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 min-h-12"
               >
                 <ShoppingBag className="h-5 w-5" />
-                {missingRequired ? "Choose your options" : `Add to Basket · ${qty} · ${formatPKR(subtotal)}`}
+                {missingRequired ? "Select required options" : `Add ${qty} · ${formatPKR(subtotal)}`}
               </Button>
             </div>
           </>
@@ -481,42 +478,6 @@ function OptionGroupBlock({
                   +{formatPKR(c.priceDelta)}
                 </span>
               )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* -------- Drink swap picker -------- */
-function DrinkPicker({ currentId }: { currentId: string }) {
-  const drinks = MENU.filter((m) => m.category === "drinks");
-  return (
-    <div>
-      <SectionLabel>Choose Your Drink</SectionLabel>
-      <div className="-mx-1 px-1 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory">
-        {drinks.map((d) => {
-          const active = d.id === currentId;
-          return (
-            <button
-              key={d.id}
-              type="button"
-              onClick={() => !active && drawerActions.swap(d)}
-              className={`shrink-0 snap-start w-24 rounded-2xl border overflow-hidden text-left transition-all ${
-                active
-                  ? "border-primary shadow-[var(--shadow-glow)] bg-primary/5"
-                  : "border-border bg-card hover:border-foreground/25"
-              }`}
-            >
-              <div className="aspect-square bg-secondary overflow-hidden">
-                <img src={d.image} alt={d.name} loading="lazy" className="h-full w-full object-cover" />
-              </div>
-              <div className="px-2 py-1.5">
-                <div className={`text-[11px] font-semibold leading-tight truncate ${active ? "text-primary" : ""}`}>
-                  {d.name}
-                </div>
-              </div>
             </button>
           );
         })}

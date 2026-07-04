@@ -81,7 +81,7 @@ export function CartDrawer() {
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between p-4 md:p-5 border-b border-border bg-background/95 backdrop-blur-xl">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your basket</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your order</div>
             <div className="font-display font-extrabold text-lg">
               {cart.length} {cart.length === 1 ? "item" : "items"}
             </div>
@@ -103,11 +103,11 @@ export function CartDrawer() {
               </div>
               <div className="font-display font-bold text-xl">Your cart is empty</div>
               <p className="mt-1 text-sm text-muted-foreground max-w-xs mx-auto">
-                Add a Zinger, shawarma or platter — your basket will fill up here.
+                Pick a Zinger, shawarma, or platter and it'll show up here.
               </p>
               <Link to="/menu" onClick={() => cartDrawerActions.close()} className="inline-block mt-6">
                 <Button className="h-11 px-6 bg-primary text-primary-foreground shadow-[var(--shadow-glow)] font-semibold">
-                  Continue Ordering <ArrowRight className="h-4 w-4 ml-1" />
+                  Browse menu <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -115,10 +115,10 @@ export function CartDrawer() {
         ) : (
           <>
             <div className="flex-1 overflow-y-auto overscroll-contain">
-              {/* Order summary: method + branch + eta */}
+              {/* Method */}
               <div className="p-4 md:p-5 border-b border-border">
                 <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">
-                  Order type
+                  How would you like it?
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {METHODS.map((m) => {
@@ -140,24 +140,14 @@ export function CartDrawer() {
                     );
                   })}
                 </div>
-                <div className="mt-3 rounded-xl bg-secondary/60 border border-border p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                      {checkout.method === "pickup" ? "Pickup branch" : checkout.method === "dinein" ? "Dine-in branch" : "Delivering from"}
-                    </div>
-                    <div className="font-display font-bold text-sm truncate">{branch.name}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{branch.address}</div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Estimated ready</div>
-                    <div className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
-                      <Clock className="h-3.5 w-3.5" />
-                      {checkout.method === "pickup" ? "~10 min" : `${branch.etaMin}–${branch.etaMax} min`}
-                    </div>
-                  </div>
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  Estimated {checkout.method === "pickup" ? "pickup" : "delivery"} in{" "}
+                  <span className="font-semibold text-foreground">
+                    {checkout.method === "pickup" ? "~10 min" : `${branch.etaMin}–${branch.etaMax} min`}
+                  </span>
                 </div>
               </div>
-
 
               {/* Items */}
               <ul className="divide-y divide-border">
@@ -239,7 +229,7 @@ export function CartDrawer() {
               {recommended.length > 0 && (
                 <div className="p-4 md:p-5 border-t border-border bg-secondary/30">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3 flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3" /> Complete your basket
+                    <Sparkles className="h-3 w-3" /> Complete your order
                   </div>
                   <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                     {recommended.map((r) => (
@@ -320,7 +310,7 @@ export function CartDrawer() {
               </div>
               <Link to="/checkout" onClick={() => cartDrawerActions.close()}>
                 <Button className="w-full h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold">
-                  Review Checkout ·  Checkout · {formatPKR(totals.total)}
+                  Checkout · {formatPKR(totals.total)}
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
