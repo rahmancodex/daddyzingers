@@ -537,11 +537,16 @@ function ProductCard({
         </button>
 
         {/* Quick add */}
-        <div className="absolute bottom-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-          <span className="inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-[var(--shadow-glow)]">
-            <Plus className="h-4 w-4" /> Add
-          </span>
-        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuickAdd();
+          }}
+          aria-label={`Quick add ${item.name}`}
+          className="absolute bottom-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-[var(--shadow-glow)] hover:scale-105"
+        >
+          <Plus className="h-4 w-4" /> Add
+        </button>
       </div>
 
       <div className="p-4 md:p-5 space-y-2">
