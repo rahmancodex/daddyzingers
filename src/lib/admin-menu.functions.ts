@@ -506,14 +506,27 @@ export const adminDuplicateMenuItem = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!src) throw new Error("Item not found");
     const newId = await uniqueTextId(supabaseAdmin, "menu_items", `${src.name}-copy`);
-    const { id: _omit, created_at: _c, updated_at: _u, ...rest } = src as Record<string, unknown>;
-    void _omit; void _c; void _u;
     const { error: insErr } = await supabaseAdmin.from("menu_items").insert({
-      ...rest,
       id: newId,
+      category_id: src.category_id,
       name: `${src.name} (Copy)`,
+      price_pkr: src.price_pkr,
+      short_description: src.short_description,
+      long_description: src.long_description,
+      image_url: src.image_url,
+      gallery_urls: src.gallery_urls,
+      rating: src.rating,
+      reviews_count: src.reviews_count,
+      prep_time_min: src.prep_time_min,
+      calories: src.calories,
+      ingredients: src.ingredients,
+      allergens: src.allergens,
+      tags: src.tags,
+      is_available: src.is_available,
       is_featured: false,
       is_bestseller: false,
+      is_hidden: src.is_hidden,
+      sort_order: src.sort_order,
     });
     if (insErr) throw new Error(insErr.message);
 
