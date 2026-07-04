@@ -273,6 +273,7 @@ function CartPage() {
         </div>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
