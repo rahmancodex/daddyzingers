@@ -18,14 +18,14 @@ import { MobileBottomNav } from "@/components/order/MobileBottomNav";
 import { PromoCarousel } from "@/components/order/PromoCarousel";
 import { Button } from "@/components/ui/button";
 import {
-  CATEGORIES,
-  MENU,
   FILTERS,
   POPULAR_SEARCHES,
   formatPKR,
+  useMenuCategories,
+  useMenuItems,
   type MenuCategory,
   type MenuItem,
-} from "@/lib/menu-data";
+} from "@/lib/menu";
 import {
   drawerActions,
   favoriteActions,
