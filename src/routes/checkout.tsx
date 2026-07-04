@@ -208,7 +208,7 @@ function CheckoutPage() {
       });
       cartActions.clear();
       checkoutActions.reset();
-      navigate({ to: "/dashboard/orders" });
+      navigate({ to: "/order-success/$number", params: { number: order.order_number } });
     } catch (err) {
       toast.error("Could not place your order", {
         description: err instanceof Error ? err.message : "Please try again.",
