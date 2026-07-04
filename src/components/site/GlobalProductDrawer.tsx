@@ -266,13 +266,13 @@ export function GlobalProductDrawer() {
                 ))}
 
                 {/* Quantity + notes */}
-                <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-4 items-start">
                   <div>
                     <SectionLabel>Qty</SectionLabel>
-                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
                       <button
                         onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="h-9 w-9 rounded-full grid place-items-center hover:bg-secondary transition-colors disabled:opacity-40"
+                        className="h-10 w-10 rounded-full grid place-items-center hover:bg-secondary active:scale-95 transition-all disabled:opacity-40"
                         disabled={qty <= 1}
                         aria-label="Decrease"
                       >
@@ -285,14 +285,14 @@ export function GlobalProductDrawer() {
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: 6, opacity: 0 }}
                           transition={{ duration: 0.15 }}
-                          className="min-w-7 text-center font-display text-base font-bold tabular-nums"
+                          className="min-w-8 text-center font-display text-base font-bold tabular-nums"
                         >
                           {qty}
                         </motion.div>
                       </AnimatePresence>
                       <button
                         onClick={() => setQty((q) => Math.min(20, q + 1))}
-                        className="h-9 w-9 rounded-full grid place-items-center bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] transition-colors"
+                        className="h-10 w-10 rounded-full grid place-items-center bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] active:scale-95 transition-all"
                         aria-label="Increase"
                       >
                         <Plus className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function GlobalProductDrawer() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="e.g. No onions, extra crispy…"
-                      className="resize-none min-h-[64px] rounded-xl text-sm"
+                      className="resize-none min-h-[68px] rounded-xl text-sm"
                     />
                   </div>
                 </div>
