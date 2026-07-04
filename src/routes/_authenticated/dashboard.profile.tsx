@@ -38,7 +38,9 @@ function ProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Form>({
     full_name: "",
     phone: "",
@@ -66,6 +68,49 @@ function ProfilePage() {
         setLoading(false);
       });
   }, [user]);
+
+  async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      return toast.error("Please choose an image file");
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      return toast.error("Image must be under 3 MB");
+    }
+    setUploading(true);
+    // Preview immediately (revoked on unmount by browser).
+    const previewUrl = URL.createObjectURL(file);
+    setForm((f) => ({ ...f, avatar_url: previewUrl }));
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr || !signed) throw signErr ?? new Error("Could not sign URL");
+      const url = signed.signedUrl;
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", user.id);
+      if (updErr) throw updErr;
+      setForm((f) => ({ ...f, avatar_url: url }));
+      toast.success("Avatar updated");
+    } catch (err) {
+      toast.error("Upload failed", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+      setForm((f) => ({ ...f, avatar_url: profile?.avatar_url ?? "" }));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const initials =
     (form.full_name || user?.email || "?")
