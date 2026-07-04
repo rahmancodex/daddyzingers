@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminPlaceholder } from "@/components/admin/AdminPlaceholder";
+import { CategoriesContent } from "@/components/admin/CategoriesContent";
 
 export const Route = createFileRoute("/admin/categories")({
   ssr: false,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin/categories")({
   }),
   component: () => (
     <AdminShell>
-      <AdminPlaceholder
-        title="Categories"
-        description="Organize your menu into categories and sub-categories."
-      />
+      <CategoriesContent />
     </AdminShell>
   ),
 });
