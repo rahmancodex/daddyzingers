@@ -719,3 +719,92 @@ function OtpStep({ phone, onBack }: { phone: string; onBack: () => void }) {
     </motion.div>
   );
 }
+
+function VerifyEmailStep({ email, onBack }: { email: string; onBack: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [secondsLeft]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25 }}
+      className="text-center"
+    >
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+        <Mail className="h-7 w-7 text-primary" />
+      </div>
+      <h2 className="font-display text-2xl font-extrabold">Verify your email</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        We've sent a verification email to{" "}
+        <span className="font-medium text-foreground">{email}</span>. Please click
+        the verification link before signing in.
+      </p>
+
+      <div className="mt-6 grid gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 font-semibold"
+            onClick={() => window.open("https://mail.google.com", "_blank", "noopener")}
+          >
+            Open Gmail
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 font-semibold"
+            onClick={() => window.open("https://outlook.live.com/mail/", "_blank", "noopener")}
+          >
+            Open Outlook
+          </Button>
+        </div>
+
+        <Button
+          type="button"
+          disabled={resending || secondsLeft > 0}
+          className="h-11 bg-primary text-primary-foreground font-semibold hover:bg-[var(--color-primary-hover)]"
+          onClick={async () => {
+            setResending(true);
+            const { error } = await supabase.auth.resend({
+              type: "signup",
+              email,
+              options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+            });
+            setResending(false);
+            if (error) {
+              return toast.error("Couldn't resend email", { description: error.message });
+            }
+            toast.success("Verification email sent", { description: "Check your inbox." });
+            setSecondsLeft(60);
+          }}
+        >
+          {resending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : secondsLeft > 0 ? (
+            `Resend verification email (${secondsLeft}s)`
+          ) : (
+            "Resend verification email"
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-11 font-semibold"
+          onClick={onBack}
+        >
+          <ArrowLeft className="mr-1.5 h-4 w-4" /> Back to Sign In
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
