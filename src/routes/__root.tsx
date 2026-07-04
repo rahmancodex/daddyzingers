@@ -18,6 +18,7 @@ import { GlobalSearch } from "../components/site/GlobalSearch";
 import { FloatingCart } from "../components/site/FloatingCart";
 import { CartDrawer } from "../components/order/CartDrawer";
 import { AuthProvider } from "../lib/auth";
+import { menuQueryOptions } from "../lib/menu";
 
 function NotFoundComponent() {
   return (
