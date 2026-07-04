@@ -110,16 +110,27 @@ export function Navbar() {
             className="lg:hidden overflow-hidden border-t border-border bg-background/95 backdrop-blur-xl"
           >
             <div className="container-dz py-4 flex flex-col gap-1">
-              {NAV.map((n) => (
-                <a
-                  key={n.label}
-                  href={n.href}
-                  onClick={() => setOpen(false)}
-                  className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
-                >
-                  {n.label}
-                </a>
-              ))}
+              {NAV.map((n) =>
+                n.to ? (
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
+                  >
+                    {n.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={n.label}
+                    href={n.href}
+                    onClick={() => setOpen(false)}
+                    className="px-3 py-3 rounded-lg text-base font-medium hover:bg-accent"
+                  >
+                    {n.label}
+                  </a>
+                )
+              )}
               <div className="flex gap-2 pt-3">
                 <Button variant="outline" className="flex-1"><User className="h-4 w-4" />Login</Button>
                 <Button className="flex-1 bg-primary text-primary-foreground">Order Now</Button>
