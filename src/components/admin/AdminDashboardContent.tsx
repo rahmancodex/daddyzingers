@@ -406,15 +406,35 @@ function RecentOrders() {
 // Latest customers
 // -----------------------------------------------------------------------------
 
-const CUSTOMERS = [
-  { name: "Zainab Fatima", email: "zainab@example.com", orders: 12, joined: "Today" },
-  { name: "Kamran Ali", email: "kamran@example.com", orders: 4, joined: "Today" },
-  { name: "Noor Shahid", email: "noor@example.com", orders: 1, joined: "Yesterday" },
-  { name: "Rehan Qureshi", email: "rehan@example.com", orders: 8, joined: "Yesterday" },
-  { name: "Aiman Sheikh", email: "aiman@example.com", orders: 2, joined: "2d ago" },
-];
-
 function LatestCustomers() {
+  const qc = useQueryClient();
+  const fetchList = useServerFn(adminListCustomers);
+  const q = useQuery({
+    queryKey: ["admin", "customers"],
+    queryFn: () => fetchList({ data: undefined }),
+  });
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-customers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => qc.invalidateQueries({ queryKey: ["admin", "customers"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+  const rows = (q.data ?? [])
+    .slice()
+    .sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+    .slice(0, 6);
+
   return (
     <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
       <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
@@ -424,34 +444,58 @@ function LatestCustomers() {
         </div>
         <Users className="h-4 w-4 text-muted-foreground" />
       </div>
-      <ul className="divide-y divide-border/60">
-        {CUSTOMERS.map((c) => (
-          <li key={c.email} className="flex items-center gap-3 px-6 py-3">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-primary/20 text-xs font-bold">
-                {c.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{c.name}</div>
-              <div className="truncate text-xs text-muted-foreground">{c.email}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold tabular-nums">{c.orders}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {c.joined}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {q.isLoading ? (
+        <div className="space-y-3 p-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground">
+          No customers yet
+        </div>
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {rows.map((c) => {
+            const name = c.full_name ?? "Unnamed";
+            const initials = name
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase();
+            return (
+              <li key={c.id} className="flex items-center gap-3 px-6 py-3">
+                <Avatar className="h-9 w-9">
+                  {c.avatar_url && <AvatarImage src={c.avatar_url} />}
+                  <AvatarFallback className="bg-primary/20 text-xs font-bold">
+                    {initials || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold">{name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {c.email ?? c.phone ?? "—"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold tabular-nums">{c.total_orders}</div>
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {new Date(c.created_at).toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                    })}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
+
 
 // -----------------------------------------------------------------------------
 // Top selling items
