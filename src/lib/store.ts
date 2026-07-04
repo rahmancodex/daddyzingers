@@ -84,11 +84,14 @@ function subscribe(cb: () => void) {
 
 /* ---------- Selectors (with useSyncExternalStore) ---------- */
 
+const EMPTY_CART: CartLine[] = [];
+const EMPTY_STRS: string[] = [];
+
 export function useCart() {
   return useSyncExternalStore(
     subscribe,
     () => state.cart,
-    () => [] as CartLine[],
+    () => EMPTY_CART,
   );
 }
 
@@ -112,7 +115,7 @@ export function useFavorites() {
   return useSyncExternalStore(
     subscribe,
     () => state.favorites,
-    () => [] as string[],
+    () => EMPTY_STRS,
   );
 }
 
