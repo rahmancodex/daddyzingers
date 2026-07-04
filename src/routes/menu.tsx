@@ -448,8 +448,9 @@ function MenuPage() {
                         item={item}
                         index={i}
                         fav={favs.has(item.id)}
-                        onFav={() => toggleFav(item.id)}
+                        onFav={() => toggleFav(item)}
                         onOpen={() => openItem(item)}
+                        onQuickAdd={() => quickAdd(item)}
                       />
                     ))}
                   </div>
@@ -461,13 +462,6 @@ function MenuPage() {
       </main>
 
       <Footer />
-
-      <ProductDrawer
-        item={selectedItem}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSelectItem={(it) => setSelectedItem(it)}
-      />
     </div>
   );
 }
