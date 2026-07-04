@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
+import { Search, ShoppingBag, User, Menu as MenuIcon, X, LayoutDashboard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/site/Logo";
 import { searchActions, useCartCount, useCartTotal } from "@/lib/store";
 import { formatPKR } from "@/lib/menu-data";
+import { useAuth } from "@/lib/auth";
 
 type NavItem = { label: string; href?: string; to?: string };
 const NAV: NavItem[] = [
@@ -19,9 +21,7 @@ const NAV: NavItem[] = [
 ];
 
 function loginToast() {
-  toast("Sign in coming soon", {
-    description: "Accounts, saved addresses and order history are on the way.",
-  });
+  toast("Sign in to save orders, favorites and addresses.");
 }
 
 function cartToast(count: number, total: number) {
@@ -39,6 +39,15 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const count = useCartCount();
   const total = useCartTotal();
+  const { user } = useAuth();
+  const initials =
+    (user?.user_metadata?.full_name || user?.email || "?")
+      .split(/\s+/)
+      .map((s: string) => s[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -112,10 +121,26 @@ export function Navbar() {
               </Badge>
             )}
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5" onClick={loginToast}>
-            <User className="h-4 w-4" /> Login
-          </Button>
-          <Link to="/menu">
+          {user ? (
+            <Link to="/dashboard" className="ml-1">
+              <Button variant="ghost" size="sm" className="gap-2 pl-1 pr-3">
+                <Avatar className="h-7 w-7 ring-1 ring-primary/30">
+                  <AvatarImage src={user.user_metadata?.avatar_url ?? undefined} alt="" />
+                  <AvatarFallback className="bg-primary/15 text-primary text-[11px] font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden xl:inline text-sm">Dashboard</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/auth">
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <User className="h-4 w-4" /> Login
+              </Button>
+            </Link>
+          )}
+          <Link to={user ? "/menu" : "/menu"}>
             <Button className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] ml-2 font-semibold">
               Order Now
             </Button>
@@ -173,16 +198,19 @@ export function Navbar() {
                 >
                   <Search className="h-4 w-4" /> Search
                 </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setOpen(false);
-                    loginToast();
-                  }}
-                >
-                  <User className="h-4 w-4" /> Login
-                </Button>
+                <Link to={user ? "/dashboard" : "/auth"} className="flex-1" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    {user ? (
+                      <>
+                        <LayoutDashboard className="h-4 w-4" /> Dashboard
+                      </>
+                    ) : (
+                      <>
+                        <User className="h-4 w-4" /> Login
+                      </>
+                    )}
+                  </Button>
+                </Link>
               </div>
               <Link to="/menu" onClick={() => setOpen(false)}>
                 <Button className="w-full mt-1 bg-primary text-primary-foreground font-semibold">
