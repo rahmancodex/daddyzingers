@@ -1,5 +1,5 @@
-import mark from "@/assets/daddy-zinger-mark.png.asset.json";
-import fullLogo from "@/assets/daddy-zinger-logo.png.asset.json";
+const MARK_URL = "/menu/daddy-zinger-mark.png";
+const FULL_URL = "/menu/daddy-zinger-logo.png";
 
 type LogoProps = {
   variant?: "mark" | "full";
@@ -8,9 +8,9 @@ type LogoProps = {
 };
 
 export function Logo({ variant = "mark", className, alt = "Daddy Zinger" }: LogoProps) {
-  const src = variant === "full" ? fullLogo.url : mark.url;
+  const src = variant === "full" ? FULL_URL : MARK_URL;
   return <img src={src} alt={alt} className={className} loading="eager" decoding="async" />;
 }
 
-export const LOGO_MARK_URL = mark.url;
-export const LOGO_FULL_URL = fullLogo.url;
+export const LOGO_MARK_URL = MARK_URL;
+export const LOGO_FULL_URL = FULL_URL;

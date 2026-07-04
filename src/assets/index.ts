@@ -1,20 +1,10 @@
-// Auto-generated: CDN-backed image URLs. Update via lovable-assets CLI + regenerate.
-import itemZingerAsset from "./item-zinger.jpg.asset.json";
-import itemBeefAsset from "./item-beef.jpg.asset.json";
-import itemChickenAsset from "./item-chicken.jpg.asset.json";
-import itemShawarmaAsset from "./item-shawarma.jpg.asset.json";
-import catFriesAsset from "./cat-fries.jpg.asset.json";
-import catDrinksAsset from "./cat-drinks.jpg.asset.json";
-import catDealsAsset from "./cat-deals.jpg.asset.json";
-import catDessertsAsset from "./cat-desserts.jpg.asset.json";
-import heroBurgerAsset from "./hero-burger.jpg.asset.json";
-
-export const itemZinger = itemZingerAsset.url;
-export const itemBeef = itemBeefAsset.url;
-export const itemChicken = itemChickenAsset.url;
-export const itemShawarma = itemShawarmaAsset.url;
-export const catFries = catFriesAsset.url;
-export const catDrinks = catDrinksAsset.url;
-export const catDeals = catDealsAsset.url;
-export const catDesserts = catDessertsAsset.url;
-export const heroBurger = heroBurgerAsset.url;
+// Portable static asset URLs served from /public. Works on any host (Lovable, Vercel, etc.).
+export const itemZinger = "/menu/item-zinger.jpg";
+export const itemBeef = "/menu/item-beef.jpg";
+export const itemChicken = "/menu/item-chicken.jpg";
+export const itemShawarma = "/menu/item-shawarma.jpg";
+export const catFries = "/menu/cat-fries.jpg";
+export const catDrinks = "/menu/cat-drinks.jpg";
+export const catDeals = "/menu/cat-deals.jpg";
+export const catDesserts = "/menu/cat-desserts.jpg";
+export const heroBurger = "/menu/hero-burger.jpg";
