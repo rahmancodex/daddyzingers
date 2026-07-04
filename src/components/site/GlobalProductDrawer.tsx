@@ -163,9 +163,9 @@ export function GlobalProductDrawer() {
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               {/* IMAGE */}
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary">
+              <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-secondary">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={gallery[activeImage]}
