@@ -19,8 +19,11 @@ import {
   Truck,
   Users,
   XCircle,
+  CalendarClock,
+  Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
+import { adminPromoStats } from "@/lib/admin-promos.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
