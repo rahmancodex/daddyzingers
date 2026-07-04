@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
-  headline?: string;
-  subheadline?: string;
+  headline?: ReactNode;
+  subheadline?: ReactNode;
   footer?: ReactNode;
 };
 
