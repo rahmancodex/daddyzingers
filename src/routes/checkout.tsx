@@ -372,7 +372,7 @@ function Stepper({ current, onJump }: { current: StepIdx; onJump: (s: StepIdx) =
 /* -------------------- Step 1: Method -------------------- */
 
 const METHODS: { id: DeliveryMethod; label: string; desc: string; icon: React.ComponentType<{ className?: string }>; soon?: boolean }[] = [
-  { id: "delivery", label: "Delivery", desc: "18–28 min to your door", icon: Bike },
+  { id: "delivery", label: "Delivery", desc: "~29 min to your door", icon: Bike },
   { id: "pickup", label: "Pickup", desc: "Ready in ~10 minutes", icon: Store },
   { id: "dinein", label: "Dine-in", desc: "Coming soon", icon: UtensilsCrossed, soon: true },
 ];
