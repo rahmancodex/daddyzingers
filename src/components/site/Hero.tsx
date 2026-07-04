@@ -65,20 +65,24 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.45 }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <Button
-              size="lg"
-              className="h-14 px-8 text-base font-semibold bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] group"
-            >
-              <ShoppingBag className="h-5 w-5 group-hover:rotate-[-8deg] transition-transform" />
-              Order Now
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-14 px-8 text-base font-semibold border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur"
-            >
-              Explore Menu
-            </Button>
+            <Link to="/menu">
+              <Button
+                size="lg"
+                className="h-14 px-8 text-base font-semibold bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] group"
+              >
+                <ShoppingBag className="h-5 w-5 group-hover:rotate-[-8deg] transition-transform" />
+                Order Now
+              </Button>
+            </Link>
+            <Link to="/menu">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-base font-semibold border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur"
+              >
+                Explore Menu
+              </Button>
+            </Link>
           </motion.div>
 
           <motion.div
