@@ -488,3 +488,39 @@ function OptionGroupBlock({
     </div>
   );
 }
+
+/* -------- Drink swap picker -------- */
+function DrinkPicker({ currentId }: { currentId: string }) {
+  const drinks = MENU.filter((m) => m.category === "drinks");
+  return (
+    <div>
+      <SectionLabel>Choose Your Drink</SectionLabel>
+      <div className="-mx-1 px-1 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+        {drinks.map((d) => {
+          const active = d.id === currentId;
+          return (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => !active && drawerActions.swap(d)}
+              className={`shrink-0 snap-start w-24 rounded-2xl border overflow-hidden text-left transition-all ${
+                active
+                  ? "border-primary shadow-[var(--shadow-glow)] bg-primary/5"
+                  : "border-border bg-card hover:border-foreground/25"
+              }`}
+            >
+              <div className="aspect-square bg-secondary overflow-hidden">
+                <img src={d.image} alt={d.name} loading="lazy" className="h-full w-full object-cover" />
+              </div>
+              <div className="px-2 py-1.5">
+                <div className={`text-[11px] font-semibold leading-tight truncate ${active ? "text-primary" : ""}`}>
+                  {d.name}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
