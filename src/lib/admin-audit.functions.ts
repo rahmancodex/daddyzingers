@@ -26,7 +26,7 @@ async function assertCanReadAudit(context: { supabase: any; userId: string }) {
     .select("role")
     .eq("user_id", context.userId);
   const roles = (data ?? []).map((r: any) => r.role as AppRole);
-  if (!roles.some((r) => ["owner", "admin", "manager"].includes(r)))
+  if (!roles.some((r: AppRole) => ["owner", "admin", "manager"].includes(r)))
     throw new Error("Forbidden: audit logs require Owner, Admin, or Manager role.");
 }
 
