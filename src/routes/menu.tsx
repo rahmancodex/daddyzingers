@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   Search,
   X,
@@ -16,7 +17,6 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
-import { ProductDrawer } from "@/components/site/ProductDrawer";
 import { Button } from "@/components/ui/button";
 import {
   CATEGORIES,
@@ -27,6 +27,12 @@ import {
   type MenuCategory,
   type MenuItem,
 } from "@/lib/menu-data";
+import {
+  cartActions,
+  drawerActions,
+  favoriteActions,
+  useFavorites,
+} from "@/lib/store";
 import heroBurger from "@/assets/hero-burger.jpg";
 
 export const Route = createFileRoute("/menu")({
@@ -58,12 +64,23 @@ function MenuPage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [filter, setFilter] = useState<string>("popular");
-  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [recent, setRecent] = useState<string[]>([]);
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const favsList = useFavorites();
+  const favs = useMemo(() => new Set(favsList), [favsList]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingByClick = useRef(false);
+
+  // Preselect category from URL hash e.g. /menu#shawarma
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "") as MenuCategory;
+    if (CATEGORIES.some((c) => c.id === hash)) {
+      // Delay so sections have rendered
+      setTimeout(() => scrollToCategory(hash), 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   useEffect(() => {
     try {
@@ -130,18 +147,30 @@ function MenuPage() {
     return map;
   }, [filteredMenu]);
 
-  const toggleFav = (id: string) => {
-    setFavs((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const toggleFav = (item: MenuItem) => {
+    const added = favoriteActions.toggle(item.id);
+    added
+      ? toast(`❤️ Saved ${item.name}`, { description: "Added to your favorites" })
+      : toast(`Removed ${item.name}`, { description: "Taken out of favorites" });
   };
 
   const openItem = (item: MenuItem) => {
-    setSelectedItem(item);
-    setDrawerOpen(true);
+    drawerActions.open(item);
   };
+
+  const quickAdd = (item: MenuItem) => {
+    cartActions.add({
+      item,
+      qty: 1,
+      customizationIds: [],
+      upgradeIds: [],
+      notes: "",
+    });
+    toast.success(`${item.name} added`, {
+      description: `${formatPKR(item.price)} · Ready in ~${item.prepTime} min`,
+    });
+  };
+
 
   const scrollToCategory = (id: MenuCategory) => {
     setActiveCat(id);
@@ -419,8 +448,9 @@ function MenuPage() {
                         item={item}
                         index={i}
                         fav={favs.has(item.id)}
-                        onFav={() => toggleFav(item.id)}
+                        onFav={() => toggleFav(item)}
                         onOpen={() => openItem(item)}
+                        onQuickAdd={() => quickAdd(item)}
                       />
                     ))}
                   </div>
@@ -432,13 +462,6 @@ function MenuPage() {
       </main>
 
       <Footer />
-
-      <ProductDrawer
-        item={selectedItem}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSelectItem={(it) => setSelectedItem(it)}
-      />
     </div>
   );
 }
@@ -452,12 +475,14 @@ function ProductCard({
   fav,
   onFav,
   onOpen,
+  onQuickAdd,
 }: {
   item: MenuItem;
   index: number;
   fav: boolean;
   onFav: () => void;
   onOpen: () => void;
+  onQuickAdd: () => void;
 }) {
   return (
     <motion.div
@@ -512,11 +537,16 @@ function ProductCard({
         </button>
 
         {/* Quick add */}
-        <div className="absolute bottom-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-          <span className="inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-[var(--shadow-glow)]">
-            <Plus className="h-4 w-4" /> Add
-          </span>
-        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuickAdd();
+          }}
+          aria-label={`Quick add ${item.name}`}
+          className="absolute bottom-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all inline-flex items-center gap-1.5 h-10 pl-3 pr-4 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-[var(--shadow-glow)] hover:scale-105"
+        >
+          <Plus className="h-4 w-4" /> Add
+        </button>
       </div>
 
       <div className="p-4 md:p-5 space-y-2">

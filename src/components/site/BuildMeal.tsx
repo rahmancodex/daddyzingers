@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { MENU } from "@/lib/menu-data";
+import { cartActions, drawerActions } from "@/lib/store";
 import itemZinger from "@/assets/item-zinger.jpg";
 import itemBeef from "@/assets/item-beef.jpg";
 import itemShawarma from "@/assets/item-shawarma.jpg";
@@ -9,25 +12,26 @@ import catFries from "@/assets/cat-fries.jpg";
 import catDrinks from "@/assets/cat-drinks.jpg";
 import catDesserts from "@/assets/cat-desserts.jpg";
 
-type Opt = { id: string; name: string; price: number; img: string };
+type Opt = { id: string; itemId?: string; name: string; price: number; img: string };
 
 const BURGERS: Opt[] = [
-  { id: "b1", name: "Signature Zinger", price: 749, img: itemZinger },
-  { id: "b2", name: "Beef Stack", price: 1099, img: itemBeef },
-  { id: "b3", name: "Shawarma Wrap", price: 549, img: itemShawarma },
+  { id: "b-zinger", itemId: "zinger", name: "Signature Zinger", price: 490, img: itemZinger },
+  { id: "b-loaded", itemId: "loaded-zinger", name: "Loaded Zinger", price: 650, img: itemZinger },
+  { id: "b-beef", itemId: "double-patty-burger", name: "Double Patty Beef", price: 620, img: itemBeef },
+  { id: "b-wrap", itemId: "zinger-shawarma", name: "Zinger Shawarma", price: 380, img: itemShawarma },
 ];
 const FRIES: Opt[] = [
-  { id: "f1", name: "Classic Fries", price: 249, img: catFries },
-  { id: "f2", name: "Loaded Fries", price: 449, img: catFries },
+  { id: "f-classic", itemId: "french-fries", name: "Classic Fries", price: 220, img: catFries },
+  { id: "f-loaded", itemId: "loaded-fries", name: "Loaded Fries", price: 380, img: catFries },
 ];
 const DRINKS: Opt[] = [
-  { id: "d1", name: "Cola", price: 149, img: catDrinks },
-  { id: "d2", name: "Iced Tea", price: 179, img: catDrinks },
+  { id: "d-cola", name: "Cola 330ml", price: 120, img: catDrinks },
+  { id: "d-tea", name: "Iced Tea 330ml", price: 150, img: catDrinks },
 ];
 const SAUCES: Opt[] = [
-  { id: "s1", name: "Signature Sauce", price: 49, img: catDesserts },
-  { id: "s2", name: "Fire Chilli", price: 49, img: catDesserts },
-  { id: "s3", name: "Garlic Yogurt", price: 49, img: catDesserts },
+  { id: "s-mayo", name: "Garlic Mayo", price: 60, img: catDesserts },
+  { id: "s-hot", name: "Fire Chilli", price: 60, img: catDesserts },
+  { id: "s-bbq", name: "Smoky BBQ", price: 60, img: catDesserts },
 ];
 
 const STEPS = [
@@ -72,24 +76,37 @@ export function BuildMeal() {
                   {step.opts.map((o) => {
                     const active = sel[step.key]?.id === o.id;
                     return (
-                      <button
-                        key={o.id}
-                        onClick={() => setSel((s) => ({ ...s, [step.key]: active ? undefined : o }))}
-                        className={`group relative rounded-2xl overflow-hidden border-2 text-left transition-all duration-300 ${active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border hover:border-primary/40"}`}
-                      >
-                        <div className="aspect-[4/3] overflow-hidden bg-muted">
-                          <img src={o.img} alt={o.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                        <div className="p-3">
-                          <div className="font-semibold text-sm">{o.name}</div>
-                          <div className="text-xs text-muted-foreground">+ Rs {o.price}</div>
-                        </div>
-                        {active && (
-                          <div className="absolute top-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
-                            <Check className="h-4 w-4" />
+                      <div key={o.id} className="relative">
+                        <button
+                          onClick={() => setSel((s) => ({ ...s, [step.key]: active ? undefined : o }))}
+                          className={`group relative block w-full rounded-2xl overflow-hidden border-2 text-left transition-all duration-300 ${active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border hover:border-primary/40"}`}
+                        >
+                          <div className="aspect-[4/3] overflow-hidden bg-muted">
+                            <img src={o.img} alt={o.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           </div>
+                          <div className="p-3">
+                            <div className="font-semibold text-sm">{o.name}</div>
+                            <div className="text-xs text-muted-foreground">+ Rs {o.price}</div>
+                          </div>
+                          {active && (
+                            <div className="absolute top-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </button>
+                        {o.itemId && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              drawerActions.openById(o.itemId!);
+                            }}
+                            className="absolute bottom-2 right-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-background/85 border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                          >
+                            Details
+                          </button>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -154,6 +171,28 @@ export function BuildMeal() {
                 </div>
                 <Button
                   disabled={chosenCount < 4}
+                  onClick={() => {
+                    if (chosenCount < 4) return;
+                    let added = 0;
+                    STEPS.forEach((step) => {
+                      const opt = sel[step.key];
+                      if (!opt || !opt.itemId) return;
+                      const menuItem = MENU.find((m) => m.id === opt.itemId);
+                      if (!menuItem) return;
+                      cartActions.add({
+                        item: menuItem,
+                        qty: 1,
+                        customizationIds: [],
+                        upgradeIds: [],
+                        notes: "",
+                      });
+                      added++;
+                    });
+                    toast.success("Your combo is in the cart", {
+                      description: `${added} item${added !== 1 ? "s" : ""} · Rs ${total}`,
+                    });
+                    setSel({});
+                  }}
                   className="w-full h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] font-semibold disabled:opacity-40"
                 >
                   {chosenCount < 4 ? `Pick ${4 - chosenCount} more` : "Add meal to cart"}

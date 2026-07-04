@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/site/Logo";
+import { searchActions, useCartCount, useCartTotal } from "@/lib/store";
+import { formatPKR } from "@/lib/menu-data";
 
 type NavItem = { label: string; href?: string; to?: string };
 const NAV: NavItem[] = [
@@ -15,9 +18,27 @@ const NAV: NavItem[] = [
   { label: "Contact", href: "/#contact" },
 ];
 
+function loginToast() {
+  toast("Sign in coming soon", {
+    description: "Accounts, saved addresses and order history are on the way.",
+  });
+}
+
+function cartToast(count: number, total: number) {
+  if (count === 0) {
+    toast("Your cart is empty", { description: "Add something delicious from the menu." });
+  } else {
+    toast(`${count} item${count !== 1 ? "s" : ""} in cart`, {
+      description: `Subtotal ${formatPKR(total)} · Checkout coming soon`,
+    });
+  }
+}
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const count = useCartCount();
+  const total = useCartTotal();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -74,14 +95,24 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" aria-label="Search">
+          <Button variant="ghost" size="icon" aria-label="Search" onClick={() => searchActions.open()}>
             <Search className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="relative" aria-label="Cart">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            aria-label="Cart"
+            onClick={() => cartToast(count, total)}
+          >
             <ShoppingBag className="h-4 w-4" />
-            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">2</Badge>
+            {count > 0 && (
+              <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] bg-primary text-primary-foreground rounded-full">
+                {count}
+              </Badge>
+            )}
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5">
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={loginToast}>
             <User className="h-4 w-4" /> Login
           </Button>
           <Link to="/menu">
@@ -131,10 +162,33 @@ export function Navbar() {
                   </a>
                 )
               )}
-              <div className="flex gap-2 pt-3">
-                <Button variant="outline" className="flex-1"><User className="h-4 w-4" />Login</Button>
-                <Button className="flex-1 bg-primary text-primary-foreground">Order Now</Button>
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setOpen(false);
+                    searchActions.open();
+                  }}
+                >
+                  <Search className="h-4 w-4" /> Search
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setOpen(false);
+                    loginToast();
+                  }}
+                >
+                  <User className="h-4 w-4" /> Login
+                </Button>
               </div>
+              <Link to="/menu" onClick={() => setOpen(false)}>
+                <Button className="w-full mt-1 bg-primary text-primary-foreground font-semibold">
+                  Order Now {count > 0 && `· ${count}`}
+                </Button>
+              </Link>
             </div>
           </motion.div>
         )}
