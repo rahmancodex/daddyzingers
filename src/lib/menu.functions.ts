@@ -64,13 +64,14 @@ function publicClientCandidates(): PublicClientCandidate[] {
   ];
 
   const seen = new Set<string>();
-  const candidates = envPairs.flatMap((pair) => {
-    if (!pair.url || !pair.key) return [];
+  const candidates: PublicClientCandidate[] = [];
+  for (const pair of envPairs) {
+    if (!pair.url || !pair.key) continue;
     const fingerprint = `${pair.url}\n${pair.key}`;
-    if (seen.has(fingerprint)) return [];
+    if (seen.has(fingerprint)) continue;
     seen.add(fingerprint);
-    return [{ ...pair, supabase: createPublicClient(pair.url, pair.key) }];
-  });
+    candidates.push({ ...pair, supabase: createPublicClient(pair.url, pair.key) });
+  }
 
   if (!candidates.length) {
     throw new Error(
