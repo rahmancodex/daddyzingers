@@ -81,7 +81,7 @@ export function CartDrawer() {
         {/* Header */}
         <div className="shrink-0 flex items-center justify-between p-4 md:p-5 border-b border-border bg-background/95 backdrop-blur-xl">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your order</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Your basket</div>
             <div className="font-display font-extrabold text-lg">
               {cart.length} {cart.length === 1 ? "item" : "items"}
             </div>
@@ -103,11 +103,11 @@ export function CartDrawer() {
               </div>
               <div className="font-display font-bold text-xl">Your cart is empty</div>
               <p className="mt-1 text-sm text-muted-foreground max-w-xs mx-auto">
-                Pick a Zinger, shawarma, or platter and it'll show up here.
+                Add a Zinger, shawarma or platter — your basket will fill up here.
               </p>
               <Link to="/menu" onClick={() => cartDrawerActions.close()} className="inline-block mt-6">
                 <Button className="h-11 px-6 bg-primary text-primary-foreground shadow-[var(--shadow-glow)] font-semibold">
-                  Browse menu <ArrowRight className="h-4 w-4 ml-1" />
+                  Continue Ordering <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
@@ -239,7 +239,7 @@ export function CartDrawer() {
               {recommended.length > 0 && (
                 <div className="p-4 md:p-5 border-t border-border bg-secondary/30">
                   <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3 flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3" /> Complete your order
+                    <Sparkles className="h-3 w-3" /> Complete your basket
                   </div>
                   <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                     {recommended.map((r) => (
