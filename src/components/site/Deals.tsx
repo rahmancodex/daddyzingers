@@ -90,7 +90,7 @@ export function Deals() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className={`group relative text-left rounded-3xl overflow-hidden border border-border shadow-[var(--shadow-3)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              className={`group relative text-left rounded-2xl overflow-hidden border border-border shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 d.tone === "primary" ? "bg-primary text-primary-foreground" : d.tone === "dark" ? "bg-secondary text-secondary-foreground" : "bg-card"
               }`}
             >
