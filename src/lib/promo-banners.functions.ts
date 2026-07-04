@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -36,30 +36,68 @@ export type PromoBanner = {
   sort_order: number;
 };
 
-export const listActiveBanners = createServerFn({ method: "GET" }).handler(async () => {
-  const supabaseUrl =
-    process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const supabasePublishableKey =
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY;
+type PublicClientCandidate = {
+  label: "vite" | "server";
+  supabase: SupabaseClient<Database>;
+};
 
-  if (!supabaseUrl || !supabasePublishableKey) {
-    const missing = [
-      !supabaseUrl ? "SUPABASE_URL or VITE_SUPABASE_URL" : null,
-      !supabasePublishableKey ? "SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY" : null,
-    ].filter(Boolean);
-    throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}`);
-  }
-
-  const supabase = createClient<Database>(
-    supabaseUrl,
-    supabasePublishableKey,
+function createPublicClient(url: string, key: string): SupabaseClient<Database> {
+  return createClient<Database>(url, key,
     {
-      global: { fetch: createSupabaseFetch(supabasePublishableKey) },
+      global: { fetch: createSupabaseFetch(key) },
       auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     },
   );
+}
+
+function publicClientCandidates(): PublicClientCandidate[] {
+  const envPairs = [
+    {
+      label: "vite" as const,
+      url: process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL,
+      key: process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    {
+      label: "server" as const,
+      url: process.env.SUPABASE_URL,
+      key: process.env.SUPABASE_PUBLISHABLE_KEY,
+    },
+  ];
+
+  const seen = new Set<string>();
+  const candidates = envPairs.flatMap((pair) => {
+    if (!pair.url || !pair.key) return [];
+    const fingerprint = `${pair.url}\n${pair.key}`;
+    if (seen.has(fingerprint)) return [];
+    seen.add(fingerprint);
+    return [{ label: pair.label, supabase: createPublicClient(pair.url, pair.key) }];
+  });
+
+  if (!candidates.length) {
+    throw new Error(
+      "Missing Supabase environment variable pair: VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY or SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY",
+    );
+  }
+
+  return candidates;
+}
+
+export const listActiveBanners = createServerFn({ method: "GET" }).handler(async () => {
+  let lastError: Error | undefined;
+
+  for (const candidate of publicClientCandidates()) {
+    try {
+      return await loadActiveBanners(candidate.supabase);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[listActiveBanners] ${candidate.label} backend read failed`, lastError);
+    }
+  }
+
+  throw lastError ?? new Error("Failed to load promo banners");
+});
+
+async function loadActiveBanners(supabase: SupabaseClient<Database>): Promise<PromoBanner[]> {
   const { data, error } = await supabase
     .from("promo_banners")
     .select(
@@ -68,4 +106,4 @@ export const listActiveBanners = createServerFn({ method: "GET" }).handler(async
     .order("sort_order");
   if (error) throw new Error(error.message);
   return (data ?? []) as PromoBanner[];
-});
+}

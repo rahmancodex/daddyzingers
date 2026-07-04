@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -25,34 +25,60 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-/**
- * Publishable-key server client for public reads. Menu tables have
- * anon-scoped SELECT policies, so no service role is needed.
- */
-function publicClient() {
-  const supabaseUrl =
-    process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const supabasePublishableKey =
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY;
+type PublicClientCandidate = {
+  label: "vite" | "server";
+  url: string;
+  key: string;
+  supabase: SupabaseClient<Database>;
+};
 
-  if (!supabaseUrl || !supabasePublishableKey) {
-    const missing = [
-      !supabaseUrl ? "SUPABASE_URL or VITE_SUPABASE_URL" : null,
-      !supabasePublishableKey ? "SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY" : null,
-    ].filter(Boolean);
-    throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}`);
-  }
-
-  return createClient<Database>(
-    supabaseUrl,
-    supabasePublishableKey,
+function createPublicClient(url: string, key: string): SupabaseClient<Database> {
+  return createClient<Database>(url, key,
     {
-      global: { fetch: createSupabaseFetch(supabasePublishableKey) },
+      global: { fetch: createSupabaseFetch(key) },
       auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     },
   );
+}
+
+/**
+ * Publishable-key server clients for public reads. Menu tables have
+ * anon-scoped SELECT policies, so no service role is needed.
+ *
+ * Vercel can expose both runtime server variables and build-time VITE variables.
+ * Treat them as full pairs and try the client-configured pair first so a stale
+ * server-only pair cannot silently point functions at the wrong backend.
+ */
+function publicClientCandidates(): PublicClientCandidate[] {
+  const envPairs = [
+    {
+      label: "vite" as const,
+      url: process.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_URL,
+      key: process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    {
+      label: "server" as const,
+      url: process.env.SUPABASE_URL,
+      key: process.env.SUPABASE_PUBLISHABLE_KEY,
+    },
+  ];
+
+  const seen = new Set<string>();
+  const candidates = envPairs.flatMap((pair) => {
+    if (!pair.url || !pair.key) return [];
+    const fingerprint = `${pair.url}\n${pair.key}`;
+    if (seen.has(fingerprint)) return [];
+    seen.add(fingerprint);
+    return [{ ...pair, supabase: createPublicClient(pair.url, pair.key) }];
+  });
+
+  if (!candidates.length) {
+    throw new Error(
+      "Missing Supabase environment variable pair: VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY or SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY",
+    );
+  }
+
+  return candidates;
 }
 
 export type DbCategory = {
@@ -111,8 +137,21 @@ export type MenuPayload = {
 
 /** Load the entire public menu in one round-trip. Cached client-side by React Query. */
 export const getMenu = createServerFn({ method: "GET" }).handler(async () => {
-  const supabase = publicClient();
+  let lastError: Error | undefined;
 
+  for (const candidate of publicClientCandidates()) {
+    try {
+      return await loadMenu(candidate.supabase);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[getMenu] ${candidate.label} backend read failed`, lastError);
+    }
+  }
+
+  throw lastError ?? new Error("Failed to load menu");
+});
+
+async function loadMenu(supabase: SupabaseClient<Database>): Promise<MenuPayload> {
   const [catsRes, itemsRes, sizesRes, groupsRes, choicesRes] = await Promise.all([
     supabase
       .from("menu_categories")
@@ -199,4 +238,4 @@ export const getMenu = createServerFn({ method: "GET" }).handler(async () => {
     categoryOptions,
   };
   return payload;
-});
+}
