@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, TrendingUp, Clock, Flame, Sparkles } from "lucide-react";
-import { MENU, POPULAR_SEARCHES, formatPKR } from "@/lib/menu-data";
+import { POPULAR_SEARCHES, formatPKR, useMenuItems, type MenuItem } from "@/lib/menu";
 import { drawerActions, searchActions, useSearchOpen } from "@/lib/store";
 
 const RECENT_KEY = "dz_recent_searches";
