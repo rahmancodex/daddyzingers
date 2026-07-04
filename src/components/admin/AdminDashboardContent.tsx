@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -24,6 +26,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { adminOrderStats } from "@/lib/admin-orders.functions";
+import { formatPKR } from "@/lib/admin-orders";
 
 // -----------------------------------------------------------------------------
 // Stat cards
@@ -37,15 +43,6 @@ type Stat = {
   icon: LucideIcon;
   tone: "primary" | "success" | "warning" | "info" | "destructive" | "neutral";
 };
-
-const STATS: Stat[] = [
-  { label: "Today's Orders", value: "128", delta: "+12.4%", trend: "up", icon: ShoppingBag, tone: "primary" },
-  { label: "Revenue Today", value: "PKR 184,320", delta: "+8.1%", trend: "up", icon: DollarSign, tone: "success" },
-  { label: "Pending Orders", value: "14", delta: "3 new", trend: "up", icon: Clock, tone: "warning" },
-  { label: "Preparing", value: "22", delta: "+2", trend: "up", icon: ChefHat, tone: "info" },
-  { label: "Delivered", value: "86", delta: "+18.2%", trend: "up", icon: PackageCheck, tone: "success" },
-  { label: "Cancelled", value: "6", delta: "-1.4%", trend: "down", icon: XCircle, tone: "destructive" },
-];
 
 const TONE: Record<Stat["tone"], string> = {
   primary: "bg-primary/15 text-foreground",
