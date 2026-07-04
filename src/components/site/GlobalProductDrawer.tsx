@@ -389,12 +389,12 @@ export function GlobalProductDrawer() {
             </div>
 
             {/* STICKY ADD TO CART */}
-            <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 md:px-5 md:py-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+            <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 md:px-6 md:py-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
               <Button
                 onClick={handleAdd}
                 disabled={missingRequired}
                 size="lg"
-                className="w-full h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 min-h-12"
+                className="w-full h-12 md:h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 active:scale-[0.99] transition-transform"
               >
                 <ShoppingBag className="h-5 w-5" />
                 {missingRequired ? "Select required options" : `Add ${qty} · ${formatPKR(subtotal)}`}
