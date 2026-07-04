@@ -34,7 +34,7 @@ import {
 
 const RECENT_KEY = "dz_recent_searches";
 
-export function OrderingExperience() {
+export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const [activeCat, setActiveCat] = useState<MenuCategory>("burgers");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
