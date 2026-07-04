@@ -688,11 +688,10 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function estWindow(method: DeliveryMethod, lines: number) {
+function estWindow(method: DeliveryMethod, _lines: number) {
   if (method === "pickup") return "in 10–15 min";
   if (method === "dinein") return "on arrival";
-  const base = 18 + Math.min(15, lines * 2);
-  return `in ${base}–${base + 10} min`;
+  return "in ~29 min";
 }
 
 /* -------------------- Order Summary -------------------- */
