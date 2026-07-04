@@ -28,6 +28,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 import { ADMIN_NAV } from "./admin-nav";
+import { useServerFn } from "@tanstack/react-start";
+import { adminMe } from "@/lib/admin-staff.functions";
+import { adminLogClientEvent } from "@/lib/admin-audit.functions";
+import { ShieldAlert } from "lucide-react";
+import {
+  hasPermission,
+  ROUTE_PERMISSION,
+  ROLE_BADGE_CLASS,
+  ROLE_LABEL,
+  type AppRole,
+  type Permission,
+} from "@/lib/rbac";
+import { Badge } from "@/components/ui/badge";
 
 function BrandMark({ collapsed }: { collapsed?: boolean }) {
   return (
