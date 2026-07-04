@@ -113,6 +113,7 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       platters: [],
       broast: [],
       sides: [],
+      drinks: [],
       extras: [],
     };
     filteredMenu.forEach((m) => map[m.category].push(m));

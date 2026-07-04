@@ -14,6 +14,7 @@ export type MenuCategory =
   | "platters"
   | "broast"
   | "sides"
+  | "drinks"
   | "extras";
 
 export type MenuItem = {
@@ -46,6 +47,7 @@ export const CATEGORIES: {
   { id: "platters", label: "Platters", icon: "🍽️", tagline: "Full-family feasts." },
   { id: "broast", label: "Broast", icon: "🍗", tagline: "24-hour brined. Fire-crisped." },
   { id: "sides", label: "Side Orders", icon: "🍟", tagline: "The supporting cast." },
+  { id: "drinks", label: "Drinks", icon: "🥤", tagline: "Chilled, fizzy, refreshing." },
   { id: "extras", label: "Extras", icon: "➕", tagline: "Make it yours." },
 ];
 
@@ -418,6 +420,36 @@ export const MENU: MenuItem[] = [
     allergens: ["Dairy"],
     tags: ["spicy", "chicken", "popular"],
   },
+
+
+  // DRINKS
+  ...([
+    { id: "pepsi", name: "Pepsi", price: 90 },
+    { id: "pepsi-black", name: "Pepsi Black", price: 90 },
+    { id: "coca-cola", name: "Coca-Cola", price: 90 },
+    { id: "coca-cola-zero", name: "Coca-Cola Zero", price: 90 },
+    { id: "7up", name: "7UP", price: 90 },
+    { id: "sprite", name: "Sprite", price: 90 },
+    { id: "mirinda", name: "Mirinda", price: 90 },
+    { id: "mountain-dew", name: "Mountain Dew", price: 100 },
+    { id: "sting", name: "Sting Energy", price: 130 },
+    { id: "mineral-water", name: "Mineral Water", price: 60 },
+  ] as const).map<MenuItem>((d) => ({
+    id: d.id,
+    name: d.name,
+    category: "drinks",
+    price: d.price,
+    shortDescription: "Chilled 330ml can. Large 500ml available.",
+    longDescription: `Ice-cold ${d.name}, served chilled. Available in Regular (330ml) or Large (500ml).`,
+    image: catDrinks,
+    rating: 4.6,
+    reviews: 120,
+    prepTime: 1,
+    calories: 140,
+    ingredients: ["Soft drink"],
+    allergens: [],
+    tags: ["popular"],
+  })),
 
   // EXTRAS
   {
