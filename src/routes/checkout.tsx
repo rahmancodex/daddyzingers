@@ -103,7 +103,7 @@ function CheckoutPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               Your cart is saved. Sign in to load your addresses and place your order.
             </p>
-            <Link to="/auth" search={{ redirect: "/checkout" } as never} className="inline-block mt-6">
+            <Link to="/auth" className="inline-block mt-6">
               <Button className="h-12 px-8 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold">
                 Sign in to continue <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
