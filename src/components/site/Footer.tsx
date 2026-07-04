@@ -1,4 +1,5 @@
-import { Flame, Instagram, Facebook, Twitter, Youtube, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { Instagram, Facebook, Twitter, Youtube, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { Logo } from "@/components/site/Logo";
 
 const COLS = [
   {
