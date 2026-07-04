@@ -75,7 +75,7 @@ function CartPage() {
   return (
     <div className="min-h-screen bg-background">
       <OrderHeader />
-      <main className="pt-24 md:pt-28 pb-24">
+      <main className="pt-6 md:pt-10 pb-28 md:pb-16">
         <div className="container-dz">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
