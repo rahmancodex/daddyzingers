@@ -84,9 +84,11 @@ export function Navbar() {
           <Button variant="ghost" size="sm" className="gap-1.5">
             <User className="h-4 w-4" /> Login
           </Button>
-          <Button className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] ml-2 font-semibold">
-            Order Now
-          </Button>
+          <Link to="/menu">
+            <Button className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] ml-2 font-semibold">
+              Order Now
+            </Button>
+          </Link>
         </div>
 
         <button
