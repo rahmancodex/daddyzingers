@@ -77,21 +77,21 @@ export function Deals() {
 
         <div className="grid md:grid-cols-3 gap-6">
           {DEALS.map((d, i) => (
-            <motion.div
+            <motion.button
+              type="button"
               key={d.title}
+              onClick={() => drawerActions.openById(d.itemId)}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.5, delay: i * 0.08 }}
-              className={`group relative rounded-3xl overflow-hidden border border-border shadow-[var(--shadow-3)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500 ${
+              className={`group relative text-left rounded-3xl overflow-hidden border border-border shadow-[var(--shadow-3)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 d.tone === "primary" ? "bg-primary text-primary-foreground" : d.tone === "dark" ? "bg-secondary text-secondary-foreground" : "bg-card"
               }`}
             >
               <div className="relative aspect-[16/11] overflow-hidden">
                 <img src={d.img} alt={d.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                <div className={`absolute top-4 left-4 rounded-full px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider ${
-                  d.tone === "red" ? "bg-[var(--color-brand-red)] text-white" : "bg-[var(--color-brand-red)] text-white"
-                }`}>
+                <div className="absolute top-4 left-4 rounded-full px-3 py-1.5 text-xs font-extrabold uppercase tracking-wider bg-[var(--color-brand-red)] text-white">
                   {d.discount}% OFF
                 </div>
               </div>
@@ -105,16 +105,18 @@ export function Deals() {
                       Rs {d.old.toLocaleString()}
                     </span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant={d.tone === "primary" ? "secondary" : "default"}
-                    className={`rounded-full font-semibold ${d.tone === "dark" ? "bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)]" : ""}`}
+                  <span
+                    className={`inline-flex items-center rounded-full h-9 px-4 text-xs font-bold uppercase tracking-wider ${
+                      d.tone === "primary"
+                        ? "bg-background text-foreground"
+                        : "bg-primary text-primary-foreground shadow-[var(--shadow-glow)]"
+                    }`}
                   >
                     Grab deal
-                  </Button>
+                  </span>
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
       </div>
