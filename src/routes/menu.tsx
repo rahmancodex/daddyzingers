@@ -62,7 +62,7 @@ function MenuPage() {
   const [recent, setRecent] = useState<string[]>([]);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingByClick = useRef(false);
 
   useEffect(() => {
