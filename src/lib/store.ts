@@ -28,26 +28,32 @@ type State = {
   drawerItemId: string | null;
   drawerOpen: boolean;
   searchOpen: boolean;
+  cartDrawerOpen: boolean;
 };
 
 const LS_KEY = "dz_store_v1";
 
 function loadInitial(): State {
-  if (typeof window === "undefined")
-    return { cart: [], favorites: [], drawerItemId: null, drawerOpen: false, searchOpen: false };
+  const empty: State = {
+    cart: [],
+    favorites: [],
+    drawerItemId: null,
+    drawerOpen: false,
+    searchOpen: false,
+    cartDrawerOpen: false,
+  };
+  if (typeof window === "undefined") return empty;
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) throw new Error("empty");
     const parsed = JSON.parse(raw) as Partial<State>;
     return {
+      ...empty,
       cart: parsed.cart ?? [],
       favorites: parsed.favorites ?? [],
-      drawerItemId: null,
-      drawerOpen: false,
-      searchOpen: false,
     };
   } catch {
-    return { cart: [], favorites: [], drawerItemId: null, drawerOpen: false, searchOpen: false };
+    return empty;
   }
 }
 
@@ -265,6 +271,26 @@ export const searchActions = {
   },
   toggle() {
     setState((s) => ({ searchOpen: !s.searchOpen }));
+  },
+};
+
+export function useCartDrawerOpen() {
+  return useSyncExternalStore(
+    subscribe,
+    () => state.cartDrawerOpen,
+    () => false,
+  );
+}
+
+export const cartDrawerActions = {
+  open() {
+    setState({ cartDrawerOpen: true });
+  },
+  close() {
+    setState({ cartDrawerOpen: false });
+  },
+  toggle() {
+    setState((s) => ({ cartDrawerOpen: !s.cartDrawerOpen }));
   },
 };
 
