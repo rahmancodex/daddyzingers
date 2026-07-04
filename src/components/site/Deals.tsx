@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { drawerActions } from "@/lib/store";
 import { drawerActions } from "@/lib/store";
 import catDeals from "@/assets/cat-deals.jpg";
 import itemZinger from "@/assets/item-zinger.jpg";
