@@ -320,7 +320,7 @@ export function CartDrawer() {
               </div>
               <Link to="/checkout" onClick={() => cartDrawerActions.close()}>
                 <Button className="w-full h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold">
-                  Checkout · {formatPKR(totals.total)}
+                  Review Checkout ·  Checkout · {formatPKR(totals.total)}
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
