@@ -131,7 +131,7 @@ export function GlobalProductDrawer() {
       upgradeEntries,
       basePriceOverride: basePrice,
     });
-    toast.success(`${qty} × ${item.name} added`, {
+    toast.success(`${qty} × ${item.name} added to basket`, {
       description: `Subtotal ${formatPKR(subtotal)}`,
     });
     drawerActions.close();
@@ -351,7 +351,7 @@ export function GlobalProductDrawer() {
 
                 {related.length > 0 && (
                   <div>
-                    <SectionLabel>You might also love</SectionLabel>
+                    <SectionLabel>Pair it with</SectionLabel>
                     <div className="grid grid-cols-2 gap-2.5">
                       {related.map((r) => (
                         <button
