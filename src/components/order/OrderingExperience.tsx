@@ -35,6 +35,8 @@ import {
 const RECENT_KEY = "dz_recent_searches";
 
 export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolean } = {}) {
+  const CATEGORIES = useMenuCategories();
+  const MENU = useMenuItems();
   const [activeCat, setActiveCat] = useState<MenuCategory>("burgers");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -47,12 +49,13 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (CATEGORIES.length === 0) return;
     const hash = window.location.hash.replace("#", "") as MenuCategory;
     if (CATEGORIES.some((c) => c.id === hash)) {
       setTimeout(() => scrollToCategory(hash), 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [CATEGORIES.length]);
 
   useEffect(() => {
     try {
@@ -76,7 +79,7 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
     }
     switch (filter) {
       case "bestseller":
-        list = list.filter((m) => m.tags.includes("bestseller"));
+        list = list.filter((m) => m.isBestseller || m.tags.includes("bestseller"));
         break;
       case "new":
         list = list.filter((m) => m.tags.includes("new"));
@@ -103,22 +106,16 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
         list = [...list].sort((a, b) => b.reviews - a.reviews);
     }
     return list;
-  }, [search, filter]);
+  }, [MENU, search, filter]);
 
   const grouped = useMemo(() => {
-    const map: Record<MenuCategory, MenuItem[]> = {
-      burgers: [],
-      shawarma: [],
-      rolls: [],
-      platters: [],
-      broast: [],
-      sides: [],
-      drinks: [],
-      extras: [],
-    };
-    filteredMenu.forEach((m) => map[m.category].push(m));
+    const map: Record<string, MenuItem[]> = {};
+    for (const c of CATEGORIES) map[c.id] = [];
+    filteredMenu.forEach((m) => {
+      (map[m.category] ??= []).push(m);
+    });
     return map;
-  }, [filteredMenu]);
+  }, [filteredMenu, CATEGORIES]);
 
   const toggleFav = (item: MenuItem) => {
     const added = favoriteActions.toggle(item.id);
