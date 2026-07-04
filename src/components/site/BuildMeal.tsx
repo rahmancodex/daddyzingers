@@ -76,24 +76,37 @@ export function BuildMeal() {
                   {step.opts.map((o) => {
                     const active = sel[step.key]?.id === o.id;
                     return (
-                      <button
-                        key={o.id}
-                        onClick={() => setSel((s) => ({ ...s, [step.key]: active ? undefined : o }))}
-                        className={`group relative rounded-2xl overflow-hidden border-2 text-left transition-all duration-300 ${active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border hover:border-primary/40"}`}
-                      >
-                        <div className="aspect-[4/3] overflow-hidden bg-muted">
-                          <img src={o.img} alt={o.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        </div>
-                        <div className="p-3">
-                          <div className="font-semibold text-sm">{o.name}</div>
-                          <div className="text-xs text-muted-foreground">+ Rs {o.price}</div>
-                        </div>
-                        {active && (
-                          <div className="absolute top-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
-                            <Check className="h-4 w-4" />
+                      <div key={o.id} className="relative">
+                        <button
+                          onClick={() => setSel((s) => ({ ...s, [step.key]: active ? undefined : o }))}
+                          className={`group relative block w-full rounded-2xl overflow-hidden border-2 text-left transition-all duration-300 ${active ? "border-primary shadow-[var(--shadow-glow)]" : "border-border hover:border-primary/40"}`}
+                        >
+                          <div className="aspect-[4/3] overflow-hidden bg-muted">
+                            <img src={o.img} alt={o.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           </div>
+                          <div className="p-3">
+                            <div className="font-semibold text-sm">{o.name}</div>
+                            <div className="text-xs text-muted-foreground">+ Rs {o.price}</div>
+                          </div>
+                          {active && (
+                            <div className="absolute top-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center">
+                              <Check className="h-4 w-4" />
+                            </div>
+                          )}
+                        </button>
+                        {o.itemId && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              drawerActions.openById(o.itemId!);
+                            }}
+                            className="absolute bottom-2 right-2 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-background/85 border border-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
+                          >
+                            Details
+                          </button>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
