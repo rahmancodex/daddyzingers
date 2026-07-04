@@ -154,7 +154,7 @@ export function Hero() {
           </motion.div>
 
           <motion.div
-            className="absolute top-1/2 -right-4 md:-right-10 z-20 rounded-full bg-[var(--color-brand-red)] text-white px-4 py-2 shadow-[var(--shadow-floating)] text-xs font-bold uppercase tracking-wider"
+            className="hidden md:block absolute top-1/2 -right-4 md:-right-10 z-20 rounded-full bg-[var(--color-brand-red)] text-white px-4 py-2 shadow-[var(--shadow-floating)] text-xs font-bold uppercase tracking-wider"
             animate={{ rotate: [0, 6, -6, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
           >
