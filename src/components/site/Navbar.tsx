@@ -37,15 +37,15 @@ export function Navbar() {
       }`}
     >
       <div className="container-dz flex items-center justify-between h-16 md:h-20">
-        <a href="#home" className="flex items-center gap-2 group">
-          <div className="relative h-10 w-10 rounded-xl bg-primary grid place-items-center shadow-[var(--shadow-glow)] group-hover:scale-105 transition-transform">
-            <Flame className="h-5 w-5 text-primary-foreground" />
+        <Link to="/" hash="home" className="flex items-center gap-2.5 group">
+          <div className="relative h-11 w-11 rounded-xl bg-brand-black grid place-items-center overflow-hidden shadow-[var(--shadow-glow)] group-hover:scale-105 transition-transform">
+            <Logo className="h-9 w-9 object-contain" />
           </div>
           <div className="leading-tight">
             <div className="font-display text-lg font-extrabold tracking-tight">Daddy Zinger</div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">Crafted crave</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">Choice of the family</div>
           </div>
-        </a>
+        </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
           {NAV.map((n) => (
