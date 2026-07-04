@@ -133,12 +133,30 @@ function ProfilePage() {
       <section className="relative overflow-hidden rounded-3xl border border-border">
         <div className="h-28 md:h-36 bg-gradient-to-br from-primary/40 via-primary/20 to-accent/30" />
         <div className="relative -mt-12 md:-mt-14 px-5 md:px-7 pb-6 md:pb-7 flex flex-col md:flex-row md:items-end gap-4 md:gap-6 bg-card">
-          <Avatar className="h-24 w-24 md:h-28 md:w-28 ring-4 ring-card shadow-[var(--shadow-2)]">
-            <AvatarImage src={form.avatar_url || undefined} alt="" />
-            <AvatarFallback className="bg-primary/15 text-primary font-bold text-2xl">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group">
+            <Avatar className="h-24 w-24 md:h-28 md:w-28 ring-4 ring-card shadow-[var(--shadow-2)]">
+              <AvatarImage src={form.avatar_url || undefined} alt="" />
+              <AvatarFallback className="bg-primary/15 text-primary font-bold text-2xl">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label="Change avatar"
+              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-[var(--shadow-2)] hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-wait"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarPick}
+            />
+          </div>
           <div className="min-w-0 flex-1 pt-2 md:pt-0">
             <div className="font-display text-2xl font-extrabold truncate">
               {form.full_name || user?.email?.split("@")[0]}
