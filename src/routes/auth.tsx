@@ -33,7 +33,7 @@ import {
 } from "@/lib/auth-schemas";
 import { sendPhoneOtp, verifyPhoneOtp } from "@/lib/phone-otp.functions";
 
-type Mode = "auth" | "phone" | "otp";
+type Mode = "auth" | "phone" | "otp" | "verify";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
