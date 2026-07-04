@@ -1,20 +1,20 @@
-// Auto-generated: CDN-backed image URLs. Update via lovable-assets CLI + regenerate.
-import itemZingerAsset from "./item-zinger.jpg.asset.json";
-import itemBeefAsset from "./item-beef.jpg.asset.json";
-import itemChickenAsset from "./item-chicken.jpg.asset.json";
-import itemShawarmaAsset from "./item-shawarma.jpg.asset.json";
-import catFriesAsset from "./cat-fries.jpg.asset.json";
-import catDrinksAsset from "./cat-drinks.jpg.asset.json";
-import catDealsAsset from "./cat-deals.jpg.asset.json";
-import catDessertsAsset from "./cat-desserts.jpg.asset.json";
-import heroBurgerAsset from "./hero-burger.jpg.asset.json";
+// Local image assets bundled by Vite. Portable across any host (Lovable, Vercel, etc.).
+import itemZingerUrl from "./item-zinger.jpg";
+import itemBeefUrl from "./item-beef.jpg";
+import itemChickenUrl from "./item-chicken.jpg";
+import itemShawarmaUrl from "./item-shawarma.jpg";
+import catFriesUrl from "./cat-fries.jpg";
+import catDrinksUrl from "./cat-drinks.jpg";
+import catDealsUrl from "./cat-deals.jpg";
+import catDessertsUrl from "./cat-desserts.jpg";
+import heroBurgerUrl from "./hero-burger.jpg";
 
-export const itemZinger = itemZingerAsset.url;
-export const itemBeef = itemBeefAsset.url;
-export const itemChicken = itemChickenAsset.url;
-export const itemShawarma = itemShawarmaAsset.url;
-export const catFries = catFriesAsset.url;
-export const catDrinks = catDrinksAsset.url;
-export const catDeals = catDealsAsset.url;
-export const catDesserts = catDessertsAsset.url;
-export const heroBurger = heroBurgerAsset.url;
+export const itemZinger = itemZingerUrl;
+export const itemBeef = itemBeefUrl;
+export const itemChicken = itemChickenUrl;
+export const itemShawarma = itemShawarmaUrl;
+export const catFries = catFriesUrl;
+export const catDrinks = catDrinksUrl;
+export const catDeals = catDealsUrl;
+export const catDesserts = catDessertsUrl;
+export const heroBurger = heroBurgerUrl;
