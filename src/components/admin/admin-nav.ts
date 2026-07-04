@@ -10,8 +10,10 @@ import {
   Settings,
   ShieldCheck,
   ScrollText,
+  Rocket,
   type LucideIcon,
 } from "lucide-react";
+
 
 export type AdminNavItem = {
   label: string;
@@ -31,4 +33,6 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Staff & Access", to: "/admin/staff", icon: ShieldCheck },
   { label: "Audit Logs", to: "/admin/audit-logs", icon: ScrollText },
   { label: "Settings", to: "/admin/settings", icon: Settings },
+  { label: "Production", to: "/admin/production", icon: Rocket },
 ];
+

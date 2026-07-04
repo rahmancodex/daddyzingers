@@ -24,6 +24,7 @@ import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminPromoBannersRouteImport } from './routes/admin.promo-banners'
+import { Route as AdminProductionRouteImport } from './routes/admin.production'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -114,6 +115,11 @@ const AdminReportsRoute = AdminReportsRouteImport.update({
 const AdminPromoBannersRoute = AdminPromoBannersRouteImport.update({
   id: '/admin/promo-banners',
   path: '/admin/promo-banners',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProductionRoute = AdminProductionRouteImport.update({
+  id: '/admin/production',
+  path: '/admin/production',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/production': typeof AdminProductionRoute
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/production': typeof AdminProductionRoute
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/production': typeof AdminProductionRoute
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/production'
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/production'
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
+    | '/admin/production'
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminProductionRoute: typeof AdminProductionRoute
   AdminPromoBannersRoute: typeof AdminPromoBannersRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
@@ -542,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/promo-banners'
       fullPath: '/admin/promo-banners'
       preLoaderRoute: typeof AdminPromoBannersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/production': {
+      id: '/admin/production'
+      path: '/admin/production'
+      fullPath: '/admin/production'
+      preLoaderRoute: typeof AdminProductionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/orders': {
@@ -734,6 +754,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,
+  AdminProductionRoute: AdminProductionRoute,
   AdminPromoBannersRoute: AdminPromoBannersRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
