@@ -4,13 +4,20 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
+import { defineConfig as defineLovableTanstackConfig } from "@lovable.dev/vite-tanstack-config";
 
 function getServerFunctionId({ functionName }: { filename: string; functionName: string }) {
   const publicName = functionName.replace(/_createServerFn_handler(?:_\d+)?$/, "");
   return publicName === "validateCouponServer" ? "validateCoupon" : publicName;
 }
 
-export default defineConfig({
+// Vercel build: use explicit config with Nitro's `vercel` preset so
+// `.vercel/output/` (Build Output API v3) is generated.
+// Lovable sandbox / anywhere else: use the Lovable wrapper which produces
+// the expected `dist/` output the sandbox's dist-check validates.
+const isVercelBuild = !!process.env.VERCEL || process.env.NITRO_PRESET === "vercel";
+
+const vercelConfig = defineConfig({
   server: { host: "::", port: 8080 },
   css: { transformer: "lightningcss" },
   resolve: {
@@ -46,3 +53,12 @@ export default defineConfig({
     viteReact(),
   ],
 });
+
+export default isVercelBuild
+  ? vercelConfig
+  : defineLovableTanstackConfig({
+      tanstackStart: {
+        server: { entry: "server" },
+        serverFns: { generateFunctionId: getServerFunctionId },
+      },
+    });
