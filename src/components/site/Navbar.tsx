@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/site/Logo";
 
-const NAV = [
-  { label: "Home", href: "#home" },
-  { label: "Menu", href: "#menu" },
-  { label: "Deals", href: "#deals" },
-  { label: "About", href: "#why" },
-  { label: "Contact", href: "#contact" },
+type NavItem = { label: string; href?: string; to?: string };
+const NAV: NavItem[] = [
+  { label: "Home", to: "/" },
+  { label: "Menu", to: "/menu" },
+  { label: "Deals", href: "/#deals" },
+  { label: "About", href: "/#why" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export function Navbar() {
