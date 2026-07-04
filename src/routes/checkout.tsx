@@ -82,12 +82,26 @@ function CheckoutPage() {
 
   const placeOrderFn = useServerFn(placeOrder);
 
-  // Redirect if cart empty
+  // Auto-populate contact phone from the signed-in user's profile so the
+  // Place Order button doesn't silently stay disabled.
   useEffect(() => {
-    if (cart.length === 0 && !placing) {
-      // keep it non-blocking: user gets a nudge on the page
+    if (!user || checkout.contactPhone.trim().length >= 8) return;
+    const metaPhone = (user.user_metadata?.phone as string | undefined)?.trim();
+    if (metaPhone && metaPhone.length >= 8) {
+      checkoutActions.setContact({ contactPhone: metaPhone });
+      return;
     }
-  }, [cart.length, placing]);
+    supabase
+      .from("profiles")
+      .select("phone")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const p = (data?.phone ?? "").trim();
+        if (p.length >= 8) checkoutActions.setContact({ contactPhone: p });
+      });
+  }, [user, checkout.contactPhone]);
+
 
   // Auth gate — render inline sign-in prompt
   if (!authLoading && !user) {
