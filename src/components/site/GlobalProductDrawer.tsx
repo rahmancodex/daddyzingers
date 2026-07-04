@@ -457,15 +457,17 @@ function OptionGroupBlock({
               key={c.id}
               type="button"
               onClick={() => onToggle(c)}
-              className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+              className={`flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.99] ${
                 active
                   ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
-                  : "border-border hover:border-foreground/25 bg-card"
+                  : "border-border hover:border-foreground/25 hover:bg-secondary/40 bg-card"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className={`h-5 w-5 shrink-0 grid place-items-center rounded-${group.type === "single" ? "full" : "md"} border-2 transition-all ${
+                  className={`h-5 w-5 shrink-0 grid place-items-center border-2 transition-all ${
+                    group.type === "single" ? "rounded-full" : "rounded-md"
+                  } ${
                     active ? "border-primary bg-primary text-primary-foreground" : "border-border"
                   }`}
                 >
