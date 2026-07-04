@@ -34,7 +34,7 @@ function countIn(cat: MenuCategory) {
 
 export function Categories() {
   return (
-    <section id="categories" className="py-24 md:py-32 bg-surface">
+    <section id="categories" className="py-16 md:py-24 bg-surface">
       <div className="container-dz">
         <div className="flex items-end justify-between gap-6 flex-wrap mb-12">
           <div>

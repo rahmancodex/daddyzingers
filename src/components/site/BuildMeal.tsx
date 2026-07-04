@@ -51,7 +51,7 @@ export function BuildMeal() {
   const chosenCount = Object.values(sel).filter(Boolean).length;
 
   return (
-    <section className="py-24 md:py-32 bg-background">
+    <section className="py-16 md:py-24 bg-background">
       <div className="container-dz">
         <div className="max-w-2xl mb-12">
           <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-3">05 — Build your meal</div>

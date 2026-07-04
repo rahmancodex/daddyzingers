@@ -22,7 +22,7 @@ const IMGS = [
 
 export function Gallery() {
   return (
-    <section className="py-24 md:py-32 bg-background">
+    <section className="py-16 md:py-24 bg-background">
       <div className="container-dz">
         <div className="flex items-end justify-between gap-6 flex-wrap mb-12">
           <div>

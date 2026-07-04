@@ -12,7 +12,7 @@ const FEATURES = [
 
 export function WhyUs() {
   return (
-    <section id="why" className="py-24 md:py-32 bg-secondary text-secondary-foreground relative overflow-hidden">
+    <section id="why" className="py-16 md:py-24 bg-secondary text-secondary-foreground relative overflow-hidden">
       <div
         className="absolute inset-0 opacity-30"
         style={{ background: "var(--gradient-radial-glow)" }}
