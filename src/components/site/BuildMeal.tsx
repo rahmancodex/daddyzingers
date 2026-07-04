@@ -1,3 +1,4 @@
+import { itemZinger, itemBeef, itemShawarma, catFries, catDrinks, catDesserts } from "@/assets";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
@@ -5,12 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { MENU } from "@/lib/menu-data";
 import { cartActions, drawerActions } from "@/lib/store";
-import itemZinger from "@/assets/item-zinger.jpg";
-import itemBeef from "@/assets/item-beef.jpg";
-import itemShawarma from "@/assets/item-shawarma.jpg";
-import catFries from "@/assets/cat-fries.jpg";
-import catDrinks from "@/assets/cat-drinks.jpg";
-import catDesserts from "@/assets/cat-desserts.jpg";
+
+
+
+
+
 
 type Opt = { id: string; itemId?: string; name: string; price: number; img: string };
 

@@ -1,13 +1,13 @@
+import { itemZinger, itemBeef, itemShawarma, itemChicken, catFries, catDeals, catDesserts, heroBurger } from "@/assets";
 import { motion } from "framer-motion";
 import { Instagram, Heart } from "lucide-react";
-import itemZinger from "@/assets/item-zinger.jpg";
-import itemBeef from "@/assets/item-beef.jpg";
-import itemShawarma from "@/assets/item-shawarma.jpg";
-import itemChicken from "@/assets/item-chicken.jpg";
-import catFries from "@/assets/cat-fries.jpg";
-import catDeals from "@/assets/cat-deals.jpg";
-import catDesserts from "@/assets/cat-desserts.jpg";
-import heroBurger from "@/assets/hero-burger.jpg";
+
+
+
+
+
+
+
 
 const IMGS = [
   { src: heroBurger, span: "row-span-2", likes: "12.4k" },

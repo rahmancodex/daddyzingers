@@ -194,8 +194,13 @@ function CheckoutPage() {
           })),
           subtotal_pkr: subtotal,
           delivery_fee_pkr: totals.deliveryFee,
+          tax_pkr: totals.tax,
+          discount_pkr: totals.discount,
           total_pkr: totals.total,
           payment_method: checkout.paymentMethod,
+          fulfillment_method: checkout.method,
+          schedule_at: checkout.scheduleAt,
+          coupon_code: checkout.coupon?.code ?? null,
           address_snapshot: addressSnapshot
             ? {
                 label: addressSnapshot.label,
@@ -208,8 +213,7 @@ function CheckoutPage() {
               }
             : null,
           notes: checkout.notes,
-          method: checkout.method,
-          schedule_at: checkout.scheduleAt,
+          special_instructions: null,
         },
       });
       toast.success(`Order ${order.order_number} placed`, {

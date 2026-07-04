@@ -1,12 +1,13 @@
+import { itemZinger, itemBeef, itemShawarma, itemChicken, catFries, catDeals } from "@/assets";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import itemZinger from "@/assets/item-zinger.jpg";
-import itemBeef from "@/assets/item-beef.jpg";
-import itemShawarma from "@/assets/item-shawarma.jpg";
-import itemChicken from "@/assets/item-chicken.jpg";
-import catFries from "@/assets/cat-fries.jpg";
-import catDeals from "@/assets/cat-deals.jpg";
+
+
+
+
+
+
 import { MENU, type MenuCategory } from "@/lib/menu-data";
 
 type Cat = {

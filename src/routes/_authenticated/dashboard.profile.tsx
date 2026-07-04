@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Cake, Check, Copy, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
+import { Cake, Camera, Check, Copy, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,9 @@ function ProfilePage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Form>({
     full_name: "",
     phone: "",
@@ -67,6 +69,49 @@ function ProfilePage() {
       });
   }, [user]);
 
+  async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      return toast.error("Please choose an image file");
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      return toast.error("Image must be under 3 MB");
+    }
+    setUploading(true);
+    // Preview immediately (revoked on unmount by browser).
+    const previewUrl = URL.createObjectURL(file);
+    setForm((f) => ({ ...f, avatar_url: previewUrl }));
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr || !signed) throw signErr ?? new Error("Could not sign URL");
+      const url = signed.signedUrl;
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", user.id);
+      if (updErr) throw updErr;
+      setForm((f) => ({ ...f, avatar_url: url }));
+      toast.success("Avatar updated");
+    } catch (err) {
+      toast.error("Upload failed", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+      setForm((f) => ({ ...f, avatar_url: profile?.avatar_url ?? "" }));
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const initials =
     (form.full_name || user?.email || "?")
       .split(/\s+/)
@@ -88,12 +133,30 @@ function ProfilePage() {
       <section className="relative overflow-hidden rounded-3xl border border-border">
         <div className="h-28 md:h-36 bg-gradient-to-br from-primary/40 via-primary/20 to-accent/30" />
         <div className="relative -mt-12 md:-mt-14 px-5 md:px-7 pb-6 md:pb-7 flex flex-col md:flex-row md:items-end gap-4 md:gap-6 bg-card">
-          <Avatar className="h-24 w-24 md:h-28 md:w-28 ring-4 ring-card shadow-[var(--shadow-2)]">
-            <AvatarImage src={form.avatar_url || undefined} alt="" />
-            <AvatarFallback className="bg-primary/15 text-primary font-bold text-2xl">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative group">
+            <Avatar className="h-24 w-24 md:h-28 md:w-28 ring-4 ring-card shadow-[var(--shadow-2)]">
+              <AvatarImage src={form.avatar_url || undefined} alt="" />
+              <AvatarFallback className="bg-primary/15 text-primary font-bold text-2xl">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              aria-label="Change avatar"
+              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center shadow-[var(--shadow-2)] hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-wait"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarPick}
+            />
+          </div>
           <div className="min-w-0 flex-1 pt-2 md:pt-0">
             <div className="font-display text-2xl font-extrabold truncate">
               {form.full_name || user?.email?.split("@")[0]}
@@ -159,7 +222,7 @@ function ProfilePage() {
             className="h-11"
           />
           <p className="text-[11px] text-muted-foreground">
-            Paste a link to an image. Uploads coming soon.
+            Tap the camera button on your avatar to upload, or paste an image URL.
           </p>
         </div>
 

@@ -1,8 +1,8 @@
+import { heroBurger } from "@/assets";
 import { motion } from "framer-motion";
 import { Apple, Smartphone, Bell, Gift, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import heroBurger from "@/assets/hero-burger.jpg";
 
 export function DownloadApp() {
   return (
