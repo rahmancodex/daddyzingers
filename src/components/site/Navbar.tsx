@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
+import { Search, ShoppingBag, User, Menu as MenuIcon, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/site/Logo";
 
 const NAV = [
   { label: "Home", href: "#home" },
