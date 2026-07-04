@@ -24,21 +24,10 @@ function loginToast() {
   toast("Sign in to save orders, favorites and addresses.");
 }
 
-function cartToast(count: number, total: number) {
-  if (count === 0) {
-    toast("Your cart is empty", { description: "Add something delicious from the menu." });
-  } else {
-    toast(`${count} item${count !== 1 ? "s" : ""} in cart`, {
-      description: `Subtotal ${formatPKR(total)} · Checkout coming soon`,
-    });
-  }
-}
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const count = useCartCount();
-  const total = useCartTotal();
   const { user } = useAuth();
   const initials =
     (user?.user_metadata?.full_name || user?.email || "?")
