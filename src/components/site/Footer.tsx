@@ -2,7 +2,7 @@ import { Instagram, Facebook, Twitter, Youtube, MapPin, Phone, Mail, Clock } fro
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Logo } from "@/components/site/Logo";
-import type { MenuCategory } from "@/lib/menu-data";
+
 
 type FooterLink = { label: string; to?: string; hash?: string; soon?: boolean };
 
