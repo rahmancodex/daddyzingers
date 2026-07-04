@@ -7,9 +7,21 @@ import type { Database } from "@/integrations/supabase/types";
  * anon-scoped SELECT policies, so no service role is needed.
  */
 function publicClient() {
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const supabasePublishableKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabasePublishableKey) {
+    const missing = [
+      !supabaseUrl ? "SUPABASE_URL or VITE_SUPABASE_URL" : null,
+      !supabasePublishableKey ? "SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_PUBLISHABLE_KEY" : null,
+    ].filter(Boolean);
+    throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}`);
+  }
+
   return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl,
+    supabasePublishableKey,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }
