@@ -58,7 +58,7 @@ export function Bestsellers() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {ITEMS.map((item, i) => {
+          {items.map((item, i) => {
             const fav = favs.includes(item.id);
             return (
               <motion.div
