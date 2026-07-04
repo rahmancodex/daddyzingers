@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Hero } from "@/components/site/Hero";
 import { OrderingExperience } from "@/components/order/OrderingExperience";
 import { Categories } from "@/components/site/Categories";
 import { Bestsellers } from "@/components/site/Bestsellers";
@@ -18,10 +19,10 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery.",
+          "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 29-minute delivery. Order online for pickup or delivery.",
       },
       { property: "og:title", content: "Daddy Zinger — Crafted for Cravings" },
-      { property: "og:description", content: "Premium zingers, wings, burgers and wraps. Delivered hot in 18 minutes." },
+      { property: "og:description", content: "Premium zingers, wings, burgers and wraps. Delivered hot in 29 minutes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -31,8 +32,11 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <div className="min-h-dvh bg-background text-foreground pb-20 md:pb-0">
+      {/* Hero */}
+      <Hero />
+
       {/* Ordering experience (same as /menu) */}
-      <OrderingExperience />
+      <OrderingExperience hideHeader />
 
       {/* Marketing sections below */}
       <div>
@@ -50,3 +54,4 @@ function Home() {
     </div>
   );
 }
+

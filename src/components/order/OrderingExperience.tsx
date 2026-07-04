@@ -34,7 +34,7 @@ import {
 
 const RECENT_KEY = "dz_recent_searches";
 
-export function OrderingExperience() {
+export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolean } = {}) {
   const [activeCat, setActiveCat] = useState<MenuCategory>("burgers");
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -172,13 +172,14 @@ export function OrderingExperience() {
 
   return (
     <>
-      <OrderHeader />
+      {!hideHeader && <OrderHeader />}
 
       {/* PROMO CAROUSEL */}
       <PromoCarousel />
 
       {/* STICKY CATEGORY NAV + SEARCH */}
       <div className="sticky top-16 md:top-20 z-40 bg-background/85 backdrop-blur-xl border-b border-border">
+
         <div className="container-dz py-3 md:py-4 flex items-center gap-3">
           <div className="flex-1 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-2 min-w-max">
@@ -253,8 +254,8 @@ export function OrderingExperience() {
               className="overflow-hidden border-t border-border bg-background"
             >
               <div className="container-dz py-5">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white group-hover:text-black group-focus-within:text-black transition-colors z-10 pointer-events-none" />
                   <input
                     autoFocus
                     value={search}
@@ -263,18 +264,19 @@ export function OrderingExperience() {
                       if (e.key === "Enter") commitSearch(search);
                     }}
                     placeholder="Search zinger, fries, shawarma…"
-                    className="w-full h-14 pl-11 pr-11 rounded-2xl bg-card border border-border text-base font-medium placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full h-14 pl-11 pr-11 rounded-2xl bg-[hsl(0_0%_10%)] hover:bg-primary focus:bg-primary border-2 border-transparent focus:border-primary text-base font-medium text-white placeholder:text-white/70 hover:text-black hover:placeholder:text-black/70 focus:text-black focus:placeholder:text-black/60 focus:outline-none focus:ring-4 focus:ring-primary/25 transition-all duration-200"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full grid place-items-center hover:bg-secondary"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full grid place-items-center bg-white/10 hover:bg-black/20 text-white group-hover:text-black group-focus-within:text-black transition-colors z-10"
                       aria-label="Clear"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
+
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {recent.length > 0 && (
