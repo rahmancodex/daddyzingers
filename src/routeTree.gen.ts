@@ -17,6 +17,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as OrderSuccessNumberRouteImport } from './routes/order-success.$number'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -68,6 +69,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrderSuccessNumberRoute = OrderSuccessNumberRouteImport.update({
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
+  '/admin/': typeof AdminIndexRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
+  '/admin': typeof AdminIndexRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
+  '/admin/': typeof AdminIndexRoute
   '/_authenticated/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
   '/_authenticated/dashboard/favorites': typeof AuthenticatedDashboardFavoritesRoute
   '/_authenticated/dashboard/notifications': typeof AuthenticatedDashboardNotificationsRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
+    | '/admin/'
     | '/dashboard/addresses'
     | '/dashboard/favorites'
     | '/dashboard/notifications'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
+    | '/admin'
     | '/dashboard/addresses'
     | '/dashboard/favorites'
     | '/dashboard/notifications'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
+    | '/admin/'
     | '/_authenticated/dashboard/addresses'
     | '/_authenticated/dashboard/favorites'
     | '/_authenticated/dashboard/notifications'
@@ -292,6 +304,7 @@ export interface RootRouteChildren {
   WelcomeRoute: typeof WelcomeRoute
   AdminLoginRoute: typeof AdminLoginRoute
   OrderSuccessNumberRoute: typeof OrderSuccessNumberRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/order-success/$number': {
@@ -509,6 +529,7 @@ const rootRouteChildren: RootRouteChildren = {
   WelcomeRoute: WelcomeRoute,
   AdminLoginRoute: AdminLoginRoute,
   OrderSuccessNumberRoute: OrderSuccessNumberRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
