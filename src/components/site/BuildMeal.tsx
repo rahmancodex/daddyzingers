@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { MENU } from "@/lib/menu-data";
+import { useMenuData } from "@/lib/menu";
 import { cartActions, drawerActions } from "@/lib/store";
 
 
