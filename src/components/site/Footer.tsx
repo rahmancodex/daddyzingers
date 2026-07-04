@@ -162,6 +162,3 @@ export function Footer() {
     </footer>
   );
 }
-
-// keep the import used
-export type { MenuCategory };
