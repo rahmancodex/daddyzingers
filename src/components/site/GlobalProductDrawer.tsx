@@ -7,17 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  MENU,
   formatPKR,
   resolveItemOptions,
+  useMenuData,
+  useMenuItem,
   type OptionGroup,
   type OptionChoice,
-} from "@/lib/menu-data";
+} from "@/lib/menu";
 import {
   cartActions,
   drawerActions,
   favoriteActions,
-  getMenuItem,
   useDrawer,
   useIsFavorite,
   type CartLine,
