@@ -351,15 +351,17 @@ function SignUpForm({ onNeedsVerification }: { onNeedsVerification: (email: stri
             },
           },
         });
-        setSubmitting(false);
-        if (error) return toast.error("Sign-up failed", { description: error.message });
-        if (data.session) {
-          toast.success("Account created — welcome!");
-          navigate({ to: "/welcome" });
-        } else {
-          toast.success("Check your email to verify your account.");
-          onSwitch();
+        if (error) {
+          setSubmitting(false);
+          return toast.error("Sign-up failed", { description: error.message });
         }
+        // Do not auto-login. If Supabase returned a session (auto-confirm on), end it.
+        if (data.session) {
+          await supabase.auth.signOut({ scope: "local" });
+        }
+        setSubmitting(false);
+        toast.success("Account created", { description: "Check your email to verify." });
+        onNeedsVerification(em.data);
       }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
