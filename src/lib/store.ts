@@ -84,11 +84,14 @@ function subscribe(cb: () => void) {
 
 /* ---------- Selectors (with useSyncExternalStore) ---------- */
 
+const EMPTY_CART: CartLine[] = [];
+const EMPTY_STRS: string[] = [];
+
 export function useCart() {
   return useSyncExternalStore(
     subscribe,
     () => state.cart,
-    () => [] as CartLine[],
+    () => EMPTY_CART,
   );
 }
 
@@ -112,7 +115,7 @@ export function useFavorites() {
   return useSyncExternalStore(
     subscribe,
     () => state.favorites,
-    () => [] as string[],
+    () => EMPTY_STRS,
   );
 }
 
@@ -124,12 +127,19 @@ export function useIsFavorite(id: string) {
   );
 }
 
+let drawerSnap: { id: string | null; open: boolean } = {
+  id: state.drawerItemId,
+  open: state.drawerOpen,
+};
+function getDrawerSnap() {
+  if (drawerSnap.id !== state.drawerItemId || drawerSnap.open !== state.drawerOpen) {
+    drawerSnap = { id: state.drawerItemId, open: state.drawerOpen };
+  }
+  return drawerSnap;
+}
+const DRAWER_SSR = { id: null as string | null, open: false };
 export function useDrawer() {
-  return useSyncExternalStore(
-    subscribe,
-    () => ({ id: state.drawerItemId, open: state.drawerOpen }),
-    () => ({ id: null as string | null, open: false }),
-  );
+  return useSyncExternalStore(subscribe, getDrawerSnap, () => DRAWER_SSR);
 }
 
 export function useSearchOpen() {
