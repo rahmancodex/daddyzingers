@@ -198,16 +198,19 @@ export function Navbar() {
                 >
                   <Search className="h-4 w-4" /> Search
                 </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    setOpen(false);
-                    loginToast();
-                  }}
-                >
-                  <User className="h-4 w-4" /> Login
-                </Button>
+                <Link to={user ? "/dashboard" : "/auth"} className="flex-1" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    {user ? (
+                      <>
+                        <LayoutDashboard className="h-4 w-4" /> Dashboard
+                      </>
+                    ) : (
+                      <>
+                        <User className="h-4 w-4" /> Login
+                      </>
+                    )}
+                  </Button>
+                </Link>
               </div>
               <Link to="/menu" onClick={() => setOpen(false)}>
                 <Button className="w-full mt-1 bg-primary text-primary-foreground font-semibold">
