@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { AdminPlaceholder } from "@/components/admin/AdminPlaceholder";
+import { BannersContent } from "@/components/admin/BannersContent";
 
 export const Route = createFileRoute("/admin/promo-banners")({
   ssr: false,
@@ -12,10 +12,7 @@ export const Route = createFileRoute("/admin/promo-banners")({
   }),
   component: () => (
     <AdminShell>
-      <AdminPlaceholder
-        title="Promo Banners"
-        description="Manage homepage promotional banners and carousels."
-      />
+      <BannersContent />
     </AdminShell>
   ),
 });
