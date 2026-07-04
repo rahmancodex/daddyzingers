@@ -53,7 +53,14 @@ function withServerFunctionRpcHeaders(request: Request): Request {
   if (!headers.has("x-tsr-serverFn")) headers.set("x-tsr-serverFn", "true");
   if (!headers.has("accept")) headers.set("accept", "application/json");
 
-  return new Request(request, { headers });
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: request.body,
+    redirect: request.redirect,
+    signal: request.signal,
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
 }
 
 export default {
