@@ -475,12 +475,14 @@ function ProductCard({
   fav,
   onFav,
   onOpen,
+  onQuickAdd,
 }: {
   item: MenuItem;
   index: number;
   fav: boolean;
   onFav: () => void;
   onOpen: () => void;
+  onQuickAdd: () => void;
 }) {
   return (
     <motion.div
