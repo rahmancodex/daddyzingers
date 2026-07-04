@@ -400,7 +400,7 @@ export function GlobalProductDrawer() {
                 className="w-full h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 min-h-12"
               >
                 <ShoppingBag className="h-5 w-5" />
-                {missingRequired ? "Select required options" : `Add ${qty} · ${formatPKR(subtotal)}`}
+                {missingRequired ? "Choose your options" : `Add to Basket · ${qty} · ${formatPKR(subtotal)}`}
               </Button>
             </div>
           </>
