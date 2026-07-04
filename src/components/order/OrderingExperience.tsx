@@ -178,7 +178,7 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       <PromoCarousel />
 
       {/* STICKY CATEGORY NAV + SEARCH */}
-      <div className={`sticky ${hideHeader ? "top-0" : "top-16 md:top-20"} z-40 bg-background/85 backdrop-blur-xl border-b border-border`}>
+      <div className="sticky top-16 md:top-20 z-40 bg-background/85 backdrop-blur-xl border-b border-border">
 
         <div className="container-dz py-3 md:py-4 flex items-center gap-3">
           <div className="flex-1 overflow-x-auto no-scrollbar">
