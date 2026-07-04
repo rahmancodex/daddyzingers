@@ -15,7 +15,9 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { Navbar } from "@/components/site/Navbar";
+import { OrderHeader } from "@/components/order/OrderHeader";
+import { MobileBottomNav } from "@/components/order/MobileBottomNav";
+import { PromoCarousel } from "@/components/order/PromoCarousel";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,58 +205,12 @@ function MenuPage() {
   const totalItems = filteredMenu.length;
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <Navbar />
+    <div className="min-h-dvh bg-background text-foreground pb-20 md:pb-0">
+      <OrderHeader />
 
-      {/* HERO */}
-      <section className="relative pt-28 md:pt-32 pb-16 md:pb-20 overflow-hidden bg-brand-black text-white">
-        <div className="absolute inset-0">
-          <img
-            src={heroBurger}
-            alt=""
-            aria-hidden
-            className="h-full w-full object-cover opacity-25"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/90 to-brand-black/40" />
-          <div
-            className="absolute inset-0 opacity-40"
-            style={{ background: "var(--gradient-radial-glow, radial-gradient(circle at 20% 40%, rgba(255,197,0,0.25), transparent 50%))" }}
-          />
-        </div>
-        <div className="container-dz relative">
-          <nav aria-label="Breadcrumb" className="text-xs uppercase tracking-[0.25em] text-white/60 flex items-center gap-2 mb-6">
-            <Link to="/" className="hover:text-primary">Home</Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-white">Menu</span>
-          </nav>
-          <div className="max-w-3xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-wider mb-6"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> The Full Menu · {MENU.length} items
-            </motion.div>
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="font-display text-5xl md:text-7xl font-extrabold tracking-tight leading-[0.95]"
-            >
-              Everything we <span className="text-gradient-brand">crave-craft.</span>
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="mt-5 text-lg text-white/70 max-w-xl"
-            >
-              Hand-breaded zingers, 24-hour brined broast, paratha-crisp rolls and loaded fries — built fresh, delivered hot.
-            </motion.p>
-          </div>
-        </div>
-      </section>
+      {/* PROMO CAROUSEL */}
+      <PromoCarousel />
+
 
       {/* STICKY CATEGORY NAV + SEARCH */}
       <div className="sticky top-16 md:top-20 z-40 bg-background/85 backdrop-blur-xl border-b border-border">
@@ -451,6 +407,7 @@ function MenuPage() {
       </main>
 
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

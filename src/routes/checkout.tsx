@@ -19,7 +19,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Navbar } from "@/components/site/Navbar";
+import { OrderHeader } from "@/components/order/OrderHeader";
+import { MobileBottomNav } from "@/components/order/MobileBottomNav";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,8 +108,8 @@ function CheckoutPage() {
   if (!authLoading && !user) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="pt-28 pb-24">
+        <OrderHeader />
+        <main className="pt-8 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
             <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/10 grid place-items-center mb-6">
               <MapPin className="h-7 w-7 text-primary" />
@@ -132,8 +133,8 @@ function CheckoutPage() {
   if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="pt-28 pb-24">
+        <OrderHeader />
+        <main className="pt-8 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
             <h1 className="font-display text-3xl font-extrabold">Your cart is empty</h1>
             <p className="mt-2 text-sm text-muted-foreground">Add something to check out.</p>
@@ -219,8 +220,8 @@ function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-24 md:pt-28 pb-32 lg:pb-24">
+      <OrderHeader />
+      <main className="pt-6 md:pt-10 pb-32 lg:pb-16">
         <div className="container-dz">
           <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
             <Link to="/cart" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">

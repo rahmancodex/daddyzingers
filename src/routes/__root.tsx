@@ -16,6 +16,7 @@ import { LOGO_MARK_URL } from "../components/site/Logo";
 import { GlobalProductDrawer } from "../components/site/GlobalProductDrawer";
 import { GlobalSearch } from "../components/site/GlobalSearch";
 import { FloatingCart } from "../components/site/FloatingCart";
+import { CartDrawer } from "../components/order/CartDrawer";
 import { AuthProvider } from "../lib/auth";
 
 function NotFoundComponent() {
@@ -148,6 +149,7 @@ function RootComponent() {
         <GlobalProductDrawer />
         <GlobalSearch />
         <FloatingCart />
+        <CartDrawer />
         <Toaster
           position="top-center"
           theme="dark"
