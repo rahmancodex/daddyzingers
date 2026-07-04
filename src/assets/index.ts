@@ -1,20 +1,10 @@
-// Local image assets bundled by Vite. Portable across any host (Lovable, Vercel, etc.).
-import itemZingerUrl from "./item-zinger.jpg";
-import itemBeefUrl from "./item-beef.jpg";
-import itemChickenUrl from "./item-chicken.jpg";
-import itemShawarmaUrl from "./item-shawarma.jpg";
-import catFriesUrl from "./cat-fries.jpg";
-import catDrinksUrl from "./cat-drinks.jpg";
-import catDealsUrl from "./cat-deals.jpg";
-import catDessertsUrl from "./cat-desserts.jpg";
-import heroBurgerUrl from "./hero-burger.jpg";
-
-export const itemZinger = itemZingerUrl;
-export const itemBeef = itemBeefUrl;
-export const itemChicken = itemChickenUrl;
-export const itemShawarma = itemShawarmaUrl;
-export const catFries = catFriesUrl;
-export const catDrinks = catDrinksUrl;
-export const catDeals = catDealsUrl;
-export const catDesserts = catDessertsUrl;
-export const heroBurger = heroBurgerUrl;
+// Portable static asset URLs served from /public. Works on any host (Lovable, Vercel, etc.).
+export const itemZinger = "/menu/item-zinger.jpg";
+export const itemBeef = "/menu/item-beef.jpg";
+export const itemChicken = "/menu/item-chicken.jpg";
+export const itemShawarma = "/menu/item-shawarma.jpg";
+export const catFries = "/menu/cat-fries.jpg";
+export const catDrinks = "/menu/cat-drinks.jpg";
+export const catDeals = "/menu/cat-deals.jpg";
+export const catDesserts = "/menu/cat-desserts.jpg";
+export const heroBurger = "/menu/hero-burger.jpg";
