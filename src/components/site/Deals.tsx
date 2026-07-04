@@ -7,17 +7,22 @@ import itemZinger from "@/assets/item-zinger.jpg";
 import itemChicken from "@/assets/item-chicken.jpg";
 
 function useCountdown(hours: number) {
-  const target = useState(() => Date.now() + hours * 3600_000)[0];
-  const [now, setNow] = useState(Date.now());
+  const [mounted, setMounted] = useState(false);
+  const [target, setTarget] = useState(0);
+  const [now, setNow] = useState(0);
   useEffect(() => {
+    const t = Date.now() + hours * 3600_000;
+    setTarget(t);
+    setNow(Date.now());
+    setMounted(true);
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
-  const diff = Math.max(0, target - now);
+  }, [hours]);
+  const diff = mounted ? Math.max(0, target - now) : hours * 3600_000;
   const h = Math.floor(diff / 3600_000);
   const m = Math.floor((diff % 3600_000) / 60_000);
   const s = Math.floor((diff % 60_000) / 1000);
-  return { h, m, s };
+  return { h, m, s, mounted };
 }
 
 function CountdownUnit({ value, label }: { value: number; label: string }) {
