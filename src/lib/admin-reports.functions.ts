@@ -539,7 +539,7 @@ export const adminReports = createServerFn({ method: "POST" })
       branches: branchStats,
       meta: {
         branchOptions: (branches ?? []).map((b) => ({ id: b.id, name: b.name })),
-        categoryOptions: (categories ?? []).map((c) => ({ id: c.id, name: c.name })),
+        categoryOptions: (categories ?? []).map((c) => ({ id: c.id, name: c.label })),
         couponOptions: (coupons ?? []).map((c) => ({ code: c.code, label: c.label })),
       },
     };
