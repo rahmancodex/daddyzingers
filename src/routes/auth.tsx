@@ -33,7 +33,7 @@ import {
 } from "@/lib/auth-schemas";
 import { sendPhoneOtp, verifyPhoneOtp } from "@/lib/phone-otp.functions";
 
-type Mode = "auth" | "phone" | "otp";
+type Mode = "auth" | "phone" | "otp" | "verify";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -83,6 +83,7 @@ function AuthPage() {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [mode, setMode] = useState<Mode>("auth");
   const [phone, setPhone] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState("");
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard" });
@@ -145,7 +146,7 @@ function AuthPage() {
                 <SignInForm onSuccess={() => router.navigate({ to: "/dashboard" })} />
               </TabsContent>
               <TabsContent value="signup">
-                <SignUpForm onSwitch={() => setTab("signin")} />
+                <SignUpForm onNeedsVerification={(email) => { setVerifyEmail(email); setMode("verify"); }} />
               </TabsContent>
             </Tabs>
           </motion.div>
@@ -166,6 +167,14 @@ function AuthPage() {
             key="otp"
             phone={phone}
             onBack={() => setMode("phone")}
+          />
+        )}
+
+        {mode === "verify" && (
+          <VerifyEmailStep
+            key="verify"
+            email={verifyEmail}
+            onBack={() => setMode("auth")}
           />
         )}
       </AnimatePresence>
@@ -222,7 +231,15 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           password: pw.data,
         });
         setSubmitting(false);
-        if (error) return toast.error("Sign-in failed", { description: error.message });
+        if (error) {
+          const msg = error.message?.toLowerCase() ?? "";
+          if (msg.includes("confirm") || msg.includes("verif") || (error as { code?: string }).code === "email_not_confirmed") {
+            return toast.error("Email not verified", {
+              description: "Your email hasn't been verified yet. Please check your inbox and click the verification link.",
+            });
+          }
+          return toast.error("Sign-in failed", { description: error.message });
+        }
         // "Remember me" hint — session persistence is handled by the SDK;
         // if unchecked, ask the browser to drop the session on tab close.
         if (!remember) {
@@ -285,7 +302,7 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
+function SignUpForm({ onNeedsVerification }: { onNeedsVerification: (email: string) => void }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -334,15 +351,17 @@ function SignUpForm({ onSwitch }: { onSwitch: () => void }) {
             },
           },
         });
-        setSubmitting(false);
-        if (error) return toast.error("Sign-up failed", { description: error.message });
-        if (data.session) {
-          toast.success("Account created — welcome!");
-          navigate({ to: "/welcome" });
-        } else {
-          toast.success("Check your email to verify your account.");
-          onSwitch();
+        if (error) {
+          setSubmitting(false);
+          return toast.error("Sign-up failed", { description: error.message });
         }
+        // Do not auto-login. If Supabase returned a session (auto-confirm on), end it.
+        if (data.session) {
+          await supabase.auth.signOut({ scope: "local" });
+        }
+        setSubmitting(false);
+        toast.success("Account created", { description: "Check your email to verify." });
+        onNeedsVerification(em.data);
       }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -697,6 +716,95 @@ function OtpStep({ phone, onBack }: { phone: string; onBack: () => void }) {
       >
         {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & continue"}
       </Button>
+    </motion.div>
+  );
+}
+
+function VerifyEmailStep({ email, onBack }: { email: string; onBack: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const t = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [secondsLeft]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.25 }}
+      className="text-center"
+    >
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+        <Mail className="h-7 w-7 text-primary" />
+      </div>
+      <h2 className="font-display text-2xl font-extrabold">Verify your email</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        We've sent a verification email to{" "}
+        <span className="font-medium text-foreground">{email}</span>. Please click
+        the verification link before signing in.
+      </p>
+
+      <div className="mt-6 grid gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 font-semibold"
+            onClick={() => window.open("https://mail.google.com", "_blank", "noopener")}
+          >
+            Open Gmail
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 font-semibold"
+            onClick={() => window.open("https://outlook.live.com/mail/", "_blank", "noopener")}
+          >
+            Open Outlook
+          </Button>
+        </div>
+
+        <Button
+          type="button"
+          disabled={resending || secondsLeft > 0}
+          className="h-11 bg-primary text-primary-foreground font-semibold hover:bg-[var(--color-primary-hover)]"
+          onClick={async () => {
+            setResending(true);
+            const { error } = await supabase.auth.resend({
+              type: "signup",
+              email,
+              options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+            });
+            setResending(false);
+            if (error) {
+              return toast.error("Couldn't resend email", { description: error.message });
+            }
+            toast.success("Verification email sent", { description: "Check your inbox." });
+            setSecondsLeft(60);
+          }}
+        >
+          {resending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : secondsLeft > 0 ? (
+            `Resend verification email (${secondsLeft}s)`
+          ) : (
+            "Resend verification email"
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-11 font-semibold"
+          onClick={onBack}
+        >
+          <ArrowLeft className="mr-1.5 h-4 w-4" /> Back to Sign In
+        </Button>
+      </div>
     </motion.div>
   );
 }
