@@ -37,7 +37,7 @@ export type AdminOrderRow = {
   coupon_code: string | null;
   notes: string | null;
   special_instructions: string | null;
-  address_snapshot: Record<string, unknown> | null;
+  address_snapshot: Json | null;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -53,7 +53,7 @@ export type AdminOrderItem = {
   name: string;
   qty: number;
   unit_price_pkr: number;
-  options: Record<string, unknown> | null;
+  options: Json | null;
 };
 
 export type AdminOrderDetail = AdminOrderRow & {
@@ -78,7 +78,7 @@ type ProfileRow = {
   phone: string | null;
 };
 
-async function attachCustomers<T extends { user_id: string; address_snapshot: Record<string, unknown> | null }>(
+async function attachCustomers<T extends { user_id: string; address_snapshot: Json | null }>(
   rows: T[],
 ): Promise<Array<T & { customer_name: string | null; customer_phone: string | null; customer_email: string | null }>> {
   if (rows.length === 0) return [];
@@ -104,11 +104,11 @@ async function attachCustomers<T extends { user_id: string; address_snapshot: Re
     const snap = r.address_snapshot ?? {};
     const snapName =
       typeof snap === "object" && snap && "recipient_name" in snap
-        ? ((snap as Record<string, unknown>).recipient_name as string | null | undefined)
+        ? ((snap as Json).recipient_name as string | null | undefined)
         : null;
     const snapPhone =
       typeof snap === "object" && snap && "phone" in snap
-        ? ((snap as Record<string, unknown>).phone as string | null | undefined)
+        ? ((snap as Json).phone as string | null | undefined)
         : null;
     return {
       ...r,
@@ -146,7 +146,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
     const base = (rows ?? []).map((r) => ({
       ...r,
-      address_snapshot: (r.address_snapshot ?? null) as Record<string, unknown> | null,
+      address_snapshot: (r.address_snapshot ?? null) as Json | null,
       items_count: Array.isArray(r.order_items) ? r.order_items.length : 0,
     }));
 
@@ -190,7 +190,7 @@ export const adminGetOrder = createServerFn({ method: "POST" })
 
     const base = {
       ...order,
-      address_snapshot: (order.address_snapshot ?? null) as Record<string, unknown> | null,
+      address_snapshot: (order.address_snapshot ?? null) as Json | null,
       items_count: items?.length ?? 0,
     };
     const [withCustomer] = await attachCustomers([base]);
@@ -199,7 +199,7 @@ export const adminGetOrder = createServerFn({ method: "POST" })
       ...withCustomer,
       items: (items ?? []).map((it) => ({
         ...it,
-        options: (it.options ?? null) as Record<string, unknown> | null,
+        options: (it.options ?? null) as Json | null,
       })),
     };
   });
