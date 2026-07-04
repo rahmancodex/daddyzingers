@@ -8,6 +8,8 @@ import {
   Megaphone,
   BarChart3,
   Settings,
+  ShieldCheck,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,5 +28,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Coupons", to: "/admin/coupons", icon: TicketPercent },
   { label: "Promo Banners", to: "/admin/promo-banners", icon: Megaphone },
   { label: "Reports", to: "/admin/reports", icon: BarChart3 },
+  { label: "Staff & Access", to: "/admin/staff", icon: ShieldCheck },
+  { label: "Audit Logs", to: "/admin/audit-logs", icon: ScrollText },
   { label: "Settings", to: "/admin/settings", icon: Settings },
 ];

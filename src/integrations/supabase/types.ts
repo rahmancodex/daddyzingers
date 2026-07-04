@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          module: string
+          new_value: Json | null
+          old_value: Json | null
+          summary: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module: string
+          new_value?: Json | null
+          old_value?: Json | null
+          summary?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          module?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          summary?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           address: string | null
@@ -697,6 +748,106 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_invitations: {
+        Row: {
+          accepted_at: string | null
+          branch_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          branch_id?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          branch_id?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invitations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_profiles: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string | null
+          invited_by: string | null
+          last_login_at: string | null
+          notes: string | null
+          phone: string | null
+          status: string
+          suspended_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string | null
+          invited_by?: string | null
+          last_login_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string | null
+          invited_by?: string | null
+          last_login_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_profiles_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_addresses: {
         Row: {
           address_line: string
@@ -760,14 +911,77 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_by: string | null
+          branch_id: string | null
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      current_user_top_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       generate_referral_code: { Args: never; Returns: string }
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role:
+        | "owner"
+        | "admin"
+        | "manager"
+        | "kitchen"
+        | "cashier"
+        | "rider"
+        | "support"
+        | "customer"
       order_status:
         | "pending"
         | "confirmed"
@@ -903,6 +1117,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: [
+        "owner",
+        "admin",
+        "manager",
+        "kitchen",
+        "cashier",
+        "rider",
+        "support",
+        "customer",
+      ],
       order_status: [
         "pending",
         "confirmed",
