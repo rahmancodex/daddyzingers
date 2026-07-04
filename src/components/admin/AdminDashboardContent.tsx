@@ -24,11 +24,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { adminPromoStats } from "@/lib/admin-promos.functions";
+import { adminListCustomers, type AdminCustomerRow } from "@/lib/admin-customers.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { adminOrderStats } from "@/lib/admin-orders.functions";
