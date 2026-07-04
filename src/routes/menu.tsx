@@ -541,7 +541,7 @@ function ProductCard({
           </div>
         </div>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
