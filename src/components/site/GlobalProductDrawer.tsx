@@ -457,9 +457,9 @@ function OptionGroupBlock({
               key={c.id}
               type="button"
               onClick={() => onToggle(c)}
-              className={`flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.99] ${
+              className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border text-left transition-all active:scale-[0.99] ${
                 active
-                  ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
+                  ? "border-primary bg-primary/8 shadow-[var(--shadow-glow)]"
                   : "border-border hover:border-foreground/25 hover:bg-secondary/40 bg-card"
               }`}
             >
