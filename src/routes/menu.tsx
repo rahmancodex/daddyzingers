@@ -460,13 +460,16 @@ function ProductCard({
   onOpen: () => void;
 }) {
   return (
-    <motion.button
+    <motion.div
       onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.45, delay: (index % 8) * 0.04, ease: [0.25, 1, 0.5, 1] }}
-      className="group relative text-left rounded-2xl overflow-hidden bg-card border border-border shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500"
+      className="group relative text-left rounded-2xl overflow-hidden bg-card border border-border shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-500 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
         <img
