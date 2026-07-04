@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/site/Logo";
-import { searchActions, useCartCount, useCartTotal } from "@/lib/store";
+import { searchActions, useCartCount } from "@/lib/store";
 import { formatPKR } from "@/lib/menu-data";
 import { useAuth } from "@/lib/auth";
 
