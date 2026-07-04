@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as OrderSuccessNumberRouteImport } from './routes/order-success.$number'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminPromoBannersRouteImport } from './routes/admin.promo-banners'
@@ -29,6 +30,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardSecurityRouteImport } from './routes/_authenticated/dashboard.security'
@@ -94,6 +96,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const AdminStaffRoute = AdminStaffRouteImport.update({
+  id: '/admin/staff',
+  path: '/admin/staff',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/admin/settings',
   path: '/admin/settings',
@@ -137,6 +144,11 @@ const AdminCouponsRoute = AdminCouponsRouteImport.update({
 const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   id: '/admin/categories',
   path: '/admin/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuditLogsRoute = AdminAuditLogsRouteImport.update({
+  id: '/admin/audit-logs',
+  path: '/admin/audit-logs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -208,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -217,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -238,6 +252,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -247,6 +262,7 @@ export interface FileRoutesByTo {
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/admin': typeof AdminIndexRoute
@@ -271,6 +287,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -280,6 +297,7 @@ export interface FileRoutesById {
   '/admin/promo-banners': typeof AdminPromoBannersRoute
   '/admin/reports': typeof AdminReportsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -304,6 +322,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/welcome'
     | '/dashboard'
+    | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
@@ -313,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
+    | '/admin/staff'
     | '/auth/callback'
     | '/order-success/$number'
     | '/admin/'
@@ -334,6 +354,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/reset-password'
     | '/welcome'
+    | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
@@ -343,6 +364,7 @@ export interface FileRouteTypes {
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
+    | '/admin/staff'
     | '/auth/callback'
     | '/order-success/$number'
     | '/admin'
@@ -366,6 +388,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/welcome'
     | '/_authenticated/dashboard'
+    | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
@@ -375,6 +398,7 @@ export interface FileRouteTypes {
     | '/admin/promo-banners'
     | '/admin/reports'
     | '/admin/settings'
+    | '/admin/staff'
     | '/auth/callback'
     | '/order-success/$number'
     | '/admin/'
@@ -398,6 +422,7 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WelcomeRoute: typeof WelcomeRoute
+  AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
@@ -407,6 +432,7 @@ export interface RootRouteChildren {
   AdminPromoBannersRoute: typeof AdminPromoBannersRoute
   AdminReportsRoute: typeof AdminReportsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStaffRoute: typeof AdminStaffRoute
   OrderSuccessNumberRoute: typeof OrderSuccessNumberRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -490,6 +516,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/admin/staff': {
+      id: '/admin/staff'
+      path: '/admin/staff'
+      fullPath: '/admin/staff'
+      preLoaderRoute: typeof AdminStaffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/admin/settings'
@@ -551,6 +584,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/categories'
       fullPath: '/admin/categories'
       preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/audit-logs': {
+      id: '/admin/audit-logs'
+      path: '/admin/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AdminAuditLogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -687,6 +727,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WelcomeRoute: WelcomeRoute,
+  AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
@@ -696,6 +737,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPromoBannersRoute: AdminPromoBannersRoute,
   AdminReportsRoute: AdminReportsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminStaffRoute: AdminStaffRoute,
   OrderSuccessNumberRoute: OrderSuccessNumberRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
