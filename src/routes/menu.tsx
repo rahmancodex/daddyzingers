@@ -15,7 +15,9 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import { Navbar } from "@/components/site/Navbar";
+import { OrderHeader } from "@/components/order/OrderHeader";
+import { MobileBottomNav } from "@/components/order/MobileBottomNav";
+import { PromoCarousel } from "@/components/order/PromoCarousel";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import {
