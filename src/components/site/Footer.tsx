@@ -88,13 +88,13 @@ function FooterLinkEl({ link }: { link: FooterLink }) {
 
 export function Footer() {
   return (
-    <footer id="contact" className="bg-secondary text-secondary-foreground pt-16 md:pt-24 pb-8 relative overflow-hidden">
+    <footer id="contact" className="bg-secondary text-secondary-foreground pt-14 md:pt-20 pb-8 relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
       <div className="container-dz relative">
         {/* Top: brand + branches highlight */}
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr] pb-12 border-b border-white/10">
+        <div className="grid gap-8 md:gap-10 lg:grid-cols-[1.2fr_1fr] pb-10 md:pb-12 border-b border-white/10">
           <div>
             <Link to="/" className="inline-flex items-center gap-3 mb-5 group" aria-label="Daddy Zinger — Home">
               <div className="h-16 w-16 rounded-2xl overflow-hidden ring-1 ring-primary/30 shadow-[var(--shadow-glow)] group-hover:scale-[1.04] transition-transform">
@@ -141,8 +141,8 @@ export function Footer() {
         </div>
 
         {/* Middle: nav + contact */}
-        <div className="grid gap-10 md:gap-12 md:grid-cols-2 lg:grid-cols-[2fr_1.1fr] py-12 border-b border-white/10">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+        <div className="grid gap-10 md:gap-12 md:grid-cols-2 lg:grid-cols-[2fr_1.1fr] py-10 md:py-12 border-b border-white/10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-8">
             {COLS.map((col) => (
               <div key={col.title}>
                 <div className="text-[10px] uppercase tracking-[0.25em] text-white/45 mb-4 font-semibold">

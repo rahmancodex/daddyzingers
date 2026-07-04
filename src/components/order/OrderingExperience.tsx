@@ -179,7 +179,8 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       <PromoCarousel />
 
       {/* STICKY CATEGORY NAV + SEARCH */}
-      <div className="sticky top-14 md:top-[72px] z-40 bg-background/90 backdrop-blur-xl border-b border-border">
+      <div className="sticky top-14 md:top-[72px] z-40 bg-background/85 backdrop-blur-xl border-b border-border">
+
 
         <div className="container-dz py-2 md:py-3 flex items-center gap-2 md:gap-3">
           <div className="flex-1 -mx-4 md:mx-0 overflow-x-auto no-scrollbar snap-x snap-mandatory">
@@ -322,11 +323,11 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       </div>
 
       {/* MENU SECTIONS */}
-      <main className="container-dz py-10 md:py-16">
+      <main className="container-dz py-8 md:py-14">
         {totalItems === 0 ? (
           <EmptyState query={search} onClear={() => setSearch("")} />
         ) : (
-          <div className="space-y-16 md:space-y-24">
+          <div className="space-y-12 md:space-y-20">
             {CATEGORIES.map((cat) => {
               const items = grouped[cat.id];
               if (!items || items.length === 0) return null;
@@ -339,22 +340,22 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
                   id={cat.id}
                   className="scroll-mt-40"
                 >
-                  <div className="flex items-end justify-between gap-4 mb-8">
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-2 flex items-center gap-2">
-                        <span aria-hidden className="text-base">{cat.icon}</span>
-                        {cat.tagline}
+                  <div className="flex items-end justify-between gap-4 mb-6 md:mb-8">
+                    <div className="min-w-0">
+                      <div className="text-[10px] md:text-xs uppercase tracking-[0.25em] text-muted-foreground mb-1.5 md:mb-2 flex items-center gap-2">
+                        <span aria-hidden className="text-sm md:text-base">{cat.icon}</span>
+                        <span className="truncate">{cat.tagline}</span>
                       </div>
-                      <h2 className="font-display text-3xl md:text-5xl font-extrabold tracking-tight">
+                      <h2 className="font-display text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight">
                         {cat.label}
                       </h2>
                     </div>
-                    <div className="text-xs text-muted-foreground shrink-0">
+                    <div className="text-[11px] md:text-xs text-muted-foreground shrink-0 pb-1">
                       {items.length} item{items.length !== 1 ? "s" : ""}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                     {items.map((item, i) => (
                       <ProductCard
                         key={item.id}

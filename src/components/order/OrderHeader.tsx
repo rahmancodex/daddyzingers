@@ -104,25 +104,27 @@ export function OrderHeader() {
       </header>
 
       {/* Mobile: method toggle + branch (NOT sticky — scrolls away naturally) */}
-      <div className="md:hidden container-dz pt-3 pb-1 flex items-center gap-2">
-        <div className="inline-flex items-center gap-0.5 p-1 rounded-full border border-border bg-card/70 shrink-0">
-          <MethodBtn
-            active={method === "delivery"}
-            onClick={() => branchActions.setMethod("delivery")}
-            icon={<Bike className="h-3.5 w-3.5" />}
-            label="Delivery"
-            compact
-          />
-          <MethodBtn
-            active={method === "pickup"}
-            onClick={() => branchActions.setMethod("pickup")}
-            icon={<Store className="h-3.5 w-3.5" />}
-            label="Pickup"
-            compact
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <LocationSelector compact />
+      <div className="md:hidden border-b border-border/60 bg-background/60">
+        <div className="container-dz py-2.5 flex items-center gap-2">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full border border-border bg-card shrink-0">
+            <MethodBtn
+              active={method === "delivery"}
+              onClick={() => branchActions.setMethod("delivery")}
+              icon={<Bike className="h-3.5 w-3.5" />}
+              label="Delivery"
+              compact
+            />
+            <MethodBtn
+              active={method === "pickup"}
+              onClick={() => branchActions.setMethod("pickup")}
+              icon={<Store className="h-3.5 w-3.5" />}
+              label="Pickup"
+              compact
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <LocationSelector compact />
+          </div>
         </div>
       </div>
     </>

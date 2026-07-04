@@ -165,7 +165,7 @@ export function GlobalProductDrawer() {
 
             <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               {/* IMAGE */}
-              <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-secondary">
+              <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full overflow-hidden bg-secondary">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={gallery[activeImage]}
@@ -223,18 +223,18 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* HEADER */}
-              <div className="px-5 pt-5 md:px-7 md:pt-7">
+              <div className="px-4 pt-4 md:px-6 md:pt-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="font-display text-[22px] md:text-[28px] font-extrabold tracking-tight leading-[1.15]">
+                    <h2 className="font-display text-[20px] md:text-[26px] font-extrabold tracking-tight leading-[1.15]">
                       {item.name}
                     </h2>
-                    <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                    <p className="mt-1 text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">
                       {item.shortDescription}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-xl md:text-2xl font-extrabold text-primary tabular-nums leading-none">
+                    <div className="text-lg md:text-2xl font-extrabold text-primary tabular-nums leading-none">
                       {formatPKR(unitPrice)}
                     </div>
                     {addonsTotal > 0 && (
@@ -245,7 +245,7 @@ export function GlobalProductDrawer() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-1.5">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   <MetaChip icon={<Star className="h-3 w-3 fill-primary text-primary" />}>
                     {item.rating} · {item.reviews.toLocaleString()}
                   </MetaChip>
@@ -255,7 +255,7 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* OPTION GROUPS */}
-              <div className="px-5 md:px-7 py-6 space-y-6">
+              <div className="px-4 md:px-6 py-5 space-y-5">
                 {groups.map((g) => (
                   <OptionGroupBlock
                     key={g.id}
@@ -457,9 +457,9 @@ function OptionGroupBlock({
               key={c.id}
               type="button"
               onClick={() => onToggle(c)}
-              className={`flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.99] ${
+              className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border text-left transition-all active:scale-[0.99] ${
                 active
-                  ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
+                  ? "border-primary bg-primary/8 shadow-[var(--shadow-glow)]"
                   : "border-border hover:border-foreground/25 hover:bg-secondary/40 bg-card"
               }`}
             >
