@@ -65,13 +65,13 @@ export function Navbar() {
       }`}
     >
       <div className="container-dz flex items-center justify-between h-16 md:h-20">
-        <Link to="/" hash="home" className="flex items-center gap-3 group min-w-0">
-          <div className="relative h-12 w-12 md:h-14 md:w-14 rounded-2xl bg-brand-black grid place-items-center overflow-hidden shadow-[var(--shadow-glow)] ring-1 ring-primary/30 group-hover:ring-primary/60 group-hover:scale-105 transition-all">
-            <Logo className="h-10 w-10 md:h-12 md:w-12 object-contain" />
+        <Link to="/" hash="home" className="flex items-center gap-2.5 md:gap-3 group min-w-0" aria-label="Daddy Zinger — Home">
+          <div className="relative h-11 w-11 md:h-14 md:w-14 rounded-2xl overflow-hidden ring-1 ring-primary/25 shadow-[var(--shadow-glow)] group-hover:ring-primary/60 group-hover:scale-[1.04] transition-all">
+            <Logo className="h-full w-full object-cover" />
           </div>
           <div className="leading-tight min-w-0">
             <div className="font-display text-base md:text-lg font-extrabold tracking-tight truncate">Daddy Zinger</div>
-            <div className="hidden sm:block text-[10px] uppercase tracking-[0.25em] text-muted-foreground -mt-0.5">Choice of the family</div>
+            <div className="hidden sm:block text-[10px] uppercase tracking-[0.28em] text-muted-foreground -mt-0.5">Choice of the family</div>
           </div>
         </Link>
 
