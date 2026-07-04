@@ -19,6 +19,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OrderSuccessNumberRouteImport } from './routes/order-success.$number'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
 import { Route as AuthenticatedDashboardSecurityRouteImport } from './routes/_authenticated/dashboard.security'
@@ -78,6 +79,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
   getParentRoute: () => AuthRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
+  '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/welcome': typeof WelcomeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/login': typeof AdminLoginRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/order-success/$number': typeof OrderSuccessNumberRoute
   '/_authenticated/dashboard/addresses': typeof AuthenticatedDashboardAddressesRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/welcome'
     | '/dashboard'
+    | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
     | '/dashboard/addresses'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/reset-password'
     | '/welcome'
+    | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
     | '/dashboard/addresses'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/welcome'
     | '/_authenticated/dashboard'
+    | '/admin/login'
     | '/auth/callback'
     | '/order-success/$number'
     | '/_authenticated/dashboard/addresses'
@@ -278,6 +290,7 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WelcomeRoute: typeof WelcomeRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   OrderSuccessNumberRoute: typeof OrderSuccessNumberRoute
 }
 
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
@@ -487,6 +507,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WelcomeRoute: WelcomeRoute,
+  AdminLoginRoute: AdminLoginRoute,
   OrderSuccessNumberRoute: OrderSuccessNumberRoute,
 }
 export const routeTree = rootRouteImport
