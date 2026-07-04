@@ -12,25 +12,26 @@ import catFries from "@/assets/cat-fries.jpg";
 import catDrinks from "@/assets/cat-drinks.jpg";
 import catDesserts from "@/assets/cat-desserts.jpg";
 
-type Opt = { id: string; name: string; price: number; img: string };
+type Opt = { id: string; itemId?: string; name: string; price: number; img: string };
 
 const BURGERS: Opt[] = [
-  { id: "b1", name: "Signature Zinger", price: 749, img: itemZinger },
-  { id: "b2", name: "Beef Stack", price: 1099, img: itemBeef },
-  { id: "b3", name: "Shawarma Wrap", price: 549, img: itemShawarma },
+  { id: "b-zinger", itemId: "zinger", name: "Signature Zinger", price: 490, img: itemZinger },
+  { id: "b-loaded", itemId: "loaded-zinger", name: "Loaded Zinger", price: 650, img: itemZinger },
+  { id: "b-beef", itemId: "double-patty-burger", name: "Double Patty Beef", price: 620, img: itemBeef },
+  { id: "b-wrap", itemId: "zinger-shawarma", name: "Zinger Shawarma", price: 380, img: itemShawarma },
 ];
 const FRIES: Opt[] = [
-  { id: "f1", name: "Classic Fries", price: 249, img: catFries },
-  { id: "f2", name: "Loaded Fries", price: 449, img: catFries },
+  { id: "f-classic", itemId: "french-fries", name: "Classic Fries", price: 220, img: catFries },
+  { id: "f-loaded", itemId: "loaded-fries", name: "Loaded Fries", price: 380, img: catFries },
 ];
 const DRINKS: Opt[] = [
-  { id: "d1", name: "Cola", price: 149, img: catDrinks },
-  { id: "d2", name: "Iced Tea", price: 179, img: catDrinks },
+  { id: "d-cola", name: "Cola 330ml", price: 120, img: catDrinks },
+  { id: "d-tea", name: "Iced Tea 330ml", price: 150, img: catDrinks },
 ];
 const SAUCES: Opt[] = [
-  { id: "s1", name: "Signature Sauce", price: 49, img: catDesserts },
-  { id: "s2", name: "Fire Chilli", price: 49, img: catDesserts },
-  { id: "s3", name: "Garlic Yogurt", price: 49, img: catDesserts },
+  { id: "s-mayo", name: "Garlic Mayo", price: 60, img: catDesserts },
+  { id: "s-hot", name: "Fire Chilli", price: 60, img: catDesserts },
+  { id: "s-bbq", name: "Smoky BBQ", price: 60, img: catDesserts },
 ];
 
 const STEPS = [
