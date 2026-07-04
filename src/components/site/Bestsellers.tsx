@@ -116,7 +116,7 @@ export function Bestsellers() {
                     </div>
                     <Button
                       size="sm"
-                      onClick={(e) => quickAdd(item, e)}
+                      onClick={(e) => openCustomize(item, e)}
                       className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] gap-1 h-9 rounded-full font-semibold"
                     >
                       <Plus className="h-4 w-4" /> Add
