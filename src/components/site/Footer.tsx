@@ -198,6 +198,39 @@ export function Footer() {
           </div>
         </div>
 
+        {/* App download */}
+        <div className="py-8 border-b border-white/10 grid gap-6 md:grid-cols-[1fr_auto] items-center">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.28em] text-primary font-bold mb-2">Get the app</div>
+            <div className="font-display text-xl md:text-2xl font-extrabold leading-tight">
+              Order faster. Track live. Earn Zinger rewards.
+            </div>
+            <p className="text-white/60 text-sm mt-1">Coming soon to the App Store and Google Play.</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => soonToast("iOS app")}
+              className="inline-flex items-center gap-2 h-12 px-5 rounded-2xl bg-white text-brand-black hover:bg-white/90 transition-colors font-semibold text-sm"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden><path d="M16.365 12.75c-.02-2.06 1.68-3.05 1.76-3.1-.96-1.4-2.45-1.59-2.98-1.61-1.27-.13-2.48.75-3.13.75-.65 0-1.65-.73-2.72-.71-1.4.02-2.7.82-3.42 2.07-1.46 2.54-.37 6.29 1.05 8.35.69 1.01 1.51 2.14 2.58 2.1 1.04-.04 1.43-.67 2.68-.67 1.25 0 1.6.67 2.7.65 1.12-.02 1.83-1.03 2.51-2.05.79-1.17 1.11-2.32 1.13-2.38-.02-.01-2.16-.83-2.18-3.4zm-2.05-6.24c.57-.7.96-1.66.85-2.62-.83.03-1.83.55-2.42 1.24-.53.61-1 1.6-.88 2.53.92.07 1.87-.47 2.45-1.15z"/></svg>
+              <div className="text-left leading-tight">
+                <div className="text-[9px] uppercase tracking-wider opacity-70">Download on the</div>
+                <div className="font-display font-extrabold">App Store</div>
+              </div>
+            </button>
+            <button
+              onClick={() => soonToast("Android app")}
+              className="inline-flex items-center gap-2 h-12 px-5 rounded-2xl bg-white text-brand-black hover:bg-white/90 transition-colors font-semibold text-sm"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden><path d="M3.61 1.81a1.5 1.5 0 0 0-.61 1.2v18a1.5 1.5 0 0 0 .6 1.2l10.7-10.4L3.6 1.8zm12.2 11.8l3.1 1.8c1 .58 1 2.02 0 2.6l-3.1 1.8-3.3-3.1 3.3-3.1zm-1.4-1.3l-10.6 10.4c.2.03.42-.01.6-.12l12.6-7.29-2.6-2.99zM4.4 1.7c-.19-.11-.4-.15-.6-.12l10.6 10.4 2.6-3L4.4 1.7z"/></svg>
+              <div className="text-left leading-tight">
+                <div className="text-[9px] uppercase tracking-wider opacity-70">Get it on</div>
+                <div className="font-display font-extrabold">Google Play</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/45">
           <div>© {new Date().getFullYear()} Daddy Zinger. Crafted with fire in Lodhran &amp; Bahawalpur.</div>
