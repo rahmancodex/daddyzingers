@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MENU, formatPKR, type MenuItem } from "@/lib/menu-data";
 import {
-  cartActions,
   drawerActions,
   favoriteActions,
   useFavorites,
