@@ -252,7 +252,7 @@ function CheckoutPage() {
                   transition={{ duration: 0.25 }}
                 >
                   {step === 0 && <MethodStep />}
-                  {step === 1 && <AddressStep />}
+                  {step === 1 && <AddressStep ref={addressStepRef} />}
                   {step === 2 && <PaymentStep />}
                   {step === 3 && <ReviewStep totals={totals} subtotal={subtotal} />}
                 </motion.div>
@@ -269,7 +269,7 @@ function CheckoutPage() {
                 </Button>
                 {step < 3 ? (
                   <Button
-                    onClick={() => setStep((s) => (Math.min(3, s + 1) as StepIdx))}
+                    onClick={goNext}
                     className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold"
                   >
                     Continue <ArrowRight className="h-4 w-4 ml-1" />
