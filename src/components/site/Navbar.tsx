@@ -49,16 +49,28 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1">
-          {NAV.map((n) => (
-            <a
-              key={n.label}
-              href={n.href}
-              className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
-            >
-              {n.label}
-              <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
-            </a>
-          ))}
+          {NAV.map((n) =>
+            n.to ? (
+              <Link
+                key={n.label}
+                to={n.to}
+                className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
+                activeProps={{ className: "text-foreground" }}
+              >
+                {n.label}
+                <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+              </Link>
+            ) : (
+              <a
+                key={n.label}
+                href={n.href}
+                className="relative px-4 py-2 text-sm font-medium text-foreground/80 hover:text-foreground transition-colors group"
+              >
+                {n.label}
+                <span className="absolute left-4 right-4 -bottom-0.5 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
+              </a>
+            )
+          )}
         </nav>
 
         <div className="hidden md:flex items-center gap-1.5">
