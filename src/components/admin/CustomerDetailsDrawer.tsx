@@ -55,7 +55,7 @@ import {
   formatPKR,
   initialsFrom,
 } from "@/lib/admin-customers";
-import { statusLabel, statusStyle } from "@/lib/admin-orders";
+import { STATUS_LABEL, STATUS_STYLE, type AdminOrderStatus } from "@/lib/admin-orders";
 
 type Props = {
   open: boolean;
