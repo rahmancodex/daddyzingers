@@ -104,10 +104,31 @@ function NavList({
 
 function useAdminAuth() {
   const navigate = useNavigate();
+  const meFn = useServerFn(adminMe);
+  const logFn = useServerFn(adminLogClientEvent);
   const [state, setState] = React.useState<{
     status: "loading" | "ok" | "unauth";
     email?: string;
+    roles?: AppRole[];
+    topRole?: AppRole | null;
   }>({ status: "loading" });
+
+  const loadRoles = React.useCallback(
+    async (email?: string) => {
+      try {
+        const me = await meFn();
+        setState({
+          status: "ok",
+          email,
+          roles: me.roles as AppRole[],
+          topRole: (me.topRole ?? null) as AppRole | null,
+        });
+      } catch {
+        setState({ status: "ok", email, roles: [], topRole: null });
+      }
+    },
+    [meFn],
+  );
 
   React.useEffect(() => {
     let mounted = true;
@@ -118,21 +139,26 @@ function useAdminAuth() {
         navigate({ to: "/admin/login", replace: true });
         return;
       }
-      setState({ status: "ok", email: data.user.email ?? undefined });
+      loadRoles(data.user.email ?? undefined);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
         setState({ status: "unauth" });
         navigate({ to: "/admin/login", replace: true });
       } else {
-        setState({ status: "ok", email: session.user.email ?? undefined });
+        loadRoles(session.user.email ?? undefined);
+        if (event === "SIGNED_IN") {
+          logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
+            () => {},
+          );
+        }
       }
     });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, loadRoles, logFn]);
 
   return state;
 }
