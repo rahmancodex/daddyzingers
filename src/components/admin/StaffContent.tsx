@@ -128,8 +128,16 @@ export function StaffContent() {
     { row: StaffRow; kind: "delete" | "logout" } | null
   >(null);
 
+  const inviteFn = useServerFn(adminInviteStaff);
+  const createFn = useServerFn(adminCreateStaff);
+  const updateFn = useServerFn(adminUpdateStaff);
+  const resetFn = useServerFn(adminResetStaffPassword);
+  const deleteFn = useServerFn(adminDeleteStaff);
+  const logoutFn = useServerFn(adminForceLogout);
+  const revokeFn = useServerFn(adminRevokeInvitation);
+
   const inviteMut = useMutation({
-    mutationFn: useServerFn(adminInviteStaff),
+    mutationFn: (v: Parameters<typeof adminInviteStaff>[0]["data"]) => inviteFn({ data: v }),
     onSuccess: () => {
       toast.success("Invitation sent");
       qc.invalidateQueries({ queryKey: ["admin", "invitations"] });
@@ -139,7 +147,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to invite"),
   });
   const createMut = useMutation({
-    mutationFn: useServerFn(adminCreateStaff),
+    mutationFn: (v: Parameters<typeof adminCreateStaff>[0]["data"]) => createFn({ data: v }),
     onSuccess: () => {
       toast.success("Staff created");
       qc.invalidateQueries({ queryKey: ["admin", "staff"] });
@@ -148,7 +156,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to create staff"),
   });
   const updateMut = useMutation({
-    mutationFn: useServerFn(adminUpdateStaff),
+    mutationFn: (v: Parameters<typeof adminUpdateStaff>[0]["data"]) => updateFn({ data: v }),
     onSuccess: () => {
       toast.success("Staff updated");
       qc.invalidateQueries({ queryKey: ["admin", "staff"] });
@@ -157,7 +165,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to update staff"),
   });
   const resetMut = useMutation({
-    mutationFn: useServerFn(adminResetStaffPassword),
+    mutationFn: (v: { user_id: string; password: string }) => resetFn({ data: v }),
     onSuccess: () => {
       toast.success("Password reset");
       setPwDialog(null);
@@ -165,7 +173,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to reset password"),
   });
   const deleteMut = useMutation({
-    mutationFn: useServerFn(adminDeleteStaff),
+    mutationFn: (v: { user_id: string }) => deleteFn({ data: v }),
     onSuccess: () => {
       toast.success("Staff deleted");
       qc.invalidateQueries({ queryKey: ["admin", "staff"] });
@@ -174,7 +182,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to delete"),
   });
   const logoutMut = useMutation({
-    mutationFn: useServerFn(adminForceLogout),
+    mutationFn: (v: { user_id: string }) => logoutFn({ data: v }),
     onSuccess: () => {
       toast.success("All sessions revoked");
       setConfirm(null);
@@ -182,7 +190,7 @@ export function StaffContent() {
     onError: (e: any) => toast.error(e.message ?? "Failed to force logout"),
   });
   const revokeInvMut = useMutation({
-    mutationFn: useServerFn(adminRevokeInvitation),
+    mutationFn: (v: { id: string }) => revokeFn({ data: v }),
     onSuccess: () => {
       toast.success("Invitation revoked");
       qc.invalidateQueries({ queryKey: ["admin", "invitations"] });
