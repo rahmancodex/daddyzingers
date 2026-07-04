@@ -17,6 +17,15 @@ export type AppliedCoupon = {
   minSubtotal?: number;
 };
 
+export type NewAddressDraft = {
+  recipient_name: string;
+  phone: string;
+  address_line: string;
+  city: string;
+  area: string;
+  notes: string;
+};
+
 export type CheckoutState = {
   method: DeliveryMethod;
   coupon: AppliedCoupon | null;
@@ -27,9 +36,20 @@ export type CheckoutState = {
   contactAltPhone: string;
   notes: string;
   paymentMethod: "cod" | "card" | "wallet";
+  useNewAddress: boolean;
+  newAddress: NewAddressDraft;
 };
 
 const LS_KEY = "dz_checkout_v1";
+
+const EMPTY_NEW_ADDRESS: NewAddressDraft = {
+  recipient_name: "",
+  phone: "",
+  address_line: "",
+  city: "",
+  area: "",
+  notes: "",
+};
 
 const DEFAULT: CheckoutState = {
   method: "delivery",
@@ -41,6 +61,8 @@ const DEFAULT: CheckoutState = {
   contactAltPhone: "",
   notes: "",
   paymentMethod: "cod",
+  useNewAddress: false,
+  newAddress: EMPTY_NEW_ADDRESS,
 };
 
 function load(): CheckoutState {
