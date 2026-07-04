@@ -113,6 +113,7 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       platters: [],
       broast: [],
       sides: [],
+      drinks: [],
       extras: [],
     };
     filteredMenu.forEach((m) => map[m.category].push(m));
@@ -178,9 +179,9 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       <PromoCarousel />
 
       {/* STICKY CATEGORY NAV + SEARCH */}
-      <div className="sticky top-[104px] md:top-[72px] z-40 bg-background/85 backdrop-blur-xl border-b border-border">
+      <div className="sticky top-14 md:top-[72px] z-40 bg-background/90 backdrop-blur-xl border-b border-border">
 
-        <div className="container-dz py-3 md:py-4 flex items-center gap-3">
+        <div className="container-dz py-2.5 md:py-3.5 flex items-center gap-3">
           <div className="flex-1 overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-2 min-w-max">
               {CATEGORIES.map((c) => {
