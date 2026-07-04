@@ -21,9 +21,7 @@ const NAV: NavItem[] = [
 ];
 
 function loginToast() {
-  toast("Sign in coming soon", {
-    description: "Accounts, saved addresses and order history are on the way.",
-  });
+  toast("Sign in to save orders, favorites and addresses.");
 }
 
 function cartToast(count: number, total: number) {
