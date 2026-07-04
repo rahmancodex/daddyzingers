@@ -252,7 +252,7 @@ function CheckoutPage() {
                   transition={{ duration: 0.25 }}
                 >
                   {step === 0 && <MethodStep />}
-                  {step === 1 && <AddressStep ref={addressStepRef} />}
+                  {step === 1 && <AddressStep bindRef={addressStepRef} />}
                   {step === 2 && <PaymentStep />}
                   {step === 3 && <ReviewStep totals={totals} subtotal={subtotal} />}
                 </motion.div>
