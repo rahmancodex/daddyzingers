@@ -412,7 +412,7 @@ function LatestCustomers() {
   const fetchList = useServerFn(adminListCustomers);
   const q = useQuery({
     queryKey: ["admin", "customers"],
-    queryFn: () => fetchList({ data: undefined }),
+    queryFn: () => fetchList({ data: undefined }) as Promise<AdminCustomerRow[]>,
   });
 
   React.useEffect(() => {
