@@ -63,14 +63,20 @@ function BrandMark({ collapsed }: { collapsed?: boolean }) {
 function NavList({
   collapsed,
   onNavigate,
+  roles,
 }: {
   collapsed?: boolean;
   onNavigate?: () => void;
+  roles?: AppRole[];
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const items = ADMIN_NAV.filter((item) => {
+    const perm = ROUTE_PERMISSION[item.to];
+    return !perm || hasPermission(roles, perm);
+  });
   return (
     <nav className="flex flex-col gap-1 px-2">
-      {ADMIN_NAV.map((item) => {
+      {items.map((item) => {
         const active =
           item.to === "/admin"
             ? pathname === "/admin"
