@@ -17,11 +17,21 @@ export type MenuCategory =
   | "drinks"
   | "extras";
 
+export type OptionChoice = { id: string; label: string; priceDelta: number };
+export type OptionGroup = {
+  id: string;
+  label: string;
+  type: "single" | "multi";
+  required?: boolean;
+  choices: OptionChoice[];
+};
+export type SizeChoice = { id: string; label: string; price: number };
+
 export type MenuItem = {
   id: string;
   name: string;
   category: MenuCategory;
-  price: number; // PKR
+  price: number; // PKR (base / smallest size)
   shortDescription: string;
   longDescription: string;
   image: string;
@@ -33,6 +43,10 @@ export type MenuItem = {
   ingredients: string[];
   allergens: string[];
   tags: Array<"bestseller" | "new" | "spicy" | "chicken" | "beef" | "deal" | "popular">;
+  /** Item-specific size options (drinks / sides). Overrides base price when selected. */
+  sizes?: SizeChoice[];
+  /** Item-specific option groups. When omitted, CATEGORY_OPTIONS[category] applies. */
+  options?: OptionGroup[];
 };
 
 export const CATEGORIES: {
@@ -423,33 +437,54 @@ export const MENU: MenuItem[] = [
 
 
   // DRINKS
-  ...([
-    { id: "pepsi", name: "Pepsi", price: 90 },
-    { id: "pepsi-black", name: "Pepsi Black", price: 90 },
-    { id: "coca-cola", name: "Coca-Cola", price: 90 },
-    { id: "coca-cola-zero", name: "Coca-Cola Zero", price: 90 },
-    { id: "7up", name: "7UP", price: 90 },
-    { id: "sprite", name: "Sprite", price: 90 },
-    { id: "mirinda", name: "Mirinda", price: 90 },
-    { id: "mountain-dew", name: "Mountain Dew", price: 100 },
-    { id: "sting", name: "Sting Energy", price: 130 },
-    { id: "mineral-water", name: "Mineral Water", price: 60 },
-  ] as const).map<MenuItem>((d) => ({
-    id: d.id,
-    name: d.name,
-    category: "drinks",
-    price: d.price,
-    shortDescription: "Chilled 330ml can. Large 500ml available.",
-    longDescription: `Ice-cold ${d.name}, served chilled. Available in Regular (330ml) or Large (500ml).`,
-    image: catDrinks,
-    rating: 4.6,
-    reviews: 120,
-    prepTime: 1,
-    calories: 140,
-    ingredients: ["Soft drink"],
-    allergens: [],
-    tags: ["popular"],
-  })),
+  ...(() => {
+    const SODA: SizeChoice[] = [
+      { id: "250", label: "250ml Bottle", price: 60 },
+      { id: "345", label: "345ml Can", price: 90 },
+      { id: "500", label: "500ml Bottle", price: 120 },
+      { id: "1000", label: "1 Litre", price: 180 },
+      { id: "1500", label: "1.5 Litre", price: 230 },
+    ];
+    const STING: SizeChoice[] = [
+      { id: "250", label: "250ml Can", price: 130 },
+      { id: "500", label: "500ml Can", price: 220 },
+    ];
+    const WATER: SizeChoice[] = [
+      { id: "500", label: "500ml", price: 60 },
+      { id: "1000", label: "1 Litre", price: 100 },
+      { id: "1500", label: "1.5 Litre", price: 130 },
+    ];
+    const list: Array<{ id: string; name: string; sizes: SizeChoice[] }> = [
+      { id: "pepsi", name: "Pepsi", sizes: SODA },
+      { id: "pepsi-black", name: "Pepsi Black", sizes: SODA },
+      { id: "coca-cola", name: "Coca-Cola", sizes: SODA },
+      { id: "coca-cola-zero", name: "Coca-Cola Zero", sizes: SODA },
+      { id: "7up", name: "7UP", sizes: SODA },
+      { id: "sprite", name: "Sprite", sizes: SODA },
+      { id: "mirinda", name: "Mirinda", sizes: SODA },
+      { id: "mountain-dew", name: "Mountain Dew", sizes: SODA },
+      { id: "sting", name: "Sting Energy", sizes: STING },
+      { id: "mineral-water", name: "Mineral Water", sizes: WATER },
+    ];
+    return list.map<MenuItem>((d) => ({
+      id: d.id,
+      name: d.name,
+      category: "drinks",
+      price: d.sizes[0].price,
+      shortDescription: `Ice-cold ${d.name}. Multiple sizes available.`,
+      longDescription: `${d.name}, served chilled. Choose from ${d.sizes.map((s) => s.label).join(", ")}.`,
+      image: catDrinks,
+      rating: 4.6,
+      reviews: 120,
+      prepTime: 1,
+      calories: 140,
+      ingredients: [d.name],
+      allergens: [],
+      tags: ["popular"],
+      sizes: d.sizes,
+    }));
+  })(),
+
 
   // EXTRAS
   {
@@ -536,6 +571,189 @@ export const MEAL_UPGRADES = [
   { id: "add-drink", label: "Add Drink", desc: "Choice of soft drink 330ml", price: 120 },
   { id: "upgrade-drink", label: "Upgrade Drink Size", desc: "500ml instead of 330ml", price: 60 },
 ] as const;
+
+/* ============================================================ */
+/*  Category-aware customization system.                        */
+/*  Each product category exposes only its own relevant options.*/
+/* ============================================================ */
+
+const SAUCE_CHOICES: OptionChoice[] = [
+  { id: "garlic-mayo", label: "Garlic Mayo", priceDelta: 40 },
+  { id: "hot-sauce", label: "Hot Sauce", priceDelta: 40 },
+  { id: "smoky-bbq", label: "Smoky BBQ", priceDelta: 40 },
+  { id: "ranch", label: "Ranch", priceDelta: 40 },
+];
+const SPICE_CHOICES: OptionChoice[] = [
+  { id: "mild", label: "Mild", priceDelta: 0 },
+  { id: "regular", label: "Regular", priceDelta: 0 },
+  { id: "extra", label: "Extra Spicy", priceDelta: 0 },
+];
+
+export const CATEGORY_OPTIONS: Record<MenuCategory, OptionGroup[]> = {
+  burgers: [
+    {
+      id: "addons",
+      label: "Burger Add-ons",
+      type: "multi",
+      choices: [
+        { id: "extra-cheese", label: "Extra Cheese", priceDelta: 80 },
+        { id: "extra-patty", label: "Extra Patty", priceDelta: 220 },
+        { id: "jalapeno", label: "Jalapeños", priceDelta: 40 },
+        { id: "olives", label: "Olives", priceDelta: 40 },
+      ],
+    },
+    { id: "sauces", label: "Sauces", type: "multi", choices: SAUCE_CHOICES.slice(0, 3) },
+    {
+      id: "onion",
+      label: "Onion",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "with", label: "With Onion", priceDelta: 0 },
+        { id: "without", label: "No Onion", priceDelta: 0 },
+      ],
+    },
+    { id: "spice", label: "Spice Level", type: "single", required: true, choices: SPICE_CHOICES },
+    {
+      id: "meal",
+      label: "Meal Upgrade",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "none", label: "Burger only", priceDelta: 0 },
+        { id: "make-meal", label: "Make it a Meal (fries + drink)", priceDelta: 220 },
+        { id: "add-fries", label: "Add Fries", priceDelta: 150 },
+        { id: "add-drink", label: "Add Drink", priceDelta: 120 },
+      ],
+    },
+  ],
+  shawarma: [
+    { id: "sauces", label: "Sauces", type: "multi", choices: SAUCE_CHOICES.slice(0, 3) },
+    {
+      id: "cheese",
+      label: "Cheese",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "no", label: "No Cheese", priceDelta: 0 },
+        { id: "yes", label: "Add Cheese", priceDelta: 80 },
+      ],
+    },
+    { id: "spice", label: "Spice Level", type: "single", required: true, choices: SPICE_CHOICES },
+  ],
+  rolls: [
+    {
+      id: "sauces",
+      label: "Sauces",
+      type: "multi",
+      choices: [
+        { id: "mint-chutney", label: "Mint Chutney", priceDelta: 40 },
+        { id: "tamarind", label: "Tamarind", priceDelta: 40 },
+        { id: "garlic-mayo", label: "Garlic Mayo", priceDelta: 40 },
+      ],
+    },
+    {
+      id: "cheese",
+      label: "Cheese",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "no", label: "No Cheese", priceDelta: 0 },
+        { id: "yes", label: "Add Cheese", priceDelta: 80 },
+      ],
+    },
+    { id: "spice", label: "Spice Level", type: "single", required: true, choices: SPICE_CHOICES },
+  ],
+  platters: [
+    {
+      id: "drink",
+      label: "Drink Choice",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "pepsi", label: "Pepsi", priceDelta: 0 },
+        { id: "coca-cola", label: "Coca-Cola", priceDelta: 0 },
+        { id: "7up", label: "7UP", priceDelta: 0 },
+        { id: "sprite", label: "Sprite", priceDelta: 0 },
+        { id: "mineral-water", label: "Mineral Water", priceDelta: 0 },
+      ],
+    },
+    {
+      id: "dip",
+      label: "Complimentary Dips",
+      type: "multi",
+      choices: [
+        { id: "garlic-mayo", label: "Garlic Mayo", priceDelta: 0 },
+        { id: "hot-sauce", label: "Hot Sauce", priceDelta: 0 },
+        { id: "smoky-bbq", label: "Smoky BBQ", priceDelta: 0 },
+      ],
+    },
+  ],
+  broast: [
+    { id: "sauces", label: "Dips", type: "multi", choices: SAUCE_CHOICES },
+    { id: "spice", label: "Spice Level", type: "single", required: true, choices: SPICE_CHOICES },
+    {
+      id: "meal",
+      label: "Add-on",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "none", label: "Piece only", priceDelta: 0 },
+        { id: "add-fries", label: "Add Fries", priceDelta: 150 },
+        { id: "add-drink", label: "Add Drink", priceDelta: 120 },
+      ],
+    },
+  ],
+  sides: [
+    {
+      id: "size",
+      label: "Size",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "regular", label: "Regular", priceDelta: 0 },
+        { id: "large", label: "Large", priceDelta: 80 },
+      ],
+    },
+    { id: "sauces", label: "Dips", type: "multi", choices: SAUCE_CHOICES },
+  ],
+  drinks: [
+    {
+      id: "ice",
+      label: "Ice",
+      type: "single",
+      required: true,
+      choices: [
+        { id: "regular", label: "Regular Ice", priceDelta: 0 },
+        { id: "less", label: "Less Ice", priceDelta: 0 },
+        { id: "no", label: "No Ice", priceDelta: 0 },
+      ],
+    },
+  ],
+  extras: [],
+};
+
+/** Resolve the option groups to show for an item, including item-level `sizes` when set. */
+export function resolveItemOptions(item: MenuItem): OptionGroup[] {
+  const base = item.options ?? CATEGORY_OPTIONS[item.category] ?? [];
+  if (item.sizes && item.sizes.length) {
+    const sizeGroup: OptionGroup = {
+      id: "size",
+      label: "Size",
+      type: "single",
+      required: true,
+      choices: item.sizes.map((s) => ({
+        id: s.id,
+        label: `${s.label} · Rs ${s.price}`,
+        priceDelta: 0, // size sets absolute base price; handled separately
+      })),
+    };
+    // Drop any default `size` group in category options
+    return [sizeGroup, ...base.filter((g) => g.id !== "size")];
+  }
+  return base;
+}
+
 
 export const FILTERS = [
   { id: "popular", label: "Popular" },

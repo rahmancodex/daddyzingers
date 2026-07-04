@@ -181,22 +181,22 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
       {/* STICKY CATEGORY NAV + SEARCH */}
       <div className="sticky top-14 md:top-[72px] z-40 bg-background/90 backdrop-blur-xl border-b border-border">
 
-        <div className="container-dz py-2.5 md:py-3.5 flex items-center gap-3">
-          <div className="flex-1 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-2 min-w-max">
+        <div className="container-dz py-2 md:py-3 flex items-center gap-2 md:gap-3">
+          <div className="flex-1 -mx-4 md:mx-0 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+            <div className="flex items-center gap-1.5 md:gap-2 px-4 md:px-0 min-w-max">
               {CATEGORIES.map((c) => {
                 const active = activeCat === c.id;
                 return (
                   <button
                     key={c.id}
                     onClick={() => scrollToCategory(c.id)}
-                    className={`relative shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${
+                    className={`relative shrink-0 snap-start inline-flex items-center gap-1.5 h-9 md:h-10 px-3 md:px-3.5 rounded-full border text-[13px] md:text-sm font-semibold transition-all ${
                       active
                         ? "bg-primary text-primary-foreground border-primary shadow-[var(--shadow-glow)]"
-                        : "bg-card border-border hover:border-foreground/20"
+                        : "bg-card border-border hover:border-foreground/20 text-foreground/80"
                     }`}
                   >
-                    <span aria-hidden className="text-base leading-none">{c.icon}</span>
+                    <span aria-hidden className="text-sm leading-none">{c.icon}</span>
                     <span>{c.label}</span>
                     {active && (
                       <motion.span
@@ -212,7 +212,7 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
           </div>
           <button
             onClick={() => setShowSearch((s) => !s)}
-            className="shrink-0 h-11 w-11 rounded-full grid place-items-center border border-border bg-card hover:border-primary hover:text-primary transition-all"
+            className="shrink-0 h-9 w-9 md:h-10 md:w-10 rounded-full grid place-items-center border border-border bg-card hover:border-primary hover:text-primary transition-all"
             aria-label="Search menu"
           >
             {showSearch ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
