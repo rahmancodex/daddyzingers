@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -28,6 +29,7 @@ import { Route as AdminProductionRouteImport } from './routes/admin.production'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminLaunchRouteImport } from './routes/admin.launch'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
@@ -46,6 +48,11 @@ import { Route as AuthenticatedDashboardAddressesRouteImport } from './routes/_a
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -137,6 +144,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLaunchRoute = AdminLaunchRouteImport.update({
+  id: '/admin/launch',
+  path: '/admin/launch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/admin/customers',
   path: '/admin/customers',
@@ -224,12 +236,14 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -258,11 +272,13 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -293,12 +309,14 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/menu': typeof MenuRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/welcome': typeof WelcomeRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/admin/audit-logs': typeof AdminAuditLogsRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/launch': typeof AdminLaunchRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -329,12 +347,14 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/menu'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/welcome'
     | '/dashboard'
     | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
+    | '/admin/launch'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -363,11 +383,13 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/menu'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/welcome'
     | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
+    | '/admin/launch'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -397,12 +419,14 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/menu'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/welcome'
     | '/_authenticated/dashboard'
     | '/admin/audit-logs'
     | '/admin/categories'
     | '/admin/coupons'
     | '/admin/customers'
+    | '/admin/launch'
     | '/admin/login'
     | '/admin/menu'
     | '/admin/orders'
@@ -433,11 +457,13 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   MenuRoute: typeof MenuRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   WelcomeRoute: typeof WelcomeRoute
   AdminAuditLogsRoute: typeof AdminAuditLogsRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminLaunchRoute: typeof AdminLaunchRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
@@ -457,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -583,6 +616,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/launch': {
+      id: '/admin/launch'
+      path: '/admin/launch'
+      fullPath: '/admin/launch'
+      preLoaderRoute: typeof AdminLaunchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/customers': {
@@ -746,11 +786,13 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   MenuRoute: MenuRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   WelcomeRoute: WelcomeRoute,
   AdminAuditLogsRoute: AdminAuditLogsRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminLaunchRoute: AdminLaunchRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminOrdersRoute: AdminOrdersRoute,

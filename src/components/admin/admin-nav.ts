@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ScrollText,
   Rocket,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,5 +35,6 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Audit Logs", to: "/admin/audit-logs", icon: ScrollText },
   { label: "Settings", to: "/admin/settings", icon: Settings },
   { label: "Production", to: "/admin/production", icon: Rocket },
+  { label: "Launch Checklist", to: "/admin/launch", icon: ClipboardCheck },
 ];
 
