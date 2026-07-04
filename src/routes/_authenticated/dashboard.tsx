@@ -29,7 +29,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 type Profile = { full_name: string | null; avatar_url: string | null; phone: string | null };
 
-const NAV = [
+type NavItem = { to: string; label: string; icon: typeof Home; exact?: boolean };
+const NAV: NavItem[] = [
   { to: "/dashboard", label: "Overview", icon: Home, exact: true },
   { to: "/dashboard/orders", label: "Orders", icon: ReceiptText },
   { to: "/dashboard/favorites", label: "Favorites", icon: Heart },
@@ -39,7 +40,7 @@ const NAV = [
   { to: "/dashboard/profile", label: "Profile", icon: UserIcon },
   { to: "/dashboard/security", label: "Security", icon: Shield },
   { to: "/dashboard/notifications", label: "Notifications", icon: Bell },
-] as const;
+];
 
 function DashboardLayout() {
   const { user } = useAuth();
