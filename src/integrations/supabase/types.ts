@@ -14,7 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      order_items: {
+        Row: {
+          id: string
+          name: string
+          options: Json | null
+          order_id: string
+          product_id: string
+          qty: number
+          unit_price_pkr: number
+        }
+        Insert: {
+          id?: string
+          name: string
+          options?: Json | null
+          order_id: string
+          product_id: string
+          qty?: number
+          unit_price_pkr?: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          options?: Json | null
+          order_id?: string
+          product_id?: string
+          qty?: number
+          unit_price_pkr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address_snapshot: Json | null
+          created_at: string
+          delivery_fee_pkr: number
+          id: string
+          notes: string | null
+          order_number: string
+          payment_method: string
+          status: string
+          subtotal_pkr: number
+          total_pkr: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_snapshot?: Json | null
+          created_at?: string
+          delivery_fee_pkr?: number
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: string
+          status?: string
+          subtotal_pkr?: number
+          total_pkr?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_snapshot?: Json | null
+          created_at?: string
+          delivery_fee_pkr?: number
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: string
+          status?: string
+          subtotal_pkr?: number
+          total_pkr?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          marketing_opt_in: boolean
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          marketing_opt_in?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          marketing_opt_in?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_addresses: {
+        Row: {
+          address_line: string
+          area: string | null
+          city: string
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          notes: string | null
+          phone: string | null
+          recipient_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address_line: string
+          area?: string | null
+          city: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          notes?: string | null
+          phone?: string | null
+          recipient_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address_line?: string
+          area?: string | null
+          city?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          notes?: string | null
+          phone?: string | null
+          recipient_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          created_at: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
