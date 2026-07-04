@@ -24,7 +24,33 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Daddy Zinger — Crafted for Cravings" },
       { property: "og:description", content: "Premium zingers, wings, burgers and wraps. Delivered hot in 29 minutes." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://daddyzingers.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [{ rel: "canonical", href: "https://daddyzingers.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          name: "Daddy Zinger",
+          url: "https://daddyzingers.lovable.app/",
+          servesCuisine: ["Pakistani", "Fast Food", "Fried Chicken"],
+          priceRange: "$$",
+          acceptsReservations: false,
+          hasMenu: "https://daddyzingers.lovable.app/menu",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Daddy Zinger",
+          url: "https://daddyzingers.lovable.app/",
+        }),
+      },
     ],
   }),
 });
