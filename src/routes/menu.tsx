@@ -407,6 +407,7 @@ function MenuPage() {
       </main>
 
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
