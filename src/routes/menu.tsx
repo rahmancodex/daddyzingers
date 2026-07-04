@@ -64,12 +64,23 @@ function MenuPage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [filter, setFilter] = useState<string>("popular");
-  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [recent, setRecent] = useState<string[]>([]);
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const favsList = useFavorites();
+  const favs = useMemo(() => new Set(favsList), [favsList]);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const isScrollingByClick = useRef(false);
+
+  // Preselect category from URL hash e.g. /menu#shawarma
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.replace("#", "") as MenuCategory;
+    if (CATEGORIES.some((c) => c.id === hash)) {
+      // Delay so sections have rendered
+      setTimeout(() => scrollToCategory(hash), 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   useEffect(() => {
     try {
