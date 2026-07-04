@@ -7,12 +7,12 @@ import { LocationSelector } from "./LocationSelector";
 import { AccountMenu } from "./AccountMenu";
 import { useCartCount, useCartTotal, cartDrawerActions } from "@/lib/store";
 import { formatPKR } from "@/lib/menu-data";
-import { branchActions, useOrderMethod } from "@/lib/location-store";
+import { checkoutActions, useCheckout } from "@/lib/checkout-store";
 
 export function OrderHeader() {
   const count = useCartCount();
   const total = useCartTotal();
-  const method = useOrderMethod();
+  const method = useCheckout().method;
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
