@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { CUSTOMIZATIONS, MEAL_UPGRADES, MENU, type MenuItem } from "./menu-data";
+import { MENU, type MenuItem } from "./menu-data";
 
 /* ============================================================ */
 /*  A tiny global store with localStorage persistence.          */
@@ -162,24 +162,26 @@ export const cartActions = {
   add(args: {
     item: MenuItem;
     qty: number;
-    customizationIds: string[];
-    upgradeIds: string[];
+    /** Resolved option entries (checkboxes / radios). Displayed under "customizations". */
+    customEntries?: CustomEntry[];
+    /** Resolved meal upgrade entries. Displayed under "upgrades". */
+    upgradeEntries?: CustomEntry[];
+    /** Optional base price override (e.g. drinks with size). Defaults to item.price. */
+    basePriceOverride?: number;
     notes: string;
   }) {
-    const customizations: CustomEntry[] = CUSTOMIZATIONS.filter((c) =>
-      args.customizationIds.includes(c.id),
-    ).map((c) => ({ id: c.id, label: c.label, price: c.price }));
-    const upgrades: CustomEntry[] = MEAL_UPGRADES.filter((u) =>
-      args.upgradeIds.includes(u.id),
-    ).map((u) => ({ id: u.id, label: u.label, price: u.price }));
+    const customizations = args.customEntries ?? [];
+    const upgrades = args.upgradeEntries ?? [];
 
+    const base = args.basePriceOverride ?? args.item.price;
     const addonsTotal =
       customizations.reduce((s, c) => s + c.price, 0) +
       upgrades.reduce((s, u) => s + u.price, 0);
-    const unitPrice = args.item.price + addonsTotal;
+    const unitPrice = base + addonsTotal;
 
     const keySrc = [
       args.item.id,
+      base,
       customizations
         .map((c) => c.id)
         .sort()
@@ -202,7 +204,7 @@ export const cartActions = {
               itemId: args.item.id,
               name: args.item.name,
               image: args.item.image,
-              basePrice: args.item.price,
+              basePrice: base,
               unitPrice,
               qty: args.qty,
               notes: args.notes,
