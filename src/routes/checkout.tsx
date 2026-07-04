@@ -80,8 +80,17 @@ function CheckoutPage() {
   const [step, setStep] = useState<StepIdx>(0);
   const [placing, setPlacing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const addressStepRef = useRef<{ prepare: () => Promise<boolean> } | null>(null);
 
   const placeOrderFn = useServerFn(placeOrder);
+
+  const goNext = async () => {
+    if (step === 1 && checkout.method === "delivery" && addressStepRef.current) {
+      const ok = await addressStepRef.current.prepare();
+      if (!ok) return;
+    }
+    setStep((s) => (Math.min(3, s + 1) as StepIdx));
+  };
 
   // Auto-populate contact phone from the signed-in user's profile so the
   // Place Order button doesn't silently stay disabled.
