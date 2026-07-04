@@ -147,18 +147,30 @@ function MenuPage() {
     return map;
   }, [filteredMenu]);
 
-  const toggleFav = (id: string) => {
-    setFavs((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const toggleFav = (item: MenuItem) => {
+    const added = favoriteActions.toggle(item.id);
+    added
+      ? toast(`❤️ Saved ${item.name}`, { description: "Added to your favorites" })
+      : toast(`Removed ${item.name}`, { description: "Taken out of favorites" });
   };
 
   const openItem = (item: MenuItem) => {
-    setSelectedItem(item);
-    setDrawerOpen(true);
+    drawerActions.open(item);
   };
+
+  const quickAdd = (item: MenuItem) => {
+    cartActions.add({
+      item,
+      qty: 1,
+      customizationIds: [],
+      upgradeIds: [],
+      notes: "",
+    });
+    toast.success(`${item.name} added`, {
+      description: `${formatPKR(item.price)} · Ready in ~${item.prepTime} min`,
+    });
+  };
+
 
   const scrollToCategory = (id: MenuCategory) => {
     setActiveCat(id);
