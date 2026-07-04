@@ -253,7 +253,13 @@ function Topbar({
   );
 }
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  requiredPermission,
+}: {
+  children: React.ReactNode;
+  requiredPermission?: Permission;
+}) {
   const auth = useAdminAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -275,6 +281,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const roles = auth.roles ?? [];
+  const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
@@ -299,10 +308,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          <NavList collapsed={collapsed} />
+          <NavList collapsed={collapsed} roles={roles} />
         </div>
 
         <div className="border-t border-border/70 p-2">
+          {auth.topRole && !collapsed && (
+            <div className="mb-2 px-2">
+              <Badge
+                variant="outline"
+                className={cn("capitalize", ROLE_BADGE_CLASS[auth.topRole])}
+              >
+                {ROLE_LABEL[auth.topRole]}
+              </Badge>
+            </div>
+          )}
           <button
             onClick={onSignOut}
             className={cn(
@@ -327,7 +346,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <BrandMark />
           </div>
           <div className="py-3">
-            <NavList onNavigate={() => setMobileOpen(false)} />
+            <NavList roles={roles} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
@@ -344,7 +363,32 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           email={auth.email}
           onSignOut={onSignOut}
         />
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+          {permitted ? children : <AccessDenied requiredPermission={requiredPermission!} />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function AccessDenied({ requiredPermission }: { requiredPermission: Permission }) {
+  return (
+    <div className="mx-auto grid max-w-lg place-items-center py-16 text-center">
+      <div className="rounded-3xl border border-border/70 bg-background p-8 shadow-[var(--shadow-2)]">
+        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+          <ShieldAlert className="h-7 w-7" />
+        </div>
+        <h1 className="font-display text-2xl font-black">Access denied</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          You don't have permission to view this page. Ask an Owner or Admin to grant you the{" "}
+          <span className="font-mono text-foreground">{requiredPermission}</span> permission.
+        </p>
+        <Link
+          to="/admin"
+          className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+        >
+          Back to dashboard
+        </Link>
       </div>
     </div>
   );
