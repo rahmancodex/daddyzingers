@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, User, Menu as MenuIcon, X, LayoutDashboard } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/site/Logo";
 import { searchActions, useCartCount } from "@/lib/store";
-import { formatPKR } from "@/lib/menu-data";
 import { useAuth } from "@/lib/auth";
 
 type NavItem = { label: string; href?: string; to?: string };
@@ -19,10 +17,6 @@ const NAV: NavItem[] = [
   { label: "About", href: "/#why" },
   { label: "Contact", href: "/#contact" },
 ];
-
-function loginToast() {
-  toast("Sign in to save orders, favorites and addresses.");
-}
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
