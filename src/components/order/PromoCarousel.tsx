@@ -1,10 +1,10 @@
+import { heroBurger, itemZinger, catFries } from "@/assets";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Flame, Sparkles, Tag } from "lucide-react";
-import heroBurger from "@/assets/hero-burger.jpg";
-import itemZinger from "@/assets/item-zinger.jpg";
-import catFries from "@/assets/cat-fries.jpg";
+
+
 
 type Slide = {
   id: string;

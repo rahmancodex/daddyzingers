@@ -1,12 +1,4 @@
-import itemZinger from "@/assets/item-zinger.jpg";
-import itemBeef from "@/assets/item-beef.jpg";
-import itemChicken from "@/assets/item-chicken.jpg";
-import itemShawarma from "@/assets/item-shawarma.jpg";
-import catFries from "@/assets/cat-fries.jpg";
-import catDrinks from "@/assets/cat-drinks.jpg";
-import catDeals from "@/assets/cat-deals.jpg";
-import heroBurger from "@/assets/hero-burger.jpg";
-
+import { itemZinger, itemBeef, itemChicken, itemShawarma, catFries, catDrinks, catDeals, heroBurger } from "@/assets";
 export type MenuCategory =
   | "burgers"
   | "shawarma"
