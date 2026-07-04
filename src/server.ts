@@ -8,6 +8,7 @@ type ServerEntry = {
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
+const SERVER_FUNCTION_BASE = "/_serverFn/";
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
@@ -44,11 +45,23 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function withServerFunctionRpcHeaders(request: Request): Request {
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith(SERVER_FUNCTION_BASE)) return request;
+
+  const headers = new Headers(request.headers);
+  if (!headers.has("x-tsr-serverFn")) headers.set("x-tsr-serverFn", "true");
+  if (!headers.has("accept")) headers.set("accept", "application/json");
+
+  return new Request(request, { headers });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const normalizedRequest = withServerFunctionRpcHeaders(request);
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await handler.fetch(normalizedRequest, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);

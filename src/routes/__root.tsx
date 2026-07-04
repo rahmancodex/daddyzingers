@@ -19,6 +19,7 @@ import { FloatingCart } from "../components/site/FloatingCart";
 import { CartDrawer } from "../components/order/CartDrawer";
 import { AuthProvider } from "../lib/auth";
 import { menuQueryOptions } from "../lib/menu";
+import { registeredServerFunctions } from "../lib/server-function-registry";
 
 function NotFoundComponent() {
   return (
@@ -85,6 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // failures leave `useMenuItems()` returning [] and consumers show
   // their existing empty/loading state instead of crashing the app.
   loader: ({ context }) => {
+    void registeredServerFunctions;
     context.queryClient.prefetchQuery(menuQueryOptions);
   },
   head: () => ({

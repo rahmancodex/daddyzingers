@@ -6,12 +6,20 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+function getServerFunctionId({ functionName }: { filename: string; functionName: string }) {
+  const publicName = functionName.replace(/_createServerFn_handler(?:_\d+)?$/, "");
+  return publicName === "validateCouponServer" ? "validateCoupon" : publicName;
+}
+
 // Vercel deployment: override the default Cloudflare Workers preset with Nitro's
 // Vercel preset. Nitro writes to `.vercel/output/` (Build Output API v3), which
 // Vercel picks up automatically — no vercel.json needed.
 export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
+    serverFns: {
+      generateFunctionId: getServerFunctionId,
+    },
   },
   nitro: {
     preset: "vercel",
