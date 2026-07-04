@@ -9,9 +9,13 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LOGO_MARK_URL } from "../components/site/Logo";
+import { GlobalProductDrawer } from "../components/site/GlobalProductDrawer";
+import { GlobalSearch } from "../components/site/GlobalSearch";
+import { FloatingCart } from "../components/site/FloatingCart";
 
 function NotFoundComponent() {
   return (
