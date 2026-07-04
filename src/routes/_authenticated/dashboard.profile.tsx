@@ -222,7 +222,7 @@ function ProfilePage() {
             className="h-11"
           />
           <p className="text-[11px] text-muted-foreground">
-            Paste a link to an image. Uploads coming soon.
+            Tap the camera button on your avatar to upload, or paste an image URL.
           </p>
         </div>
 
