@@ -68,6 +68,7 @@ function greetingByHour(d = new Date()) {
 
 function Overview() {
   const { user } = useAuth();
+  const menu = useMenuItems();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [favCount, setFavCount] = useState(0);
