@@ -20,11 +20,11 @@ export function MobileBottomNav() {
   return (
     <div
       aria-hidden
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 pointer-events-none h-[calc(env(safe-area-inset-bottom)+72px)]"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 pointer-events-none h-[calc(env(safe-area-inset-bottom)+82px)]"
     >
       <nav
         aria-label="Primary"
-        className="pointer-events-auto absolute bottom-2 left-4 right-4 rounded-2xl border border-border/60 bg-background/75 backdrop-blur-2xl shadow-[0_10px_28px_-14px_rgba(0,0,0,0.45)] mb-[env(safe-area-inset-bottom)]"
+        className="pointer-events-auto absolute bottom-2.5 left-3.5 right-3.5 rounded-2xl border border-border/60 bg-background/75 backdrop-blur-2xl shadow-[0_14px_32px_-16px_rgba(0,0,0,0.5)] mb-[env(safe-area-inset-bottom)]"
       >
         <ul className="relative grid grid-cols-4">
           {ITEMS.map((item) => {
@@ -35,7 +35,7 @@ export function MobileBottomNav() {
                 <Link
                   to={to}
                   hash={item.hash}
-                  className="relative flex flex-col items-center justify-center gap-0.5 py-1.5 min-h-[48px] text-[9.5px] font-semibold tracking-wide transition-colors"
+                  className="relative flex flex-col items-center justify-center gap-1 py-2 min-h-[54px] text-[10.5px] font-semibold tracking-wide transition-colors"
                 >
                   {active && (
                     <motion.span
@@ -45,14 +45,14 @@ export function MobileBottomNav() {
                     />
                   )}
                   <div className={`relative h-5 w-5 grid place-items-center transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}>
-                    <item.icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.4 : 2} />
+                    <item.icon className="h-[20px] w-[20px]" strokeWidth={active ? 2.4 : 2} />
                     {item.label === "Cart" && count > 0 && (
                       <motion.span
                         key={count}
                         initial={{ scale: 0.5 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 18 }}
-                        className="absolute -top-1.5 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-primary text-primary-foreground text-[8.5px] font-extrabold grid place-items-center shadow-[var(--shadow-glow)]"
+                        className="absolute -top-1.5 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-extrabold grid place-items-center shadow-[var(--shadow-glow)]"
                       >
                         {count}
                       </motion.span>

@@ -149,7 +149,7 @@ export function GlobalProductDrawer() {
     <Sheet open={open} onOpenChange={(v) => !v && drawerActions.close()}>
       <SheetContent
         side="right"
-        className="p-0 w-full sm:max-w-md md:max-w-lg bg-background border-l border-border flex flex-col h-full [&>button]:hidden"
+        className="p-0 w-full sm:max-w-md md:max-w-lg lg:max-w-xl bg-background border-l border-border flex flex-col h-full [&>button]:hidden"
       >
         {item && (
           <>
@@ -163,9 +163,9 @@ export function GlobalProductDrawer() {
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div className="flex-1 overflow-y-auto overscroll-contain scroll-smooth">
               {/* IMAGE */}
-              <div className="relative aspect-[16/10] w-full overflow-hidden bg-secondary">
+              <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-secondary">
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={gallery[activeImage]}
@@ -223,29 +223,29 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* HEADER */}
-              <div className="px-5 pt-5 md:px-6 md:pt-6">
-                <div className="flex items-start justify-between gap-3">
+              <div className="px-5 pt-5 md:px-7 md:pt-7">
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="font-display text-2xl md:text-[28px] font-extrabold tracking-tight leading-tight">
+                    <h2 className="font-display text-[22px] md:text-[28px] font-extrabold tracking-tight leading-[1.15]">
                       {item.name}
                     </h2>
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                    <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                       {item.shortDescription}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-xl md:text-2xl font-extrabold text-primary tabular-nums">
+                    <div className="text-xl md:text-2xl font-extrabold text-primary tabular-nums leading-none">
                       {formatPKR(unitPrice)}
                     </div>
                     {addonsTotal > 0 && (
-                      <div className="text-[11px] text-muted-foreground line-through tabular-nums">
+                      <div className="mt-1 text-[11px] text-muted-foreground line-through tabular-nums">
                         {formatPKR(basePrice)}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-4 flex flex-wrap gap-1.5">
                   <MetaChip icon={<Star className="h-3 w-3 fill-primary text-primary" />}>
                     {item.rating} · {item.reviews.toLocaleString()}
                   </MetaChip>
@@ -255,7 +255,7 @@ export function GlobalProductDrawer() {
               </div>
 
               {/* OPTION GROUPS */}
-              <div className="px-5 md:px-6 py-5 space-y-5">
+              <div className="px-5 md:px-7 py-6 space-y-6">
                 {groups.map((g) => (
                   <OptionGroupBlock
                     key={g.id}
@@ -266,13 +266,13 @@ export function GlobalProductDrawer() {
                 ))}
 
                 {/* Quantity + notes */}
-                <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-4 items-start">
                   <div>
                     <SectionLabel>Qty</SectionLabel>
-                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
                       <button
                         onClick={() => setQty((q) => Math.max(1, q - 1))}
-                        className="h-9 w-9 rounded-full grid place-items-center hover:bg-secondary transition-colors disabled:opacity-40"
+                        className="h-10 w-10 rounded-full grid place-items-center hover:bg-secondary active:scale-95 transition-all disabled:opacity-40"
                         disabled={qty <= 1}
                         aria-label="Decrease"
                       >
@@ -285,14 +285,14 @@ export function GlobalProductDrawer() {
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: 6, opacity: 0 }}
                           transition={{ duration: 0.15 }}
-                          className="min-w-7 text-center font-display text-base font-bold tabular-nums"
+                          className="min-w-8 text-center font-display text-base font-bold tabular-nums"
                         >
                           {qty}
                         </motion.div>
                       </AnimatePresence>
                       <button
                         onClick={() => setQty((q) => Math.min(20, q + 1))}
-                        className="h-9 w-9 rounded-full grid place-items-center bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] transition-colors"
+                        className="h-10 w-10 rounded-full grid place-items-center bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] active:scale-95 transition-all"
                         aria-label="Increase"
                       >
                         <Plus className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function GlobalProductDrawer() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="e.g. No onions, extra crispy…"
-                      className="resize-none min-h-[64px] rounded-xl text-sm"
+                      className="resize-none min-h-[68px] rounded-xl text-sm"
                     />
                   </div>
                 </div>
@@ -389,12 +389,12 @@ export function GlobalProductDrawer() {
             </div>
 
             {/* STICKY ADD TO CART */}
-            <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 md:px-5 md:py-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+            <div className="shrink-0 border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 md:px-6 md:py-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
               <Button
                 onClick={handleAdd}
                 disabled={missingRequired}
                 size="lg"
-                className="w-full h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 min-h-12"
+                className="w-full h-12 md:h-13 rounded-xl bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-bold text-sm md:text-base disabled:opacity-60 active:scale-[0.99] transition-transform"
               >
                 <ShoppingBag className="h-5 w-5" />
                 {missingRequired ? "Select required options" : `Add ${qty} · ${formatPKR(subtotal)}`}
@@ -457,15 +457,17 @@ function OptionGroupBlock({
               key={c.id}
               type="button"
               onClick={() => onToggle(c)}
-              className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+              className={`flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl border text-left transition-all active:scale-[0.99] ${
                 active
                   ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
-                  : "border-border hover:border-foreground/25 bg-card"
+                  : "border-border hover:border-foreground/25 hover:bg-secondary/40 bg-card"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className={`h-5 w-5 shrink-0 grid place-items-center rounded-${group.type === "single" ? "full" : "md"} border-2 transition-all ${
+                  className={`h-5 w-5 shrink-0 grid place-items-center border-2 transition-all ${
+                    group.type === "single" ? "rounded-full" : "rounded-md"
+                  } ${
                     active ? "border-primary bg-primary text-primary-foreground" : "border-border"
                   }`}
                 >
