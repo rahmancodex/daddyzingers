@@ -256,6 +256,8 @@ export function GlobalProductDrawer() {
 
               {/* OPTION GROUPS */}
               <div className="px-5 md:px-6 py-5 space-y-5">
+                {item.category === "drinks" && <DrinkPicker currentId={item.id} />}
+
                 {groups.map((g) => (
                   <OptionGroupBlock
                     key={g.id}
@@ -264,6 +266,7 @@ export function GlobalProductDrawer() {
                     onToggle={(c) => toggle(g, c)}
                   />
                 ))}
+
 
                 {/* Quantity + notes */}
                 <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
