@@ -37,6 +37,7 @@ export function CartDrawer() {
   const subtotal = useCartTotal();
   const checkout = useCheckout();
   const branch = useBranch();
+  const menu = useMenuItems();
 
   const totals = useMemo(
     () => computeTotals({ subtotal, method: checkout.method, coupon: checkout.coupon, tip: checkout.tip }),
@@ -46,10 +47,12 @@ export function CartDrawer() {
   const inCartIds = useMemo(() => new Set(cart.map((l) => l.itemId)), [cart]);
   const recommended = useMemo(
     () =>
-      MENU.filter(
-        (m) => !inCartIds.has(m.id) && (m.category === "sides" || m.category === "extras"),
-      ).slice(0, 4),
-    [inCartIds],
+      menu
+        .filter(
+          (m) => !inCartIds.has(m.id) && (m.category === "sides" || m.category === "extras"),
+        )
+        .slice(0, 4),
+    [menu, inCartIds],
   );
 
   const [couponInput, setCouponInput] = useState("");
