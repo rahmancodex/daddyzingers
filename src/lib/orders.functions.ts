@@ -107,6 +107,32 @@ export const placeOrder = createServerFn({ method: "POST" })
       .filter(Boolean)
       .join("\n");
 
+    // Resolve branch: if given, validate it exists and is active. Otherwise
+    // fall back to the first active branch by sort_order so every order still
+    // gets attributed to a location.
+    let resolvedBranchId: string | null = null;
+    {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      if (data.branch_id) {
+        const { data: b } = await supabaseAdmin
+          .from("branches")
+          .select("id, is_active")
+          .eq("id", data.branch_id)
+          .maybeSingle();
+        if (b && b.is_active) resolvedBranchId = b.id;
+      }
+      if (!resolvedBranchId) {
+        const { data: fallback } = await supabaseAdmin
+          .from("branches")
+          .select("id")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        resolvedBranchId = fallback?.id ?? null;
+      }
+    }
+
     const { data: order, error } = await supabase
       .from("orders")
       .insert({
@@ -124,9 +150,11 @@ export const placeOrder = createServerFn({ method: "POST" })
         notes: composedNotes || null,
         special_instructions: data.special_instructions || null,
         status: "pending",
+        branch_id: resolvedBranchId,
       })
       .select("id, order_number, status, total_pkr, created_at")
       .single();
+
 
     if (error || !order) {
       throw new Error(error?.message ?? "Failed to create order");
