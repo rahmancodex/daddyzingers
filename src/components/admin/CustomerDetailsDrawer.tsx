@@ -717,3 +717,71 @@ function Empty({
     </div>
   );
 }
+
+const TIMELINE_META: Record<
+  TimelineKind,
+  { icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  account_created: {
+    icon: UserPlus,
+    tone: "bg-info/15 text-info",
+  },
+  order_placed: {
+    icon: ShoppingBag,
+    tone: "bg-primary/15 text-foreground",
+  },
+  order_delivered: {
+    icon: CheckCircle2,
+    tone: "bg-success/15 text-success-foreground",
+  },
+  order_cancelled: {
+    icon: Ban,
+    tone: "bg-destructive/15 text-destructive",
+  },
+};
+
+function Timeline({ events }: { events: TimelineEvent[] }) {
+  if (events.length === 0) {
+    return <Empty icon={Clock} title="No activity yet" />;
+  }
+  return (
+    <ol className="relative space-y-4 pl-6">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-[11px] top-1 bottom-1 w-px bg-border"
+      />
+      {events.map((e) => {
+        const meta = TIMELINE_META[e.kind];
+        const Icon = meta.icon;
+        return (
+          <li key={e.id} className="relative">
+            <span
+              className={cn(
+                "absolute -left-6 grid h-6 w-6 place-items-center rounded-full ring-2 ring-background",
+                meta.tone,
+              )}
+            >
+              <Icon className="h-3 w-3" />
+            </span>
+            <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="truncate text-sm font-semibold">{e.title}</div>
+                <div
+                  className="shrink-0 text-[11px] text-muted-foreground"
+                  title={new Date(e.at).toLocaleString()}
+                >
+                  {fmtRelative(e.at)}
+                </div>
+              </div>
+              {e.detail && (
+                <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  {e.detail}
+                </div>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
