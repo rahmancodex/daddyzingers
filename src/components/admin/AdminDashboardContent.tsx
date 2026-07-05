@@ -99,6 +99,15 @@ const TONE_DOT: Record<Tone, string> = {
   neutral: "bg-muted-foreground/40",
 };
 
+const TONE_ACCENT: Record<Tone, string> = {
+  primary: "bg-gradient-to-b from-primary to-primary/40",
+  success: "bg-gradient-to-b from-emerald-500 to-emerald-500/40",
+  warning: "bg-gradient-to-b from-amber-500 to-amber-500/40",
+  info: "bg-sky-500 bg-gradient-to-b from-sky-500 to-sky-500/40",
+  destructive: "bg-gradient-to-b from-destructive to-destructive/40",
+  neutral: "bg-gradient-to-b from-muted-foreground/30 to-transparent",
+};
+
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong";
 }
