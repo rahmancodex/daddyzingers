@@ -93,25 +93,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Daddy Zinger" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { title: "Daddy Zinger — Zingers, Burgers & Family Deals" },
       {
         name: "description",
         content:
-          "Daddy Zinger — bold, premium Pakistani fast food. Zingers, burgers, shawarmas, loaded fries and family deals with fast delivery, JazzCash, EasyPaisa and cash on delivery.",
+          "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery.",
       },
       { name: "author", content: "Daddy Zinger" },
       { name: "theme-color", content: "#0f0f0e" },
-      { property: "og:title", content: "Daddy Zinger" },
+      { property: "og:site_name", content: "Daddy Zinger" },
+      { property: "og:title", content: "Daddy Zinger — Zingers, Burgers & Family Deals" },
       {
         property: "og:description",
-        content: "Zingers, burgers and family deals, crafted bold. Order online for fast delivery across Pakistan.",
+        content: "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Daddy Zinger" },
-      { name: "description", content: "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery." },
-      { property: "og:description", content: "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery." },
+      { name: "twitter:title", content: "Daddy Zinger — Zingers, Burgers & Family Deals" },
       { name: "twitter:description", content: "Premium Pakistani fast-food. Hand-breaded zingers, house sauces, and 18-minute delivery. Order online for pickup or delivery." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/12da2c5b-4751-446f-9543-efa837f94dfc/id-preview-daa217d2--510624c8-f2bb-4ec5-9c23-784edf7c858e.lovable.app-1783144721608.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/12da2c5b-4751-446f-9543-efa837f94dfc/id-preview-daa217d2--510624c8-f2bb-4ec5-9c23-784edf7c858e.lovable.app-1783144721608.png" },
