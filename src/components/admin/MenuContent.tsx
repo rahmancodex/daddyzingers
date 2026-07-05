@@ -905,7 +905,14 @@ function ListView({
                       onToggleFeatured={() => onToggleFeatured(r.id, !r.is_featured)}
                       isAvailable={r.is_available}
                       isFeatured={r.is_featured}
+                      canReorder={canReorder}
+                      onMoveUp={() => onMove(idx, -1)}
+                      onMoveDown={() => onMove(idx, 1)}
+                      canMoveUp={canReorder && idx > 0}
+                      canMoveDown={canReorder && idx < rows.length - 1}
+                      reordering={reordering}
                     />
+
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-sm font-bold tabular-nums">
