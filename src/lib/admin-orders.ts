@@ -1,4 +1,5 @@
 import type { AdminOrderStatus } from "./admin-orders.functions";
+import type { StatusTone } from "@/components/admin/ui/status-pill";
 
 export const STATUS_LABEL: Record<AdminOrderStatus, string> = {
   pending: "Pending",
@@ -10,6 +11,17 @@ export const STATUS_LABEL: Record<AdminOrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+export const STATUS_TONE: Record<AdminOrderStatus, StatusTone> = {
+  pending: "warning",
+  confirmed: "info",
+  preparing: "info",
+  ready: "primary",
+  out_for_delivery: "primary",
+  delivered: "success",
+  cancelled: "destructive",
+};
+
+// Legacy Tailwind class maps kept for any lingering imports.
 export const STATUS_STYLE: Record<AdminOrderStatus, string> = {
   pending: "bg-warning/20 text-warning-foreground border-warning/30",
   confirmed: "bg-info/15 text-info border-info/30",
@@ -59,3 +71,12 @@ export function formatRelative(iso: string): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return new Date(iso).toLocaleDateString();
 }
+
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
