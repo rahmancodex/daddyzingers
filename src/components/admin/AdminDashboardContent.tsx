@@ -55,6 +55,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPKR } from "@/lib/admin-orders";
 import { hasPermission, type AppRole } from "@/lib/rbac";
+import {
+  DateRangeProvider,
+  DateRangePicker,
+  useDateRange,
+  PRESET_LABEL,
+} from "@/components/admin/ui/date-range";
+import { ChartCard } from "@/components/admin/ui/chart-card";
+import { PageHeader } from "@/components/admin/ui/page-header";
 
 // -----------------------------------------------------------------------------
 // Primitives
@@ -439,19 +447,16 @@ function PromoKpiGrid() {
 
 function useWeeklyReport() {
   const fetchReport = useServerFn(adminReports);
-  const range = React.useMemo(() => {
-    const to = new Date();
-    const from = new Date(to.getTime() - 6 * 24 * 60 * 60 * 1000);
-    from.setHours(0, 0, 0, 0);
-    return { from: from.toISOString(), to: to.toISOString() };
-  }, []);
+  const { range } = useDateRange();
+  const from = range.from.toISOString();
+  const to = range.to.toISOString();
   return useQuery({
-    queryKey: ["admin", "dashboard-weekly", range.from, range.to],
+    queryKey: ["admin", "dashboard-report", from, to],
     queryFn: () =>
       fetchReport({
         data: {
-          from: range.from,
-          to: range.to,
+          from,
+          to,
           branchId: null,
           status: null,
           categoryId: null,
@@ -496,6 +501,7 @@ function RevenueChart({
   loading,
   error,
   onRetry,
+  rangeLabel,
 }: {
   data?: {
     trend: Array<{ date: string; revenue: number }>;
@@ -505,13 +511,17 @@ function RevenueChart({
   loading: boolean;
   error?: unknown;
   onRetry: () => void;
+  rangeLabel: string;
 }) {
   const trend: TrendPoint[] = React.useMemo(
     () =>
       (data?.trend ?? []).map((t) => ({
         date: t.date,
         revenue: t.revenue,
-        label: new Date(t.date).toLocaleDateString("en-GB", { weekday: "short" }),
+        label: new Date(t.date).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+        }),
       })),
     [data?.trend],
   );
@@ -519,113 +529,111 @@ function RevenueChart({
   const growth = data?.revenueGrowth ?? null;
 
   return (
-    <Surface className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
-        <div className="min-w-0">
-          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Revenue · last 7 days
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {loading ? (
-              <Skeleton className="h-8 w-40 rounded-md" />
-            ) : (
-              <span className="font-display text-3xl font-black tracking-tight tabular-nums">
-                {formatPKR(data?.totalRevenue ?? 0)}
-              </span>
-            )}
-            {growth != null && Number.isFinite(growth) && !loading && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
-                  growth >= 0
-                    ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400"
-                    : "bg-destructive/10 text-destructive ring-destructive/20",
-                )}
-              >
-                {growth >= 0 ? (
-                  <ArrowUpRight className="h-3 w-3" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3" />
-                )}
-                {growth >= 0 ? "+" : ""}
-                {growth.toFixed(1)}%
-              </span>
-            )}
-          </div>
+    <ChartCard
+      exportName="revenue"
+      title={
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {loading ? (
+            <Skeleton className="h-8 w-40 rounded-md" />
+          ) : (
+            <span className="font-display text-2xl font-black tracking-tight tabular-nums sm:text-3xl">
+              {formatPKR(data?.totalRevenue ?? 0)}
+            </span>
+          )}
+          {growth != null && Number.isFinite(growth) && !loading && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                growth >= 0
+                  ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400"
+                  : "bg-destructive/10 text-destructive ring-destructive/20",
+              )}
+            >
+              {growth >= 0 ? (
+                <ArrowUpRight className="h-3 w-3" />
+              ) : (
+                <ArrowDownRight className="h-3 w-3" />
+              )}
+              {growth >= 0 ? "+" : ""}
+              {growth.toFixed(1)}%
+            </span>
+          )}
         </div>
-        <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ring-1 ring-inset ring-border sm:inline-flex">
+      }
+      subtitle={`Revenue · ${rangeLabel}`}
+      headerRight={
+        <span className="hidden items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ring-1 ring-inset ring-border sm:inline-flex">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          Daily revenue
+          Daily
         </span>
-      </div>
-
-      <div className="mt-4 flex-1 px-2 pb-4 sm:px-3 sm:pb-5">
-        {error ? (
-          <div className="p-4">
-            <InlineError message={errMsg(error)} onRetry={onRetry} />
-          </div>
-        ) : loading ? (
-          <div className="px-3 pb-2">
-            <Skeleton className="h-[220px] w-full rounded-xl" />
-          </div>
-        ) : !hasData ? (
-          <EmptyRow
-            icon={Activity}
-            title="No revenue yet this week"
-            hint="Once orders start coming in, revenue will chart here in real time."
-          />
-        ) : (
-          <div className="h-[220px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
-                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="var(--border)"
-                  strokeOpacity={0.6}
-                />
-                <XAxis
-                  dataKey="label"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  dy={6}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  width={44}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  tickFormatter={(v) =>
-                    v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
-                  }
-                />
-                <Tooltip
-                  cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }}
-                  content={<RevenueTooltip />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="var(--primary)"
-                  strokeWidth={2.5}
-                  fill="url(#revenueFill)"
-                  activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--background)" }}
-                  animationDuration={700}
-                  animationEasing="ease-out"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-    </Surface>
+      }
+    >
+      {error ? (
+        <div className="p-4">
+          <InlineError message={errMsg(error)} onRetry={onRetry} />
+        </div>
+      ) : loading ? (
+        <div className="px-3 pb-2">
+          <Skeleton className="h-[220px] w-full rounded-xl" />
+        </div>
+      ) : !hasData ? (
+        <EmptyRow
+          icon={Activity}
+          title="No revenue in this range"
+          hint="Pick a different date range or wait for orders to come in."
+        />
+      ) : (
+        <div className="h-[220px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={trend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="var(--border)"
+                strokeOpacity={0.6}
+              />
+              <XAxis
+                dataKey="label"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                dy={6}
+                minTickGap={16}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                width={44}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                tickFormatter={(v) =>
+                  v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
+                }
+              />
+              <Tooltip
+                cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }}
+                content={<RevenueTooltip />}
+              />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="var(--primary)"
+                strokeWidth={2.5}
+                fill="url(#revenueFill)"
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--background)" }}
+                animationDuration={700}
+                animationEasing="ease-out"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </ChartCard>
   );
 }
 
@@ -981,11 +989,13 @@ function TopSellingItems({
   loading,
   error,
   onRetry,
+  rangeLabel,
 }: {
   items?: Array<{ name: string; qty: number; revenue: number }>;
   loading: boolean;
   error?: unknown;
   onRetry: () => void;
+  rangeLabel: string;
 }) {
   const list = (items ?? []).slice(0, 5);
   const max = list.length ? Math.max(...list.map((i) => i.qty), 1) : 1;
@@ -993,7 +1003,7 @@ function TopSellingItems({
     <Surface className="flex h-full flex-col">
       <SectionHeader
         title="Top Selling Items"
-        subtitle="Last 7 days"
+        subtitle={rangeLabel}
         icon={Flame}
         action={
           <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
@@ -1108,9 +1118,18 @@ function QuickActions() {
 // -----------------------------------------------------------------------------
 
 export function AdminDashboardContent() {
+  return (
+    <DateRangeProvider>
+      <DashboardInner />
+    </DateRangeProvider>
+  );
+}
+
+function DashboardInner() {
   const weekly = useWeeklyReport();
   const myRoles = useMyRoles();
   const canViewCustomers = hasPermission(myRoles.data, "customers.view");
+  const { range } = useDateRange();
 
   const chartData = weekly.data
     ? {
@@ -1131,43 +1150,38 @@ export function AdminDashboardContent() {
     revenue: p.revenue,
   }));
 
-  const now = new Date();
-  const dateLabel = now.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const rangeLabel =
+    range.preset === "custom"
+      ? `${range.from.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} – ${range.to.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
+      : PRESET_LABEL[range.preset];
 
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Header */}
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <PageHeader
+        eyebrow={
+          <>
             <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            Live · {dateLabel}
-          </div>
-          <h1 className="mt-1.5 font-display text-3xl font-black tracking-tight sm:text-[34px]">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            A real-time overview of today's kitchen performance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm" className="h-9 rounded-lg">
-            <Link to="/admin/reports">
-              Full reports <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="h-9 rounded-lg">
-            <Link to="/admin/orders">
-              Open orders <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-      </header>
+            Live · {rangeLabel}
+          </>
+        }
+        title="Dashboard"
+        description="A real-time overview of your restaurant performance."
+        actions={
+          <>
+            <DateRangePicker />
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-lg">
+              <Link to="/admin/reports">
+                Reports <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="h-9 rounded-lg">
+              <Link to="/admin/orders">
+                Open orders <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <LiveKpiGrid />
 
@@ -1180,6 +1194,7 @@ export function AdminDashboardContent() {
             loading={weekly.isLoading}
             error={weekly.isError ? weekly.error : undefined}
             onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
           />
         </div>
         <OrderStatusOverview />
@@ -1199,6 +1214,7 @@ export function AdminDashboardContent() {
             loading={weekly.isLoading}
             error={weekly.isError ? weekly.error : undefined}
             onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
           />
         </div>
         <QuickActions />

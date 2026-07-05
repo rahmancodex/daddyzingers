@@ -15,26 +15,36 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+export type AdminNavGroup = "overview" | "operations" | "catalog" | "marketing" | "insights" | "system";
 
 export type AdminNavItem = {
   label: string;
   to: string;
   icon: LucideIcon;
+  group: AdminNavGroup;
 };
 
-export const ADMIN_NAV: AdminNavItem[] = [
-  { label: "Dashboard", to: "/admin", icon: LayoutDashboard },
-  { label: "Orders", to: "/admin/orders", icon: ShoppingBag },
-  { label: "Menu", to: "/admin/menu", icon: UtensilsCrossed },
-  { label: "Categories", to: "/admin/categories", icon: LayoutGrid },
-  { label: "Customers", to: "/admin/customers", icon: Users },
-  { label: "Coupons", to: "/admin/coupons", icon: TicketPercent },
-  { label: "Promo Banners", to: "/admin/promo-banners", icon: Megaphone },
-  { label: "Reports", to: "/admin/reports", icon: BarChart3 },
-  { label: "Staff & Access", to: "/admin/staff", icon: ShieldCheck },
-  { label: "Audit Logs", to: "/admin/audit-logs", icon: ScrollText },
-  { label: "Settings", to: "/admin/settings", icon: Settings },
-  { label: "Production", to: "/admin/production", icon: Rocket },
-  { label: "Launch Checklist", to: "/admin/launch", icon: ClipboardCheck },
+export const ADMIN_NAV_GROUPS: Array<{ id: AdminNavGroup; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "operations", label: "Operations" },
+  { id: "catalog", label: "Catalog" },
+  { id: "marketing", label: "Marketing" },
+  { id: "insights", label: "Insights" },
+  { id: "system", label: "System" },
 ];
 
+export const ADMIN_NAV: AdminNavItem[] = [
+  { label: "Dashboard", to: "/admin", icon: LayoutDashboard, group: "overview" },
+  { label: "Orders", to: "/admin/orders", icon: ShoppingBag, group: "operations" },
+  { label: "Customers", to: "/admin/customers", icon: Users, group: "operations" },
+  { label: "Menu", to: "/admin/menu", icon: UtensilsCrossed, group: "catalog" },
+  { label: "Categories", to: "/admin/categories", icon: LayoutGrid, group: "catalog" },
+  { label: "Coupons", to: "/admin/coupons", icon: TicketPercent, group: "marketing" },
+  { label: "Promo Banners", to: "/admin/promo-banners", icon: Megaphone, group: "marketing" },
+  { label: "Reports", to: "/admin/reports", icon: BarChart3, group: "insights" },
+  { label: "Audit Logs", to: "/admin/audit-logs", icon: ScrollText, group: "insights" },
+  { label: "Staff & Access", to: "/admin/staff", icon: ShieldCheck, group: "system" },
+  { label: "Settings", to: "/admin/settings", icon: Settings, group: "system" },
+  { label: "Production", to: "/admin/production", icon: Rocket, group: "system" },
+  { label: "Launch Checklist", to: "/admin/launch", icon: ClipboardCheck, group: "system" },
+];

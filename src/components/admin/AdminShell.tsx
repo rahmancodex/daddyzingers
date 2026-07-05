@@ -27,7 +27,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
-import { ADMIN_NAV } from "./admin-nav";
+import { ADMIN_NAV, ADMIN_NAV_GROUPS, type AdminNavGroup } from "./admin-nav";
 import { useServerFn } from "@tanstack/react-start";
 import { adminLogClientEvent } from "@/lib/admin-audit.functions";
 import { requireAdmin } from "@/lib/require-admin";
@@ -74,34 +74,59 @@ function NavList({
     const perm = ROUTE_PERMISSION[item.to];
     return !perm || hasPermission(roles, perm);
   });
+  const byGroup = new Map<AdminNavGroup, typeof items>();
+  for (const it of items) {
+    const arr = byGroup.get(it.group) ?? [];
+    arr.push(it);
+    byGroup.set(it.group, arr);
+  }
   return (
-    <nav className="flex flex-col gap-1 px-2">
-      {items.map((item) => {
-        const active =
-          item.to === "/admin"
-            ? pathname === "/admin"
-            : pathname === item.to || pathname.startsWith(item.to + "/");
-        const Icon = item.icon;
+    <nav className="flex flex-col gap-4 px-2">
+      {ADMIN_NAV_GROUPS.map((g) => {
+        const groupItems = byGroup.get(g.id);
+        if (!groupItems || groupItems.length === 0) return null;
         return (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            className={cn(
-              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              active
-                ? "bg-primary/15 text-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              collapsed && "justify-center px-2",
+          <div key={g.id} className="flex flex-col gap-0.5">
+            {!collapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                {g.label}
+              </div>
             )}
-            title={collapsed ? item.label : undefined}
-          >
-            {active && (
-              <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-primary" />
-            )}
-            <Icon className={cn("h-[18px] w-[18px] shrink-0", active && "text-foreground")} />
-            {!collapsed && <span className="truncate">{item.label}</span>}
-          </Link>
+            {collapsed && <div className="mx-2 my-1 h-px bg-border/60" />}
+            {groupItems.map((item) => {
+              const active =
+                item.to === "/admin"
+                  ? pathname === "/admin"
+                  : pathname === item.to || pathname.startsWith(item.to + "/");
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={onNavigate}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                    active
+                      ? "bg-foreground/[0.06] text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border)/0.6)]"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    collapsed && "justify-center px-2",
+                  )}
+                  title={collapsed ? item.label : undefined}
+                >
+                  {active && !collapsed && (
+                    <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-primary" />
+                  )}
+                  <Icon
+                    className={cn(
+                      "h-[17px] w-[17px] shrink-0 transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground/80 group-hover:text-foreground",
+                    )}
+                  />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
         );
       })}
     </nav>
@@ -233,8 +258,11 @@ function Topbar({
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search orders, customers, items…"
-          className="h-10 rounded-xl border-transparent bg-muted/60 pl-9 focus-visible:border-input focus-visible:bg-background"
+          className="h-10 rounded-lg border-border/50 bg-muted/50 pl-9 pr-16 text-sm focus-visible:border-input focus-visible:bg-background"
         />
+        <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
+          <span className="text-[11px]">⌘</span>K
+        </kbd>
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
