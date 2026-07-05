@@ -570,13 +570,18 @@ export const adminBranchesForOrders = createServerFn({ method: "GET" })
     return (data ?? []) as { id: string; name: string }[];
   });
 
+const StatsInput = z.object({ today_start: z.string().datetime().optional() }).optional();
+
 export const adminOrderStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
-  .handler(async (): Promise<AdminOrderStats> => {
+  .inputValidator((data: unknown) => StatsInput.parse(data))
+  .handler(async ({ data }): Promise<AdminOrderStats> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const iso = startOfDay.toISOString();
+    const iso = data?.today_start ?? (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    })();
 
     const { data: todayRows, error } = await supabaseAdmin
       .from("orders")
