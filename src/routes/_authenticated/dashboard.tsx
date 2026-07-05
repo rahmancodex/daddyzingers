@@ -239,11 +239,14 @@ function NavGroup({
         {label}
       </div>
       {items.map(({ to, label, icon: Icon, exact }) => {
-        const active = exact ? location === "/dashboard" : location === to;
+        const active = exact
+          ? location === "/dashboard"
+          : location === to || location.startsWith(`${to}/`);
         return (
           <Link
             key={to}
             to={to}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
               active
