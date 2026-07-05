@@ -28,6 +28,13 @@ const ListInput = z.object({
   coupon_used: z.enum(["any", "yes", "no"]).optional(),
   date_from: z.string().datetime().nullish(),
   date_to: z.string().datetime().nullish(),
+  assigned_staff_id: z.string().uuid().nullish(),
+  /**
+   * "active" (default) hides deleted rows and — when status is not "cancelled" —
+   * also hides cancelled rows. "cancelled" shows non-deleted cancelled rows.
+   * "trash" shows only soft-deleted rows.
+   */
+  view: z.enum(["active", "cancelled", "trash"]).optional(),
 });
 
 export type AdminOrderRow = {
@@ -55,6 +62,18 @@ export type AdminOrderRow = {
   customer_phone: string | null;
   customer_email: string | null;
   items_count: number;
+  // Sprint 3 additive fields
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
+  cancelled_by_email: string | null;
+  cancelled_at: string | null;
+  assigned_staff_id: string | null;
+  assigned_staff_name: string | null;
+  assigned_rider_id: string | null;
+  assigned_rider_name: string | null;
+  internal_notes: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
 };
 
 export type AdminOrderItem = {
@@ -99,6 +118,7 @@ type ProfileRow = {
   phone: string | null;
 };
 
+// ============ Customer + staff attach helpers ============
 async function attachCustomers<T extends { user_id: string; address_snapshot: Json | null }>(
   rows: T[],
 ): Promise<Array<T & { customer_name: string | null; customer_phone: string | null; customer_email: string | null }>> {
@@ -136,8 +156,85 @@ async function attachCustomers<T extends { user_id: string; address_snapshot: Js
   });
 }
 
+type StaffLite = { id: string; name: string | null; email: string | null };
+async function fetchStaffLite(ids: string[]): Promise<Map<string, StaffLite>> {
+  const map = new Map<string, StaffLite>();
+  if (ids.length === 0) return map;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const uniq = Array.from(new Set(ids));
+  const { data: profs } = await supabaseAdmin
+    .from("staff_profiles")
+    .select("user_id, full_name")
+    .in("user_id", uniq);
+  const nameMap = new Map<string, string | null>(
+    (profs ?? []).map((p: { user_id: string; full_name: string | null }) => [p.user_id, p.full_name]),
+  );
+  await Promise.all(
+    uniq.map(async (id) => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+      const email = data.user?.email ?? null;
+      const meta = (data.user?.user_metadata ?? {}) as { full_name?: string };
+      map.set(id, {
+        id,
+        email,
+        name: nameMap.get(id) ?? meta.full_name ?? null,
+      });
+    }),
+  );
+  return map;
+}
+
 const ORDER_SELECT =
-  "id, order_number, status, subtotal_pkr, delivery_fee_pkr, tax_pkr, discount_pkr, total_pkr, payment_method, fulfillment_method, coupon_code, notes, special_instructions, address_snapshot, created_at, updated_at, user_id, branch_id, schedule_at, estimated_delivery_minutes";
+  "id, order_number, status, subtotal_pkr, delivery_fee_pkr, tax_pkr, discount_pkr, total_pkr, payment_method, fulfillment_method, coupon_code, notes, special_instructions, address_snapshot, created_at, updated_at, user_id, branch_id, schedule_at, estimated_delivery_minutes, cancellation_reason, cancelled_by, cancelled_at, assigned_staff_id, assigned_rider_id, internal_notes, deleted_at, deleted_by";
+
+// Row shape coming back from Supabase before we merge lookups.
+type OrderRaw = {
+  id: string;
+  order_number: string;
+  status: AdminOrderStatus;
+  subtotal_pkr: number;
+  delivery_fee_pkr: number;
+  tax_pkr: number;
+  discount_pkr: number;
+  total_pkr: number;
+  payment_method: string;
+  fulfillment_method: string;
+  coupon_code: string | null;
+  notes: string | null;
+  special_instructions: string | null;
+  address_snapshot: Json | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  branch_id: string | null;
+  schedule_at: string | null;
+  estimated_delivery_minutes: number | null;
+  cancellation_reason: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  assigned_staff_id: string | null;
+  assigned_rider_id: string | null;
+  internal_notes: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
+};
+
+async function enrichRows(rows: OrderRaw[]): Promise<AdminOrderRow[]> {
+  const withItemsCount = rows.map((r) => ({ ...r, items_count: 0 as number }));
+  const withCust = await attachCustomers(withItemsCount);
+
+  const staffIds = rows
+    .flatMap((r) => [r.assigned_staff_id, r.assigned_rider_id, r.cancelled_by])
+    .filter((v): v is string => !!v);
+  const staffMap = await fetchStaffLite(staffIds);
+
+  return withCust.map((r) => ({
+    ...r,
+    assigned_staff_name: r.assigned_staff_id ? staffMap.get(r.assigned_staff_id)?.name ?? staffMap.get(r.assigned_staff_id)?.email ?? null : null,
+    assigned_rider_name: r.assigned_rider_id ? staffMap.get(r.assigned_rider_id)?.name ?? staffMap.get(r.assigned_rider_id)?.email ?? null : null,
+    cancelled_by_email: r.cancelled_by ? staffMap.get(r.cancelled_by)?.email ?? null : null,
+  }));
+}
 
 export const adminListOrders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
@@ -150,10 +247,21 @@ export const adminListOrders = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(data.limit ?? 200);
 
+    const view = data.view ?? "active";
+    if (view === "trash") {
+      query = query.not("deleted_at", "is", null);
+    } else {
+      query = query.is("deleted_at", null);
+      if (view === "cancelled") {
+        query = query.eq("status", "cancelled");
+      }
+    }
+
     if (data.status && data.status !== "all") query = query.eq("status", data.status);
     if (data.branch_id) query = query.eq("branch_id", data.branch_id);
     if (data.payment_method) query = query.eq("payment_method", data.payment_method);
     if (data.fulfillment_method) query = query.eq("fulfillment_method", data.fulfillment_method);
+    if (data.assigned_staff_id) query = query.eq("assigned_staff_id", data.assigned_staff_id);
     if (data.coupon_used === "yes") query = query.not("coupon_code", "is", null);
     if (data.coupon_used === "no") query = query.is("coupon_code", null);
     if (data.date_from) query = query.gte("created_at", data.date_from);
@@ -167,17 +275,21 @@ export const adminListOrders = createServerFn({ method: "POST" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const base = (rows ?? []).map((r) => ({
-      ...r,
-      address_snapshot: (r.address_snapshot ?? null) as Json | null,
-      items_count: Array.isArray(r.order_items) ? r.order_items.length : 0,
-    }));
+    const base = (rows ?? []).map((r) => {
+      const rec = r as unknown as OrderRaw & { order_items?: unknown[] };
+      return {
+        ...(rec as OrderRaw),
+        items_count: Array.isArray(rec.order_items) ? rec.order_items.length : 0,
+      };
+    });
 
-    const withCustomer = await attachCustomers(base);
+    const enriched = await enrichRows(base);
+    // Merge items_count from base (enrichRows initialises to 0).
+    const withCount = enriched.map((r, i) => ({ ...r, items_count: base[i].items_count }));
 
     if (search) {
       const s = search.toLowerCase();
-      return withCustomer.filter(
+      return withCount.filter(
         (r) =>
           r.order_number.toLowerCase().includes(s) ||
           (r.customer_name ?? "").toLowerCase().includes(s) ||
@@ -186,7 +298,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
           (r.coupon_code ?? "").toLowerCase().includes(s),
       );
     }
-    return withCustomer;
+    return withCount;
   });
 
 export const adminGetOrder = createServerFn({ method: "POST" })
@@ -207,19 +319,16 @@ export const adminGetOrder = createServerFn({ method: "POST" })
     const { data: items, error: itemsErr } = await supabaseAdmin
       .from("order_items")
       .select("id, product_id, name, qty, unit_price_pkr, options")
-      .eq("order_id", order.id)
+      .eq("order_id", (order as { id: string }).id)
       .order("id");
     if (itemsErr) throw new Error(itemsErr.message);
 
-    const base = {
-      ...order,
-      address_snapshot: (order.address_snapshot ?? null) as Json | null,
-      items_count: items?.length ?? 0,
-    };
-    const [withCustomer] = await attachCustomers([base]);
+    const raw = order as unknown as OrderRaw;
+    const [enriched] = await enrichRows([raw]);
 
     return {
-      ...withCustomer,
+      ...enriched,
+      items_count: items?.length ?? 0,
       items: (items ?? []).map((it) => ({
         ...it,
         options: (it.options ?? null) as Json | null,
@@ -289,27 +398,154 @@ export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
     await writeAudit(context, {
       action: "status_changed",
       entity_id: data.id,
-      summary: `Status: ${prev?.status ?? "?"} → ${data.status}`,
-      old_value: { status: prev?.status ?? null },
+      summary: `Status: ${(prev as { status?: string } | null)?.status ?? "?"} → ${data.status}`,
+      old_value: { status: (prev as { status?: string } | null)?.status ?? null },
       new_value: { status: data.status },
     });
     return { ok: true, label: STATUS_LABEL[data.status] };
   });
 
+// ============ Cancel order (with reason) ============
+export const CANCEL_REASONS = [
+  "customer_cancelled",
+  "kitchen_issue",
+  "out_of_stock",
+  "duplicate_order",
+  "fake_order",
+  "delivery_failed",
+  "other",
+] as const;
+export type OrderCancelReason = (typeof CANCEL_REASONS)[number];
+
+const CancelInput = z.object({
+  id: z.string().uuid(),
+  reason: z.enum(CANCEL_REASONS),
+  details: z.string().max(500).optional(),
+});
+
+export const adminCancelOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => CancelInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prev } = await supabaseAdmin
+      .from("orders")
+      .select("status")
+      .eq("id", data.id)
+      .maybeSingle();
+    const reasonText = data.details?.trim()
+      ? `${data.reason}: ${data.details.trim()}`
+      : data.reason;
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({
+        status: "cancelled",
+        cancellation_reason: reasonText,
+        cancelled_by: context.userId,
+        cancelled_at: new Date().toISOString(),
+      } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await writeAudit(context, {
+      action: "order_cancelled",
+      entity_id: data.id,
+      summary: `Cancelled — ${reasonText}`,
+      old_value: { status: (prev as { status?: string } | null)?.status ?? null },
+      new_value: { status: "cancelled", reason: reasonText },
+    });
+    return { ok: true };
+  });
+
+// ============ Soft delete / restore / hard delete (owner/admin) ============
+async function assertOwnerOrAdmin(context: { userId: string }) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: rr } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", context.userId);
+  const roles = ((rr ?? []) as { role: string }[]).map((r) => r.role);
+  if (!roles.includes("owner") && !roles.includes("admin")) {
+    throw new Error("Forbidden: Owner or Admin role required.");
+  }
+}
+
+export const adminSoftDeleteOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertOwnerOrAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: context.userId } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await writeAudit(context, {
+      action: "order_trashed",
+      entity_id: data.id,
+      summary: "Moved to Trash",
+    });
+    return { ok: true };
+  });
+
+export const adminRestoreOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertOwnerOrAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("orders")
+      .update({ deleted_at: null, deleted_by: null } as never)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await writeAudit(context, {
+      action: "order_restored",
+      entity_id: data.id,
+      summary: "Restored from Trash",
+    });
+    return { ok: true };
+  });
+
+export const adminHardDeleteOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertOwnerOrAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Log first so we have a trace after row is gone
+    await writeAudit(context, {
+      action: "order_deleted_permanent",
+      entity_id: data.id,
+      summary: "Permanently deleted",
+    });
+    // order_items cascade via FK; ensure cleanup manually to be safe:
+    await supabaseAdmin.from("order_items").delete().eq("order_id", data.id);
+    const { error } = await supabaseAdmin.from("orders").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============ Editable patch ============
 const UpdateOrderInput = z.object({
   id: z.string().uuid(),
   patch: z
     .object({
       notes: z.string().max(2000).nullable().optional(),
+      internal_notes: z.string().max(4000).nullable().optional(),
       special_instructions: z.string().max(2000).nullable().optional(),
       payment_method: z.string().max(40).optional(),
       delivery_fee_pkr: z.number().int().min(0).max(100000).optional(),
       coupon_code: z.string().max(40).nullable().optional(),
+      branch_id: z.string().uuid().nullable().optional(),
+      assigned_staff_id: z.string().uuid().nullable().optional(),
+      assigned_rider_id: z.string().uuid().nullable().optional(),
       recipient_name: z.string().max(120).nullable().optional(),
       recipient_phone: z.string().max(40).nullable().optional(),
       address_line: z.string().max(300).nullable().optional(),
       address_area: z.string().max(120).nullable().optional(),
       address_city: z.string().max(120).nullable().optional(),
+      landmark: z.string().max(200).nullable().optional(),
       delivery_instructions: z.string().max(500).nullable().optional(),
     })
     .refine((v) => Object.keys(v).length > 0, "Empty patch"),
@@ -324,29 +560,33 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     const { data: prev, error: fetchErr } = await supabaseAdmin
       .from("orders")
       .select(
-        "notes, special_instructions, payment_method, delivery_fee_pkr, coupon_code, discount_pkr, subtotal_pkr, tax_pkr, total_pkr, address_snapshot",
+        "notes, internal_notes, special_instructions, payment_method, delivery_fee_pkr, coupon_code, discount_pkr, subtotal_pkr, tax_pkr, total_pkr, address_snapshot, branch_id, assigned_staff_id, assigned_rider_id",
       )
       .eq("id", data.id)
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!prev) throw new Error("Order not found");
+    const prevRow = prev as unknown as Record<string, unknown>;
 
     const p = data.patch;
     const update: Record<string, unknown> = {};
     if (p.notes !== undefined) update.notes = p.notes;
+    if (p.internal_notes !== undefined) update.internal_notes = p.internal_notes;
     if (p.special_instructions !== undefined) update.special_instructions = p.special_instructions;
     if (p.payment_method !== undefined) update.payment_method = p.payment_method;
     if (p.coupon_code !== undefined) update.coupon_code = p.coupon_code;
+    if (p.branch_id !== undefined) update.branch_id = p.branch_id;
+    if (p.assigned_staff_id !== undefined) update.assigned_staff_id = p.assigned_staff_id;
+    if (p.assigned_rider_id !== undefined) update.assigned_rider_id = p.assigned_rider_id;
 
     // Delivery fee changes total
-    let newTotal = prev.total_pkr;
     if (p.delivery_fee_pkr !== undefined) {
       update.delivery_fee_pkr = p.delivery_fee_pkr;
-      newTotal =
-        (prev.subtotal_pkr ?? 0) +
+      const newTotal =
+        (Number(prevRow.subtotal_pkr) || 0) +
         (p.delivery_fee_pkr ?? 0) +
-        (prev.tax_pkr ?? 0) -
-        (prev.discount_pkr ?? 0);
+        (Number(prevRow.tax_pkr) || 0) -
+        (Number(prevRow.discount_pkr) || 0);
       update.total_pkr = newTotal;
     }
 
@@ -357,13 +597,14 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       "address_line",
       "address_area",
       "address_city",
+      "landmark",
       "delivery_instructions",
     ] as const;
     const hasAddr = addrKeys.some((k) => p[k] !== undefined);
     if (hasAddr) {
       const prevSnap =
-        prev.address_snapshot && typeof prev.address_snapshot === "object" && !Array.isArray(prev.address_snapshot)
-          ? (prev.address_snapshot as Record<string, unknown>)
+        prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
+          ? (prevRow.address_snapshot as Record<string, unknown>)
           : {};
       const nextSnap = { ...prevSnap };
       if (p.recipient_name !== undefined) nextSnap.recipient_name = p.recipient_name;
@@ -371,6 +612,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       if (p.address_line !== undefined) nextSnap.address_line = p.address_line;
       if (p.address_area !== undefined) nextSnap.area = p.address_area;
       if (p.address_city !== undefined) nextSnap.city = p.address_city;
+      if (p.landmark !== undefined) nextSnap.landmark = p.landmark;
       if (p.delivery_instructions !== undefined) nextSnap.notes = p.delivery_instructions;
       update.address_snapshot = nextSnap as Json;
     }
@@ -441,11 +683,12 @@ export const adminUpdateOrderItemQty = createServerFn({ method: "POST" })
       .select("delivery_fee_pkr, tax_pkr, discount_pkr")
       .eq("id", data.order_id)
       .maybeSingle();
+    const orderRow = (order ?? {}) as { delivery_fee_pkr?: number; tax_pkr?: number; discount_pkr?: number };
     const newTotal =
       newSubtotal +
-      (order?.delivery_fee_pkr ?? 0) +
-      (order?.tax_pkr ?? 0) -
-      (order?.discount_pkr ?? 0);
+      (orderRow.delivery_fee_pkr ?? 0) +
+      (orderRow.tax_pkr ?? 0) -
+      (orderRow.discount_pkr ?? 0);
     await supabaseAdmin
       .from("orders")
       .update({ subtotal_pkr: newSubtotal, total_pkr: newTotal })
@@ -495,6 +738,37 @@ export const adminBranchesForOrders = createServerFn({ method: "GET" })
     return (data ?? []) as { id: string; name: string }[];
   });
 
+// Lightweight assignable-staff list for order assignment dropdowns.
+// Requires orders.update (any staff who can update an order can see the roster).
+export type AssignableStaff = { id: string; name: string | null; email: string | null; role: string };
+export const adminListAssignableStaff = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .handler(async (): Promise<AssignableStaff[]> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRows, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", ["owner", "admin", "manager", "kitchen", "cashier", "rider"]);
+    if (error) throw new Error(error.message);
+    const ids = Array.from(new Set(((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+    if (ids.length === 0) return [];
+    const staff = await fetchStaffLite(ids);
+    const topRoleByUser = new Map<string, string>();
+    for (const r of (roleRows ?? []) as { user_id: string; role: string }[]) {
+      // Prefer more specific role (rider/kitchen) over general (admin/owner) for display.
+      if (!topRoleByUser.has(r.user_id)) topRoleByUser.set(r.user_id, r.role);
+    }
+    return ids.map((id) => {
+      const s = staff.get(id);
+      return {
+        id,
+        name: s?.name ?? null,
+        email: s?.email ?? null,
+        role: topRoleByUser.get(id) ?? "staff",
+      };
+    });
+  });
+
 export const adminOrderStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
   .handler(async (): Promise<AdminOrderStats> => {
@@ -506,6 +780,7 @@ export const adminOrderStats = createServerFn({ method: "POST" })
     const { data: todayRows, error } = await supabaseAdmin
       .from("orders")
       .select("total_pkr, status")
+      .is("deleted_at", null)
       .gte("created_at", iso);
     if (error) throw new Error(error.message);
 
@@ -529,6 +804,7 @@ export const adminOrderStats = createServerFn({ method: "POST" })
     const { data: openRows } = await supabaseAdmin
       .from("orders")
       .select("status")
+      .is("deleted_at", null)
       .in("status", ["pending", "confirmed", "preparing", "ready", "out_for_delivery"]);
     for (const r of openRows ?? []) {
       const k = r.status as AdminOrderStatus;
