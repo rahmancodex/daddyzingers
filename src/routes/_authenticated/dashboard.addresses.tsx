@@ -50,15 +50,18 @@ type Address = {
   is_default: boolean;
 };
 
+const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
 const schema = z.object({
   label: z.string().trim().min(1, "Label required").max(40),
   recipient_name: z.string().trim().max(80).optional().or(z.literal("")),
   phone: z.string().trim().max(20).optional().or(z.literal("")),
   address_line: z.string().trim().min(4, "Enter street/house").max(200),
-  city: z.string().trim().min(2, "Enter city").max(60),
+  city: z.enum(ALLOWED_CITIES, { message: "Select a supported city" }),
   area: z.string().trim().max(80).optional().or(z.literal("")),
   notes: z.string().trim().max(200).optional().or(z.literal("")),
 });
+
 
 function iconForLabel(label: string) {
   const l = label.toLowerCase();
