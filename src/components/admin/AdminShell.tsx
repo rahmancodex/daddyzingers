@@ -116,31 +116,49 @@ function useAdminAuth() {
   const meFn = useServerFn(adminMe);
   const logFn = useServerFn(adminLogClientEvent);
   const [state, setState] = React.useState<{
-    status: "loading" | "ok" | "unauth";
+    status: "loading" | "ok" | "unauth" | "error";
     email?: string;
+    userId?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
-    rolesFailed?: boolean;
+    errorMessage?: string;
   }>({ status: "loading" });
 
   const loadRoles = React.useCallback(
-    async (email?: string) => {
+    async (userId: string, email?: string) => {
       try {
         const me = await meFn();
         setState({
           status: "ok",
           email,
+          userId,
           roles: me.roles as AppRole[],
           topRole: (me.topRole ?? null) as AppRole | null,
-          rolesFailed: false,
         });
       } catch (err) {
-        console.warn("[admin] failed to load roles, failing open:", err);
-        setState({ status: "ok", email, roles: [], topRole: null, rolesFailed: true });
+        console.error("[admin] failed to load roles:", err);
+        setState({
+          status: "error",
+          email,
+          userId,
+          errorMessage: err instanceof Error ? err.message : "Failed to load permissions.",
+        });
       }
     },
     [meFn],
   );
+
+  const retry = React.useCallback(() => {
+    setState((s) => ({ ...s, status: "loading" }));
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error || !data.user) {
+        setState({ status: "unauth" });
+        navigate({ to: "/admin/login", replace: true });
+        return;
+      }
+      loadRoles(data.user.id, data.user.email ?? undefined);
+    });
+  }, [loadRoles, navigate]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -151,14 +169,14 @@ function useAdminAuth() {
         navigate({ to: "/admin/login", replace: true });
         return;
       }
-      loadRoles(data.user.email ?? undefined);
+      loadRoles(data.user.id, data.user.email ?? undefined);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
         setState({ status: "unauth" });
         navigate({ to: "/admin/login", replace: true });
       } else {
-        loadRoles(session.user.email ?? undefined);
+        loadRoles(session.user.id, session.user.email ?? undefined);
         if (event === "SIGNED_IN") {
           logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
             () => {},
@@ -172,8 +190,27 @@ function useAdminAuth() {
     };
   }, [navigate, loadRoles, logFn]);
 
-  return state;
+  // Realtime role revocation: if any row in user_roles for the current user
+  // changes, re-verify permissions. Deleted/downgraded users are kicked out.
+  React.useEffect(() => {
+    if (state.status !== "ok" || !state.userId) return;
+    const uid = state.userId;
+    const channel = supabase
+      .channel(`user-roles-${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${uid}` },
+        () => loadRoles(uid, state.email),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [state.status, state.userId, state.email, loadRoles]);
+
+  return { ...state, retry };
 }
+
 
 function Topbar({
   onOpenMobileNav,
