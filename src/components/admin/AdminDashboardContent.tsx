@@ -55,6 +55,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPKR } from "@/lib/admin-orders";
 import { hasPermission, type AppRole } from "@/lib/rbac";
+import {
+  DateRangeProvider,
+  DateRangePicker,
+  useDateRange,
+  PRESET_LABEL,
+} from "@/components/admin/ui/date-range";
+import { ChartCard } from "@/components/admin/ui/chart-card";
+import { PageHeader } from "@/components/admin/ui/page-header";
 
 // -----------------------------------------------------------------------------
 // Primitives
