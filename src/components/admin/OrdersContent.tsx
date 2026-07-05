@@ -868,9 +868,11 @@ function OrdersContentInner() {
       <SearchInput
         value={rawSearch}
         onChange={setRawSearch}
-        placeholder="Search order #, customer, phone, coupon…"
-        className="col-span-2 w-full min-w-0 sm:col-span-1 sm:min-w-[240px] sm:flex-1"
+        placeholder="Search order #, customer, phone, address, coupon… (⌘K)"
+        className="col-span-2 w-full min-w-0 sm:col-span-1 sm:min-w-[260px] sm:flex-1"
+        inputRef={searchRef}
       />
+
 
       <Select value={urlStatus} onValueChange={(v) => setStatus(v as StatusFilter)}>
         <SelectTrigger className="h-9 rounded-lg text-sm sm:w-[160px] sm:flex-none">
