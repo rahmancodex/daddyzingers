@@ -110,94 +110,77 @@ function NavList({
 
 function useAdminAuth() {
   const navigate = useNavigate();
-  const meFn = useServerFn(adminMe);
   const logFn = useServerFn(adminLogClientEvent);
   const [state, setState] = React.useState<{
-    status: "loading" | "ok" | "unauth" | "error";
+    status: "loading" | "ok";
     email?: string;
     userId?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
-    errorMessage?: string;
   }>({ status: "loading" });
 
-  const loadRoles = React.useCallback(
-    async (userId: string, email?: string) => {
-      try {
-        const me = await meFn();
-        const roles = (me.roles ?? []) as AppRole[];
-        if (roles.length === 0) {
-          // No role => not a staff member. Deny + redirect.
-          console.warn("[admin] user has no role, redirecting to login");
-          await supabase.auth.signOut();
-          setState({ status: "unauth" });
-          navigate({ to: "/admin/login", replace: true });
-          return;
-        }
-        setState({
-          status: "ok",
-          email,
-          userId,
-          roles,
-          topRole: (me.topRole ?? null) as AppRole | null,
-        });
-      } catch (err) {
-        console.error("[admin] failed to load roles:", err);
-        setState({
-          status: "error",
-          email,
-          userId,
-          errorMessage: err instanceof Error ? err.message : "Failed to load permissions.",
-        });
-      }
+  const goProfile = React.useCallback(
+    (message: string) => {
+      toast.error(message);
+      navigate({ to: "/profile", replace: true });
     },
-    [meFn, navigate],
+    [navigate],
   );
 
-  const retry = React.useCallback(() => {
-    setState((s) => ({ ...s, status: "loading" }));
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error || !data.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-        return;
-      }
-      loadRoles(data.user.id, data.user.email ?? undefined);
+  const goLogin = React.useCallback(() => {
+    navigate({ to: "/admin/login", replace: true });
+  }, [navigate]);
+
+  const check = React.useCallback(async () => {
+    const result = await requireAdmin();
+    if (!result.authenticated) {
+      goLogin();
+      return;
+    }
+    if (result.errored) {
+      goProfile("Unable to verify your permissions.");
+      return;
+    }
+    if (!result.isAdmin) {
+      goProfile("You don't have permission to access the Admin Panel.");
+      return;
+    }
+    setState({
+      status: "ok",
+      email: result.email,
+      userId: result.userId,
+      roles: result.roles,
+      topRole: result.role,
     });
-  }, [loadRoles, navigate]);
+  }, [goLogin, goProfile]);
 
   React.useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data, error }) => {
+    check().catch((e) => {
       if (!mounted) return;
-      if (error || !data.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-        return;
-      }
-      loadRoles(data.user.id, data.user.email ?? undefined);
+      console.error("[admin] gate check failed", e);
+      goProfile("Unable to verify your permissions.");
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session?.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-      } else {
-        loadRoles(session.user.id, session.user.email ?? undefined);
-        if (event === "SIGNED_IN") {
-          logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
-            () => {},
-          );
-        }
+      if (event === "SIGNED_OUT" || !session?.user) {
+        setState({ status: "loading" });
+        goLogin();
+        return;
+      }
+      if (event === "SIGNED_IN") {
+        logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
+          () => {},
+        );
+        check();
       }
     });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [navigate, loadRoles, logFn]);
+  }, [check, goLogin, goProfile, logFn]);
 
-  // Realtime role revocation: if any row in user_roles for the current user
-  // changes, re-verify permissions. Deleted/downgraded users are kicked out.
+  // Realtime role revocation
   React.useEffect(() => {
     if (state.status !== "ok" || !state.userId) return;
     const uid = state.userId;
@@ -206,16 +189,17 @@ function useAdminAuth() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${uid}` },
-        () => loadRoles(uid, state.email),
+        () => check(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [state.status, state.userId, state.email, loadRoles]);
+  }, [state.status, state.userId, check]);
 
-  return { ...state, retry };
+  return state;
 }
+
 
 
 function Topbar({
