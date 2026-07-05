@@ -268,6 +268,8 @@ function CheckoutPage() {
             : null,
           notes: checkout.notes,
           special_instructions: null,
+          branch_id: checkout.branchId,
+
         },
       });
       toast.success(`Order ${order.order_number} placed`, {
