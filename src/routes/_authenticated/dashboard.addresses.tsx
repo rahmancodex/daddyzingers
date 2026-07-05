@@ -67,20 +67,30 @@ function iconForLabel(label: string) {
 
 function AddressesPage() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Address[] | null>(null);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<Address | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const load = () => {
-    if (!user) return;
-    supabase
-      .from("user_addresses")
-      .select("*")
-      .order("is_default", { ascending: false })
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setRows((data as Address[]) ?? []));
+  const { data: rows = null } = useQuery<Address[]>({
+    queryKey: ["customer-addresses", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_addresses")
+        .select("*")
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true });
+      return (data as Address[]) ?? [];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["customer-addresses", user?.id] });
+    // The overview card shows the address count.
+    qc.invalidateQueries({ queryKey: ["customer-overview", user?.id] });
   };
-  useEffect(load, [user]);
+
 
   return (
     <div className="space-y-6 md:space-y-8">
