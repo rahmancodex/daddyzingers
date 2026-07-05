@@ -264,13 +264,15 @@ async function writeAudit(
   },
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
-  const { data: roleRows } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", context.userId)
-    .limit(1);
-  await supabaseAdmin.from("audit_logs").insert({
+  const [{ data: u }, { data: roleRows }] = await Promise.all([
+    supabaseAdmin.auth.admin.getUserById(context.userId),
+    supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .limit(1),
+  ]);
+  const { error } = await supabaseAdmin.from("audit_logs").insert({
     actor_id: context.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: ((roleRows?.[0] as { role?: string } | undefined)?.role ?? null) as never,
@@ -282,6 +284,14 @@ async function writeAudit(
     old_value: (entry.old_value ?? null) as Json,
     new_value: (entry.new_value ?? null) as Json,
   });
+  if (error) {
+    console.error("[audit_logs insert failed]", {
+      action: entry.action,
+      entity_id: entry.entity_id,
+      message: error.message,
+      code: (error as { code?: string }).code,
+    });
+  }
 }
 
 const STATUS_LABEL: Record<AdminOrderStatus, string> = {
@@ -456,13 +466,58 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
-    await writeAudit(context, {
-      action: "order_edited",
-      entity_id: data.id,
-      summary: data.changes_summary ?? "Order details updated",
-      old_value: prev as unknown as Json,
-      new_value: update as Json,
-    });
+    // Build a per-field diff (old vs new) restricted to what actually changed,
+    // so audit history shows meaningful before/after instead of the raw prev row.
+    const ADDR_MAP: Record<string, string> = {
+      recipient_name: "recipient_name",
+      recipient_phone: "phone",
+      address_line: "address_line",
+      address_area: "area",
+      address_city: "city",
+      landmark: "landmark",
+      delivery_instructions: "notes",
+    };
+    const prevSnapObj =
+      prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
+        ? (prevRow.address_snapshot as Record<string, unknown>)
+        : {};
+    const oldDiff: Record<string, unknown> = {};
+    const newDiff: Record<string, unknown> = {};
+    const labels: string[] = [];
+    const norm = (v: unknown) => (v === undefined || v === "" ? null : v);
+    for (const [k, v] of Object.entries(p)) {
+      if (v === undefined) continue;
+      if (k in ADDR_MAP) {
+        const snapKey = ADDR_MAP[k];
+        const before = norm(prevSnapObj[snapKey]);
+        const after = norm(v);
+        if (before !== after) {
+          oldDiff[k] = before;
+          newDiff[k] = after;
+          labels.push(`${k.replace(/_/g, " ")}`);
+        }
+      } else {
+        const before = norm(prevRow[k]);
+        const after = norm(v);
+        if (before !== after) {
+          oldDiff[k] = before;
+          newDiff[k] = after;
+          labels.push(`${k.replace(/_/g, " ")}`);
+        }
+      }
+    }
+
+    if (Object.keys(newDiff).length > 0) {
+      await writeAudit(context, {
+        action: "order_edited",
+        entity_id: data.id,
+        summary:
+          data.changes_summary?.trim() ||
+          (labels.length ? `Updated ${labels.join(", ")}` : "Order details updated"),
+        old_value: oldDiff as Json,
+        new_value: newDiff as Json,
+      });
+    }
 
     return { ok: true };
   });
