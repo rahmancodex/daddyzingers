@@ -679,6 +679,41 @@ function OrdersContentInner() {
     [setStatusMut],
   );
 
+  const bulkStatusMut = useMutation({
+    mutationFn: async (input: { ids: string[]; status: AdminOrderStatus }) => {
+      const results = await Promise.allSettled(
+        input.ids.map((id) => updateStatus({ data: { id, status: input.status } })),
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok;
+      return { ok, fail, status: input.status };
+    },
+    onSuccess: ({ ok, fail, status }) => {
+      if (fail === 0) {
+        toast.success(`Updated ${ok} order${ok === 1 ? "" : "s"} → ${STATUS_LABEL[status]}`);
+      } else {
+        toast.warning(`Updated ${ok}, ${fail} failed`, {
+          description: "Refresh to see the current state.",
+        });
+      }
+      setSelection(new Set());
+      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+      qc.invalidateQueries({ queryKey: ["admin", "order-stats"] });
+    },
+    onError: (err: Error) =>
+      toast.error("Bulk update failed", { description: err.message }),
+  });
+
+  const toggleSelect = React.useCallback((id: string) => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+
   const columns: DataColumn<AdminOrderRow>[] = [
     {
       id: "order",
