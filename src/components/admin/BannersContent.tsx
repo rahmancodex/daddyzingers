@@ -2,15 +2,20 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  AlertCircle,
   ArrowDown,
   ArrowUp,
+  Calendar,
+  Copy,
   Image as ImageIcon,
   MoreHorizontal,
   Pencil,
   Plus,
   Power,
   Search,
+  Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +67,13 @@ const STATUS_CLASS: Record<ReturnType<typeof statusOf>, string> = {
   inactive: "bg-destructive/15 text-destructive",
 };
 
+const STATUS_DOT: Record<ReturnType<typeof statusOf>, string> = {
+  active: "bg-success",
+  scheduled: "bg-info",
+  expired: "bg-muted-foreground/50",
+  inactive: "bg-destructive",
+};
+
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -70,6 +82,21 @@ function fmtDate(iso: string | null): string {
     year: "numeric",
   });
 }
+
+function relativeTime(iso: string | null): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return fmtDate(iso);
+}
+
 
 export function BannersContent() {
   const qc = useQueryClient();
