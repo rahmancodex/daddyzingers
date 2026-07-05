@@ -347,6 +347,11 @@ function OrdersContentInner() {
   const rows: AdminOrderRow[] = q.data ?? [];
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const branchNameMap = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const b of branchesQ.data ?? []) m.set(b.id, b.name);
+    return m;
+  }, [branchesQ.data]);
 
   const anyFilterActive =
     urlStatus !== "all" ||
