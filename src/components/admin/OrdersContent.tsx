@@ -1025,6 +1025,55 @@ function OrdersContentInner() {
         </div>
       </div>
 
+      {/* Bulk action bar — shown whenever any orders are selected. */}
+      {selection.size > 0 && (
+        <div
+          role="region"
+          aria-label="Bulk actions"
+          className="sticky top-[--bulk-top,4.5rem] z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 px-3 py-2 shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+              {selection.size}
+            </span>
+            <span className="text-xs font-semibold">
+              selected
+              <span className="ml-1 hidden text-muted-foreground sm:inline">
+                — press Esc to clear
+              </span>
+            </span>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            {QUICK_SET_STATUSES.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={bulkStatusMut.isPending}
+                onClick={() =>
+                  bulkStatusMut.mutate({ ids: Array.from(selection), status: s })
+                }
+                className="h-8 gap-1.5 rounded-lg text-xs"
+              >
+                <StatusPill tone={STATUS_TONE[s]}>{STATUS_LABEL[s]}</StatusPill>
+              </Button>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelection(new Set())}
+              className="h-8 rounded-lg text-xs text-muted-foreground"
+              aria-label="Clear selection"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Error state (replaces table body when the query fails) */}
       {q.isError ? (
         <ErrorOrders onRetry={() => q.refetch()} />
@@ -1069,8 +1118,11 @@ function OrdersContentInner() {
               pendingId={pendingId}
               branchNameMap={branchNameMap}
               emptyState={<EmptyOrders filtered={anyFilterActive} />}
+              selection={selection}
+              onToggleSelect={toggleSelect}
             />
           </div>
+
 
           <TablePagination
             page={page}
