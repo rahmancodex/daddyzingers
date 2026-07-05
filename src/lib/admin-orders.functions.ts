@@ -264,13 +264,15 @@ async function writeAudit(
   },
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
-  const { data: roleRows } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", context.userId)
-    .limit(1);
-  await supabaseAdmin.from("audit_logs").insert({
+  const [{ data: u }, { data: roleRows }] = await Promise.all([
+    supabaseAdmin.auth.admin.getUserById(context.userId),
+    supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .limit(1),
+  ]);
+  const { error } = await supabaseAdmin.from("audit_logs").insert({
     actor_id: context.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: ((roleRows?.[0] as { role?: string } | undefined)?.role ?? null) as never,
@@ -282,6 +284,14 @@ async function writeAudit(
     old_value: (entry.old_value ?? null) as Json,
     new_value: (entry.new_value ?? null) as Json,
   });
+  if (error) {
+    console.error("[audit_logs insert failed]", {
+      action: entry.action,
+      entity_id: entry.entity_id,
+      message: error.message,
+      code: (error as { code?: string }).code,
+    });
+  }
 }
 
 const STATUS_LABEL: Record<AdminOrderStatus, string> = {
