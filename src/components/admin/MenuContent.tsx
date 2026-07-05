@@ -849,8 +849,9 @@ function ListView({
 
       {/* Mobile cards */}
       <ul className="space-y-3 md:hidden">
-        {rows.map((r) => {
+        {rows.map((r, idx) => {
           const isSel = selected.has(r.id);
+
           return (
             <li
               key={r.id}
