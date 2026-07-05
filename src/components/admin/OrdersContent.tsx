@@ -714,16 +714,61 @@ function OrdersContentInner() {
   }, []);
 
 
+  const pageIds = React.useMemo(() => paged.map((r) => r.id), [paged]);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selection.has(id));
+  const someOnPageSelected = pageIds.some((id) => selection.has(id));
+  const togglePageAll = () => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const columns: DataColumn<AdminOrderRow>[] = [
+    {
+      id: "select",
+      alwaysVisible: true,
+      headerClassName: "w-8",
+      className: "w-8",
+      header: (
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={
+              allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false
+            }
+            onCheckedChange={togglePageAll}
+            aria-label="Select all orders on this page"
+          />
+        </div>
+      ),
+      cell: (r) => (
+        <div
+          className="flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={selection.has(r.id)}
+            onCheckedChange={() => toggleSelect(r.id)}
+            aria-label={`Select order ${r.order_number}`}
+          />
+        </div>
+      ),
+    },
     {
       id: "order",
       header: "Order",
       alwaysVisible: true,
       cell: (r) => (
         <div className="min-w-0">
-          <div className="font-mono text-xs font-bold tracking-tight">{r.order_number}</div>
-          <div className="mt-0.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
-            {formatRelative(r.created_at)}
+          <div className="flex items-center gap-1.5">
+            <div className="font-mono text-xs font-bold tracking-tight">{r.order_number}</div>
+            <PriorityBadge row={r} />
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <span>{formatRelative(r.created_at)}</span>
+            <EtaBadge row={r} />
           </div>
         </div>
       ),
@@ -816,6 +861,7 @@ function OrdersContentInner() {
       cell: (r) => <RowActions order={r} onSet={handleSet} pending={pendingId === r.id} />,
     },
   ];
+
 
   const filterControls = (
     <>
