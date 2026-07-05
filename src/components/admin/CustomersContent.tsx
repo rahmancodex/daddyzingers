@@ -12,7 +12,10 @@ import {
   Search,
   ShoppingBag,
   Sparkles,
+  TrendingUp,
+  UserPlus,
   Users,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,12 +44,21 @@ import {
   formatPKR,
   initialsFrom,
 } from "@/lib/admin-customers";
+import {
+  SEGMENT_LABEL,
+  SEGMENT_STYLE,
+  averageOrderValue,
+  customerSegments,
+  shortCustomerId,
+  summarizeCustomers,
+  type CustomerSegment,
+} from "@/lib/admin-customers-derived";
 import { CustomerDetailsDrawer } from "./CustomerDetailsDrawer";
 
 type TierFilter = "all" | "bronze" | "silver" | "gold" | "platinum";
 type PassFilter = "any" | "active" | "none";
-type Segment = "all" | "new" | "active" | "high_value" | "inactive";
-type SortKey = "recent" | "spend" | "orders" | "name";
+type Segment = "all" | CustomerSegment;
+type SortKey = "recent" | "spend" | "orders" | "aov" | "name";
 
 export function CustomersContent() {
   const qc = useQueryClient();
