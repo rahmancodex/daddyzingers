@@ -119,10 +119,10 @@ function useAdminAuth() {
     topRole?: AppRole | null;
   }>({ status: "loading" });
 
-  const goProfile = React.useCallback(
-    (message: string) => {
+  const goRedirect = React.useCallback(
+    (to: "/profile" | "/", message: string) => {
       toast.error(message);
-      navigate({ to: "/profile", replace: true });
+      navigate({ to, replace: true });
     },
     [navigate],
   );
@@ -138,11 +138,11 @@ function useAdminAuth() {
       return;
     }
     if (result.errored) {
-      goProfile("Unable to verify your permissions.");
+      goRedirect("/", "Unable to verify your access. Please try again.");
       return;
     }
     if (!result.isAdmin) {
-      goProfile("You don't have permission to access the Admin Panel.");
+      goRedirect("/profile", "You don't have permission to access the Admin Panel.");
       return;
     }
     setState({
@@ -152,15 +152,16 @@ function useAdminAuth() {
       roles: result.roles,
       topRole: result.role,
     });
-  }, [goLogin, goProfile]);
+  }, [goLogin, goRedirect]);
 
   React.useEffect(() => {
     let mounted = true;
     check().catch((e) => {
       if (!mounted) return;
       console.error("[admin] gate check failed", e);
-      goProfile("Unable to verify your permissions.");
+      goRedirect("/", "Unable to verify your access. Please try again.");
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
         setState({ status: "loading" });
