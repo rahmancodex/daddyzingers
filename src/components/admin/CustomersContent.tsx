@@ -114,26 +114,14 @@ export function CustomersContent() {
     if (minOrders > 0) rows = rows.filter((r) => r.total_orders >= minOrders);
 
     const now = Date.now();
-    if (segment === "new") {
-      const cutoff = now - 7 * 24 * 60 * 60 * 1000;
-      rows = rows.filter((r) => new Date(r.created_at).getTime() >= cutoff);
-    } else if (segment === "active") {
-      const cutoff = now - 30 * 24 * 60 * 60 * 1000;
-      rows = rows.filter(
-        (r) => r.last_order_at && new Date(r.last_order_at).getTime() >= cutoff,
-      );
-    } else if (segment === "inactive") {
-      const cutoff = now - 60 * 24 * 60 * 60 * 1000;
-      rows = rows.filter(
-        (r) => !r.last_order_at || new Date(r.last_order_at).getTime() < cutoff,
-      );
-    } else if (segment === "high_value") {
-      rows = rows.filter((r) => r.total_spend_pkr >= 20000);
+    if (segment !== "all") {
+      rows = rows.filter((r) => customerSegments(r, now).includes(segment));
     }
 
     rows = [...rows].sort((a, b) => {
       if (sort === "spend") return b.total_spend_pkr - a.total_spend_pkr;
       if (sort === "orders") return b.total_orders - a.total_orders;
+      if (sort === "aov") return averageOrderValue(b) - averageOrderValue(a);
       if (sort === "name") return (a.full_name ?? "").localeCompare(b.full_name ?? "");
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
