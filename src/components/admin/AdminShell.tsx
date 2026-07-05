@@ -453,11 +453,13 @@ export function AdminShell({
           onOpenMobileNav={() => setMobileOpen(true)}
           email={auth.email}
           onSignOut={onSignOut}
+          onOpenPalette={() => setPaletteOpen(true)}
         />
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main id="admin-main" className="flex-1 px-4 py-6 md:px-8 md:py-8">
           {permitted ? children : <AccessDenied requiredPermission={requiredPermission!} />}
         </main>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} roles={roles} />
     </div>
   );
 }
