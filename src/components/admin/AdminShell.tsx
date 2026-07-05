@@ -378,6 +378,12 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
+      <a
+        href="#admin-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside
         className={cn(
