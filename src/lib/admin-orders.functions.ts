@@ -291,6 +291,7 @@ async function writeAudit(
       message: error.message,
       code: (error as { code?: string }).code,
     });
+    throw new Error(`Audit log insert failed: ${error.message}`);
   }
 }
 
