@@ -272,7 +272,7 @@ async function writeAudit(
       .eq("user_id", context.userId)
       .limit(1),
   ]);
-  const { error } = await supabaseAdmin.from("audit_logs").insert({
+  const { data: inserted, error } = await supabaseAdmin.from("audit_logs").insert({
     actor_id: context.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: ((roleRows?.[0] as { role?: string } | undefined)?.role ?? null) as never,
@@ -283,7 +283,8 @@ async function writeAudit(
     summary: entry.summary ?? null,
     old_value: (entry.old_value ?? null) as Json,
     new_value: (entry.new_value ?? null) as Json,
-  });
+  }).select("id")
+    .single();
   if (error) {
     console.error("[audit_logs insert failed]", {
       action: entry.action,
@@ -292,6 +293,29 @@ async function writeAudit(
       code: (error as { code?: string }).code,
     });
     throw new Error(`Audit log insert failed: ${error.message}`);
+  }
+  if (!inserted?.id) {
+    console.error("[audit_logs insert failed] no inserted row returned", {
+      action: entry.action,
+      entity_id: entry.entity_id,
+    });
+    throw new Error("Audit log insert failed: no inserted row returned");
+  }
+
+  const { data: persisted, error: readBackError } = await supabaseAdmin
+    .from("audit_logs")
+    .select("id")
+    .eq("id", inserted.id)
+    .maybeSingle();
+  if (readBackError || !persisted) {
+    console.error("[audit_logs readback failed]", {
+      action: entry.action,
+      entity_id: entry.entity_id,
+      audit_id: inserted.id,
+      message: readBackError?.message,
+      code: (readBackError as { code?: string } | null)?.code,
+    });
+    throw new Error(`Audit log verification failed${readBackError ? `: ${readBackError.message}` : ""}`);
   }
 }
 
