@@ -239,14 +239,22 @@ export function BranchesManager() {
 
 function BranchCard({
   branch,
+  isFirst,
+  isLast,
   onEdit,
   onToggle,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   branch: Branch;
+  isFirst: boolean;
+  isLast: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   return (
     <Card className="rounded-2xl border-border/70 transition-shadow hover:shadow-md">
@@ -267,30 +275,53 @@ function BranchCard({
               <div className="mt-0.5 text-xs text-muted-foreground">{branch.city}</div>
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Branch actions" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil className="h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onToggle}>
-                <Power className="h-4 w-4" />
-                {branch.is_active ? "Disable" : "Enable"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={onDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Move branch up"
+              disabled={isFirst}
+              onClick={onMoveUp}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Move branch down"
+              disabled={isLast}
+              onClick={onMoveDown}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Branch actions" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="h-4 w-4" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onToggle}>
+                  <Power className="h-4 w-4" />
+                  {branch.is_active ? "Disable" : "Enable"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+
 
         <div className="space-y-2 text-sm">
           {branch.address && (
