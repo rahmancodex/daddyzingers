@@ -543,11 +543,35 @@ function OrdersContentInner() {
   const [page, setPage] = React.useState(1);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [selection, setSelection] = React.useState<Set<string>>(new Set());
+  const searchRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(
     () => setPage(1),
     [urlStatus, branchId, payment, fulfillment, coupon, debouncedSearch, range],
   );
+
+  // Keyboard shortcuts: ⌘/Ctrl+K focuses search, Esc clears selection.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inField =
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+        return;
+      }
+      if (e.key === "Escape" && !inField) {
+        setSelection((s) => (s.size === 0 ? s : new Set()));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
 
   const setStatus = (v: StatusFilter) =>
     navigate({ search: (prev: OrdersSearch) => ({ ...prev, status: v === "all" ? undefined : v }) });
