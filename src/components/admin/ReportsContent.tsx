@@ -1436,31 +1436,134 @@ function PeakTab({ data }: { data: ReportsData }) {
 // -----------------------------
 
 function BranchesTab({ data }: { data: ReportsData }) {
-  const top = data.branches[0];
+  const ranked = React.useMemo(
+    () =>
+      [...data.branches]
+        .map((b) => ({
+          ...b,
+          aov: b.orders > 0 ? b.revenue / b.orders : 0,
+        }))
+        .sort((a, b) => b.revenue - a.revenue),
+    [data.branches],
+  );
+  const top = ranked[0];
+  const totalRev = ranked.reduce((s, b) => s + b.revenue, 0);
+  const totalOrders = ranked.reduce((s, b) => s + b.orders, 0);
+  const overallAov = totalOrders > 0 ? totalRev / totalOrders : 0;
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <MiniStat label="Branches" value={String(data.branches.length)} />
-        <MiniStat
-          label="Top Performing"
-          value={top?.name ?? "—"}
-        />
-        <MiniStat
-          label="Top Revenue"
-          value={top ? fmtPKR(top.revenue) : "—"}
-        />
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <MiniStat label="Branches" value={String(ranked.length)} />
+        <MiniStat label="Top Performing" value={top?.name ?? "—"} />
+        <MiniStat label="Top Revenue" value={top ? fmtPKR(top.revenue) : "—"} accent="emerald" />
+        <MiniStat label="Blended AOV" value={fmtPKR(overallAov)} />
       </div>
 
+      {ranked.length > 0 && (
+        <Section title="Performance Ranking" description="Branches ordered by revenue share.">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ranked.map((b, i) => {
+              const share = totalRev > 0 ? Math.round((b.revenue / totalRev) * 100) : 0;
+              return (
+                <div
+                  key={b.id}
+                  className="group rounded-xl border border-border/70 bg-card p-4 transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cn(
+                          "grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black",
+                          i === 0
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                            : i === 1
+                              ? "bg-slate-400/15 text-slate-600 dark:text-slate-300"
+                              : i === 2
+                                ? "bg-orange-600/15 text-orange-700 dark:text-orange-400"
+                                : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{b.name}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {b.city ?? "—"}
+                        </div>
+                      </div>
+                    </div>
+                    {b.is_active ? (
+                      <Badge className="bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Disabled
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Revenue
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{fmtPKR(b.revenue)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Orders
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{b.orders}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        AOV
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{fmtPKR(b.aov)}</div>
+                    </div>
+                  </div>
+                  <div
+                    className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuenow={share}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${b.name} revenue share`}
+                  >
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all"
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{share}% of total revenue</span>
+                    <span>{b.avg_delivery_min}m avg delivery</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       <Section title="Revenue per Branch">
-        {data.branches.length === 0 ? (
+        {ranked.length === 0 ? (
           <EmptyChart label="No branch data — add branches in Settings" />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.branches}>
+            <BarChart data={ranked} margin={{ left: 0, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-15}
+                textAnchor="end"
+                height={50}
+              />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtPKR(v)} />
+              <Tooltip formatter={(v: number) => fmtPKR(v)} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
               <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -1468,7 +1571,7 @@ function BranchesTab({ data }: { data: ReportsData }) {
       </Section>
 
       <Section title="Branch Breakdown">
-        {data.branches.length === 0 ? (
+        {ranked.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
             Add branches from Settings → Branches
           </div>
@@ -1481,18 +1584,20 @@ function BranchesTab({ data }: { data: ReportsData }) {
                   <th className="py-2 pr-3">City</th>
                   <th className="py-2 pr-3 text-right">Orders</th>
                   <th className="py-2 pr-3 text-right">Revenue</th>
+                  <th className="py-2 pr-3 text-right">AOV</th>
                   <th className="py-2 pr-3 text-right">Avg Delivery</th>
                   <th className="py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {data.branches.map((b) => (
+                {ranked.map((b) => (
                   <tr key={b.id} className="border-b border-border/50">
                     <td className="py-2.5 pr-3 font-medium">{b.name}</td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{b.city ?? "—"}</td>
-                    <td className="py-2.5 pr-3 text-right">{b.orders}</td>
-                    <td className="py-2.5 pr-3 text-right font-bold">{fmtPKR(b.revenue)}</td>
-                    <td className="py-2.5 pr-3 text-right">{b.avg_delivery_min}m</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{b.orders}</td>
+                    <td className="py-2.5 pr-3 text-right font-bold tabular-nums">{fmtPKR(b.revenue)}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{fmtPKR(b.aov)}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{b.avg_delivery_min}m</td>
                     <td className="py-2.5">
                       {b.is_active ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
@@ -1517,3 +1622,4 @@ function BranchesTab({ data }: { data: ReportsData }) {
     </div>
   );
 }
+
