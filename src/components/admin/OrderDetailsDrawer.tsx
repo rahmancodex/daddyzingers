@@ -76,6 +76,14 @@ import {
   formatPKR,
   nextStatus,
 } from "@/lib/admin-orders";
+import {
+  PRIORITY_CLASS,
+  PRIORITY_LABEL,
+  estimatedPrepMinutes,
+  formatEta,
+  orderPriority,
+} from "@/lib/admin-orders-derived";
+
 import type { Json } from "@/integrations/supabase/types";
 import { StatusPill, STATUS_TONE_CLASS } from "./ui/status-pill";
 
