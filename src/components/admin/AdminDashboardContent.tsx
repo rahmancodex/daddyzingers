@@ -1563,21 +1563,51 @@ function ActivityFeed({ canView }: { canView: boolean }) {
           {(q.data ?? []).slice(0, 8).map((log) => {
             const meta = classifyAction(log.action);
             const Icon = meta.icon;
-            return (
-              <li key={log.id} className="flex items-start gap-3 px-5 py-3 sm:px-6">
+            const summary = log.summary ?? log.action.replace(/[_.]/g, " ");
+            const absTime = new Date(log.created_at).toLocaleString();
+            const entity = (log.entity_type ?? "").toLowerCase();
+            let href: string | null = null;
+            let search: Record<string, string> | undefined;
+            if (entity === "order" || entity === "orders") {
+              href = "/admin/orders";
+              if (log.entity_id) search = { q: log.entity_id };
+            } else if (entity === "customer" || entity === "profile" || entity === "profiles") {
+              href = "/admin/customers";
+            }
+            const inner = (
+              <>
                 <span className={cn("mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg", TONE_CHIP[meta.tone])}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm">
-                    <span className="font-semibold">{log.summary ?? log.action.replace(/[_.]/g, " ")}</span>
+                    <span className="font-semibold capitalize">{summary}</span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="truncate">{log.actor_email ?? "system"}</span>
                     <span className="text-border">•</span>
-                    <span className="tabular-nums">{relTime(log.created_at)}</span>
+                    <span className="tabular-nums" title={absTime}>{relTime(log.created_at)}</span>
                   </div>
                 </div>
+                {href && (
+                  <ArrowUpRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/act:opacity-100" />
+                )}
+              </>
+            );
+            return (
+              <li key={log.id}>
+                {href ? (
+                  <Link
+                    to={href}
+                    search={search as never}
+                    className="group/act flex items-start gap-3 px-5 py-3 transition-colors hover:bg-muted/40 focus:outline-none focus-visible:bg-muted/60 sm:px-6"
+                    aria-label={`${summary} — open ${entity}`}
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div className="flex items-start gap-3 px-5 py-3 sm:px-6">{inner}</div>
+                )}
               </li>
             );
           })}
