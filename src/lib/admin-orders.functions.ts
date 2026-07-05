@@ -206,13 +206,22 @@ export const adminListOrders = createServerFn({ method: "POST" })
 
     if (search) {
       const s = search.toLowerCase();
+      const addrText = (snap: Json | null): string => {
+        if (!snap || typeof snap !== "object" || Array.isArray(snap)) return "";
+        const o = snap as { [k: string]: Json | undefined };
+        return [o.address_line, o.area, o.city, o.landmark, o.recipient_name, o.phone]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .join(" ")
+          .toLowerCase();
+      };
       return withCust.filter(
         (r) =>
           r.order_number.toLowerCase().includes(s) ||
           (r.customer_name ?? "").toLowerCase().includes(s) ||
           (r.customer_phone ?? "").toLowerCase().includes(s) ||
           (r.customer_email ?? "").toLowerCase().includes(s) ||
-          (r.coupon_code ?? "").toLowerCase().includes(s),
+          (r.coupon_code ?? "").toLowerCase().includes(s) ||
+          addrText(r.address_snapshot).includes(s),
       );
     }
     return withCust;

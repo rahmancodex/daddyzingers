@@ -6,15 +6,19 @@ import {
   AlertCircle,
   ArrowRight,
   ChevronDown,
+  Clock,
   Download,
+  Flame,
   MoreVertical,
   RefreshCw,
   ShoppingBag,
   Ticket,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
@@ -47,6 +51,13 @@ import {
   formatRelative,
   nextStatus,
 } from "@/lib/admin-orders";
+import {
+  PRIORITY_CLASS,
+  PRIORITY_LABEL,
+  estimatedPrepMinutes,
+  formatEta,
+  orderPriority,
+} from "@/lib/admin-orders-derived";
 
 import { PageHeader } from "./ui/page-header";
 import { FilterBar, SearchInput } from "./ui/filter-bar";
@@ -60,6 +71,7 @@ import {
   type DateRangePreset,
 } from "./ui/date-range";
 import { OrderDetailsDrawer } from "./OrderDetailsDrawer";
+
 
 type StatusFilter = "all" | AdminOrderStatus;
 type CouponFilter = "any" | "yes" | "no";
@@ -122,6 +134,38 @@ function initials(name: string | null | undefined, fallback = "?") {
   const parts = s.split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || fallback;
 }
+
+function PriorityBadge({ row }: { row: AdminOrderRow }) {
+  const p = orderPriority(row);
+  if (p === "normal") return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+        PRIORITY_CLASS[p],
+      )}
+      title={`${PRIORITY_LABEL[p]} — awaiting ${p === "urgent" ? "> 25" : "> 15"} min`}
+    >
+      <Flame className="h-2.5 w-2.5" />
+      {PRIORITY_LABEL[p]}
+    </span>
+  );
+}
+
+function EtaBadge({ row }: { row: AdminOrderRow }) {
+  const eta = estimatedPrepMinutes(row);
+  if (eta == null) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-inset ring-border/60"
+      title="Estimated remaining time (derived from status)"
+    >
+      <Clock className="h-2.5 w-2.5" />
+      {formatEta(eta)}
+    </span>
+  );
+}
+
 
 function EmptyOrders({ filtered }: { filtered: boolean }) {
   return (
@@ -345,6 +389,8 @@ function MobileOrderCards({
   pendingId,
   branchNameMap,
   emptyState,
+  selection,
+  onToggleSelect,
 }: {
   rows: AdminOrderRow[];
   loading: boolean;
@@ -353,10 +399,12 @@ function MobileOrderCards({
   pendingId: string | null;
   branchNameMap: Map<string, string>;
   emptyState: React.ReactNode;
+  selection: Set<string>;
+  onToggleSelect: (id: string) => void;
 }) {
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2" aria-busy="true" aria-live="polite">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
@@ -375,66 +423,81 @@ function MobileOrderCards({
     <ul className="space-y-2">
       {rows.map((r) => {
         const branchName = r.branch_id ? branchNameMap.get(r.branch_id) : null;
+        const isSelected = selection.has(r.id);
         return (
           <li
             key={r.id}
-            className="group rounded-2xl border border-border/60 bg-card p-3 shadow-[0_1px_2px_-1px_hsl(var(--foreground)/0.06)] transition-colors active:bg-muted/50"
+            className={cn(
+              "group rounded-2xl border bg-card p-3 shadow-[0_1px_2px_-1px_hsl(var(--foreground)/0.06)] transition-colors active:bg-muted/50",
+              isSelected ? "border-primary/60 ring-1 ring-primary/30" : "border-border/60",
+            )}
           >
-            <button
-              type="button"
-              onClick={() => onRowClick(r)}
-              className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 text-left"
-            >
-              <div className="flex min-w-0 items-start gap-2.5">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-muted to-muted/60 text-[11px] font-bold ring-1 ring-border/60">
-                  {initials(r.customer_name ?? r.customer_email)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-mono text-[11px] font-bold tracking-tight">
-                      {r.order_number}
-                    </span>
-                    <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>
-                  </div>
-                  <div className="mt-0.5 truncate text-sm font-semibold">
-                    {r.customer_name ?? "Guest"}
-                  </div>
-                  <div className="truncate text-[11px] text-muted-foreground">
-                    {r.customer_phone ?? r.customer_email ?? "—"}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-end justify-between gap-1">
-                <div className="text-sm font-semibold tabular-nums">
-                  {formatPKR(r.total_pkr)}
-                </div>
-                <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
-                  {formatRelative(r.created_at)}
-                </div>
-              </div>
-            </button>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2 text-[10.5px] text-muted-foreground">
-              <span className="capitalize">{r.fulfillment_method.replace(/_/g, " ")}</span>
-              <span className="opacity-40">·</span>
-              <span className="uppercase">{r.payment_method}</span>
-              {branchName && (
-                <>
-                  <span className="opacity-40">·</span>
-                  <span className="truncate">{branchName}</span>
-                </>
-              )}
-              {r.coupon_code && (
-                <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
-                  <Ticket className="h-2.5 w-2.5" />
-                  {r.coupon_code}
-                </span>
-              )}
-              <div className="ml-auto">
-                <RowActions
-                  order={r}
-                  onSet={onSet}
-                  pending={pendingId === r.id}
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-3">
+              <div className="pt-1">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => onToggleSelect(r.id)}
+                  aria-label={`Select order ${r.order_number}`}
                 />
+              </div>
+              <button
+                type="button"
+                onClick={() => onRowClick(r)}
+                className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-3 text-left"
+              >
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-muted to-muted/60 text-[11px] font-bold ring-1 ring-border/60">
+                    {initials(r.customer_name ?? r.customer_email)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="truncate font-mono text-[11px] font-bold tracking-tight">
+                        {r.order_number}
+                      </span>
+                      <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>
+                      <PriorityBadge row={r} />
+                    </div>
+                    <div className="mt-0.5 truncate text-sm font-semibold">
+                      {r.customer_name ?? "Guest"}
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {r.customer_phone ?? r.customer_email ?? "—"}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end justify-between gap-1">
+                  <div className="text-sm font-semibold tabular-nums">
+                    {formatPKR(r.total_pkr)}
+                  </div>
+                  <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                    {formatRelative(r.created_at)}
+                  </div>
+                  <EtaBadge row={r} />
+                </div>
+              </button>
+              <div className="col-span-3 mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2 text-[10.5px] text-muted-foreground">
+                <span className="capitalize">{r.fulfillment_method.replace(/_/g, " ")}</span>
+                <span className="opacity-40">·</span>
+                <span className="uppercase">{r.payment_method}</span>
+                {branchName && (
+                  <>
+                    <span className="opacity-40">·</span>
+                    <span className="truncate">{branchName}</span>
+                  </>
+                )}
+                {r.coupon_code && (
+                  <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                    <Ticket className="h-2.5 w-2.5" />
+                    {r.coupon_code}
+                  </span>
+                )}
+                <div className="ml-auto">
+                  <RowActions
+                    order={r}
+                    onSet={onSet}
+                    pending={pendingId === r.id}
+                  />
+                </div>
               </div>
             </div>
           </li>
@@ -443,6 +506,7 @@ function MobileOrderCards({
     </ul>
   );
 }
+
 
 // -----------------------------------------------------------------------------
 // Main component
@@ -479,11 +543,35 @@ function OrdersContentInner() {
   const [page, setPage] = React.useState(1);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [selection, setSelection] = React.useState<Set<string>>(new Set());
+  const searchRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(
     () => setPage(1),
     [urlStatus, branchId, payment, fulfillment, coupon, debouncedSearch, range],
   );
+
+  // Keyboard shortcuts: ⌘/Ctrl+K focuses search, Esc clears selection.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inField =
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+        return;
+      }
+      if (e.key === "Escape" && !inField) {
+        setSelection((s) => (s.size === 0 ? s : new Set()));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
 
   const setStatus = (v: StatusFilter) =>
     navigate({ search: (prev: OrdersSearch) => ({ ...prev, status: v === "all" ? undefined : v }) });
@@ -591,16 +679,96 @@ function OrdersContentInner() {
     [setStatusMut],
   );
 
+  const bulkStatusMut = useMutation({
+    mutationFn: async (input: { ids: string[]; status: AdminOrderStatus }) => {
+      const results = await Promise.allSettled(
+        input.ids.map((id) => updateStatus({ data: { id, status: input.status } })),
+      );
+      const ok = results.filter((r) => r.status === "fulfilled").length;
+      const fail = results.length - ok;
+      return { ok, fail, status: input.status };
+    },
+    onSuccess: ({ ok, fail, status }) => {
+      if (fail === 0) {
+        toast.success(`Updated ${ok} order${ok === 1 ? "" : "s"} → ${STATUS_LABEL[status]}`);
+      } else {
+        toast.warning(`Updated ${ok}, ${fail} failed`, {
+          description: "Refresh to see the current state.",
+        });
+      }
+      setSelection(new Set());
+      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+      qc.invalidateQueries({ queryKey: ["admin", "order-stats"] });
+    },
+    onError: (err: Error) =>
+      toast.error("Bulk update failed", { description: err.message }),
+  });
+
+  const toggleSelect = React.useCallback((id: string) => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+
+  const pageIds = React.useMemo(() => paged.map((r) => r.id), [paged]);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selection.has(id));
+  const someOnPageSelected = pageIds.some((id) => selection.has(id));
+  const togglePageAll = () => {
+    setSelection((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const columns: DataColumn<AdminOrderRow>[] = [
+    {
+      id: "select",
+      alwaysVisible: true,
+      headerClassName: "w-8",
+      className: "w-8",
+      header: (
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={
+              allOnPageSelected ? true : someOnPageSelected ? "indeterminate" : false
+            }
+            onCheckedChange={togglePageAll}
+            aria-label="Select all orders on this page"
+          />
+        </div>
+      ),
+      cell: (r) => (
+        <div
+          className="flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={selection.has(r.id)}
+            onCheckedChange={() => toggleSelect(r.id)}
+            aria-label={`Select order ${r.order_number}`}
+          />
+        </div>
+      ),
+    },
     {
       id: "order",
       header: "Order",
       alwaysVisible: true,
       cell: (r) => (
         <div className="min-w-0">
-          <div className="font-mono text-xs font-bold tracking-tight">{r.order_number}</div>
-          <div className="mt-0.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
-            {formatRelative(r.created_at)}
+          <div className="flex items-center gap-1.5">
+            <div className="font-mono text-xs font-bold tracking-tight">{r.order_number}</div>
+            <PriorityBadge row={r} />
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <span>{formatRelative(r.created_at)}</span>
+            <EtaBadge row={r} />
           </div>
         </div>
       ),
@@ -694,14 +862,17 @@ function OrdersContentInner() {
     },
   ];
 
+
   const filterControls = (
     <>
       <SearchInput
         value={rawSearch}
         onChange={setRawSearch}
-        placeholder="Search order #, customer, phone, coupon…"
-        className="col-span-2 w-full min-w-0 sm:col-span-1 sm:min-w-[240px] sm:flex-1"
+        placeholder="Search order #, customer, phone, address, coupon… (⌘K)"
+        className="col-span-2 w-full min-w-0 sm:col-span-1 sm:min-w-[260px] sm:flex-1"
+        inputRef={searchRef}
       />
+
 
       <Select value={urlStatus} onValueChange={(v) => setStatus(v as StatusFilter)}>
         <SelectTrigger className="h-9 rounded-lg text-sm sm:w-[160px] sm:flex-none">
@@ -854,6 +1025,55 @@ function OrdersContentInner() {
         </div>
       </div>
 
+      {/* Bulk action bar — shown whenever any orders are selected. */}
+      {selection.size > 0 && (
+        <div
+          role="region"
+          aria-label="Bulk actions"
+          className="sticky top-[--bulk-top,4.5rem] z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-primary/5 px-3 py-2 shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+              {selection.size}
+            </span>
+            <span className="text-xs font-semibold">
+              selected
+              <span className="ml-1 hidden text-muted-foreground sm:inline">
+                — press Esc to clear
+              </span>
+            </span>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            {QUICK_SET_STATUSES.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={bulkStatusMut.isPending}
+                onClick={() =>
+                  bulkStatusMut.mutate({ ids: Array.from(selection), status: s })
+                }
+                className="h-8 gap-1.5 rounded-lg text-xs"
+              >
+                <StatusPill tone={STATUS_TONE[s]}>{STATUS_LABEL[s]}</StatusPill>
+              </Button>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelection(new Set())}
+              className="h-8 rounded-lg text-xs text-muted-foreground"
+              aria-label="Clear selection"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Error state (replaces table body when the query fails) */}
       {q.isError ? (
         <ErrorOrders onRetry={() => q.refetch()} />
@@ -898,8 +1118,11 @@ function OrdersContentInner() {
               pendingId={pendingId}
               branchNameMap={branchNameMap}
               emptyState={<EmptyOrders filtered={anyFilterActive} />}
+              selection={selection}
+              onToggleSelect={toggleSelect}
             />
           </div>
+
 
           <TablePagination
             page={page}
