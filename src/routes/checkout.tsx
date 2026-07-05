@@ -511,8 +511,59 @@ function MethodStep() {
 
   return (
     <Section title="How would you like your order?">
+      {/* Branch picker: hidden when only one active branch (auto-selected). */}
+      {branches.length > 1 && (
+        <div className="mb-4 rounded-2xl border border-border p-4">
+          <div className="flex items-center gap-2 mb-2 font-display font-bold text-sm">
+            <Building2 className="h-4 w-4 shrink-0" /> Branch
+          </div>
+          <RadioGroup
+            value={checkout.branchId ?? ""}
+            onValueChange={(v) => checkoutActions.setBranch(v)}
+            className="grid sm:grid-cols-2 gap-2"
+          >
+            {branches.map((b) => {
+              const active = checkout.branchId === b.id;
+              return (
+                <label
+                  key={b.id}
+                  htmlFor={`branch-${b.id}`}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    active
+                      ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
+                      : "border-border hover:border-foreground/30"
+                  }`}
+                >
+                  <RadioGroupItem id={`branch-${b.id}`} value={b.id} className="mt-1" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display font-semibold text-sm truncate">{b.name}</div>
+                    {b.city && <div className="text-xs text-muted-foreground truncate">{b.city}</div>}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {b.delivery_available && <Badge variant="outline" className="text-[10px]">Delivery</Badge>}
+                      {b.pickup_available && <Badge variant="outline" className="text-[10px]">Pickup</Badge>}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </div>
+      )}
+      {branches.length === 1 && selectedBranch && (
+        <div className="mb-4 rounded-2xl border border-border p-3 flex items-center gap-2 text-sm">
+          <Building2 className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-muted-foreground">Ordering from</span>
+          <span className="font-display font-bold truncate">{selectedBranch.name}</span>
+        </div>
+      )}
+      {branchesQ.isSuccess && branches.length === 0 && (
+        <div className="mb-4 rounded-2xl border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          No branches are currently accepting orders. Please try again later.
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-3 gap-3">
+
         {METHODS.map((m) => {
           const active = checkout.method === m.id;
           return (
