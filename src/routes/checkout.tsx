@@ -81,6 +81,7 @@ function CheckoutPage() {
   const [step, setStep] = useState<StepIdx>(0);
   const [placing, setPlacing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const keyboardOpen = useKeyboardOpen();
   const addressStepRef = useRef<{ prepare: () => Promise<boolean> } | null>(null);
 
   const placeOrderFn = useServerFn(placeOrder);
