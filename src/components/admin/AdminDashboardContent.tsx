@@ -227,12 +227,15 @@ type Kpi = {
   icon: LucideIcon;
   tone: Tone;
   hint?: string;
+  /** Deep-link into the Orders page with filters pre-applied. */
+  to?: string;
+  search?: Record<string, string>;
 };
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpi.icon;
-  return (
-    <Surface className="p-5 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)]">
+  const body = (
+    <>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-0 transition-opacity group-hover/surface:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -255,8 +258,23 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
           <Icon className="h-[18px] w-[18px]" />
         </span>
       </div>
-    </Surface>
+    </>
   );
+  const surfaceCls =
+    "p-5 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)]";
+  if (kpi.to) {
+    return (
+      <Link
+        to={kpi.to}
+        search={kpi.search as never}
+        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
+        aria-label={`Open orders filtered by ${kpi.label}`}
+      >
+        <Surface className={surfaceCls}>{body}</Surface>
+      </Link>
+    );
+  }
+  return <Surface className={surfaceCls}>{body}</Surface>;
 }
 
 function KpiSkeleton() {
@@ -332,7 +350,9 @@ function LiveKpiGrid() {
       value: String(d.today_orders),
       icon: ShoppingBag,
       tone: "primary",
-      hint: "Placed since midnight",
+      hint: "Placed since midnight · view all",
+      to: "/admin/orders",
+      search: { range: "today" },
     },
     {
       key: "rev",
@@ -340,7 +360,9 @@ function LiveKpiGrid() {
       value: formatPKR(d.today_revenue_pkr),
       icon: DollarSign,
       tone: "success",
-      hint: "Gross of taxes & fees",
+      hint: "Gross of taxes & fees · view orders",
+      to: "/admin/orders",
+      search: { range: "today" },
     },
     {
       key: "pending",
@@ -349,14 +371,18 @@ function LiveKpiGrid() {
       icon: Clock,
       tone: "warning",
       hint: "Awaiting confirmation",
+      to: "/admin/orders",
+      search: { status: "pending" },
     },
     {
-      key: "kitchen",
-      label: "In Kitchen",
-      value: String(d.preparing + d.confirmed),
+      key: "preparing",
+      label: "Preparing",
+      value: String(d.preparing),
       icon: ChefHat,
       tone: "info",
-      hint: "Confirmed + preparing",
+      hint: "In the kitchen right now",
+      to: "/admin/orders",
+      search: { status: "preparing" },
     },
     {
       key: "delivered",
@@ -365,6 +391,8 @@ function LiveKpiGrid() {
       icon: PackageCheck,
       tone: "success",
       hint: "Completed today",
+      to: "/admin/orders",
+      search: { status: "delivered", range: "today" },
     },
     {
       key: "cancelled",
@@ -372,7 +400,9 @@ function LiveKpiGrid() {
       value: String(d.cancelled),
       icon: XCircle,
       tone: "destructive",
-      hint: "Refunded or voided",
+      hint: "Refunded or voided today",
+      to: "/admin/orders",
+      search: { tab: "cancelled", range: "today" },
     },
   ];
   return (

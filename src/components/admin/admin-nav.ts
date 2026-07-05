@@ -12,6 +12,8 @@ import {
   ScrollText,
   Rocket,
   ClipboardCheck,
+  XCircle,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,6 +24,8 @@ export type AdminNavItem = {
   to: string;
   icon: LucideIcon;
   group: AdminNavGroup;
+  /** Optional search params to preset a filter (e.g. Cancelled Orders view). */
+  search?: Record<string, string>;
 };
 
 export const ADMIN_NAV_GROUPS: Array<{ id: AdminNavGroup; label: string }> = [
@@ -36,6 +40,8 @@ export const ADMIN_NAV_GROUPS: Array<{ id: AdminNavGroup; label: string }> = [
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, group: "overview" },
   { label: "Orders", to: "/admin/orders", icon: ShoppingBag, group: "operations" },
+  { label: "Cancelled Orders", to: "/admin/orders", icon: XCircle, group: "operations", search: { tab: "cancelled" } },
+  { label: "Trash", to: "/admin/orders", icon: Trash2, group: "operations", search: { tab: "trash" } },
   { label: "Customers", to: "/admin/customers", icon: Users, group: "operations" },
   { label: "Menu", to: "/admin/menu", icon: UtensilsCrossed, group: "catalog" },
   { label: "Categories", to: "/admin/categories", icon: LayoutGrid, group: "catalog" },
@@ -48,3 +54,4 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Production", to: "/admin/production", icon: Rocket, group: "system" },
   { label: "Launch Checklist", to: "/admin/launch", icon: ClipboardCheck, group: "system" },
 ];
+

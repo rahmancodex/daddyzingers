@@ -94,15 +94,19 @@ function NavList({
             )}
             {collapsed && <div className="mx-2 my-1 h-px bg-border/60" />}
             {groupItems.map((item) => {
+              const itemTab = item.search?.tab;
               const active =
                 item.to === "/admin"
                   ? pathname === "/admin"
-                  : pathname === item.to || pathname.startsWith(item.to + "/");
+                  : itemTab
+                    ? false // tab-filtered items don't own the "active" state; base route does
+                    : pathname === item.to || pathname.startsWith(item.to + "/");
               const Icon = item.icon;
               return (
                 <Link
-                  key={item.to}
+                  key={`${item.to}-${itemTab ?? "base"}`}
                   to={item.to}
+                  search={item.search as never}
                   onClick={onNavigate}
                   className={cn(
                     "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
@@ -110,6 +114,7 @@ function NavList({
                       ? "bg-foreground/[0.06] text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border)/0.6)]"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground",
                     collapsed && "justify-center px-2",
+                    itemTab && "pl-6 text-[13px]",
                   )}
                   title={collapsed ? item.label : undefined}
                 >

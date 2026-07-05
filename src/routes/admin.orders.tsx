@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { OrdersContent } from "@/components/admin/OrdersContent";
+import { OrdersContent, validateOrdersSearch } from "@/components/admin/OrdersContent";
 
 export const Route = createFileRoute("/admin/orders")({
   ssr: false,
+  validateSearch: validateOrdersSearch,
   head: () => ({
     meta: [
       { title: "Orders — Admin · Daddy Zingers" },
