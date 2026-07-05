@@ -264,7 +264,7 @@ function CheckoutPage() {
                 </motion.div>
               </AnimatePresence>
 
-              <div className="flex items-center justify-between gap-3">
+              <div className="hidden lg:flex items-center justify-between gap-3">
                 <Button
                   variant="outline"
                   disabled={step === 0}
