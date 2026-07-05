@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Check, Clock, MapPin, ReceiptText, ArrowRight, Home, Sparkles } from "lucide-react";
+import { Building2, Check, Clock, MapPin, ReceiptText, ArrowRight, Home, Sparkles } from "lucide-react";
 import { OrderHeader } from "@/components/order/OrderHeader";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
