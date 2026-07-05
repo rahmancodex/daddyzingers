@@ -466,13 +466,58 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
-    await writeAudit(context, {
-      action: "order_edited",
-      entity_id: data.id,
-      summary: data.changes_summary ?? "Order details updated",
-      old_value: prev as unknown as Json,
-      new_value: update as Json,
-    });
+    // Build a per-field diff (old vs new) restricted to what actually changed,
+    // so audit history shows meaningful before/after instead of the raw prev row.
+    const ADDR_MAP: Record<string, string> = {
+      recipient_name: "recipient_name",
+      recipient_phone: "phone",
+      address_line: "address_line",
+      address_area: "area",
+      address_city: "city",
+      landmark: "landmark",
+      delivery_instructions: "notes",
+    };
+    const prevSnapObj =
+      prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
+        ? (prevRow.address_snapshot as Record<string, unknown>)
+        : {};
+    const oldDiff: Record<string, unknown> = {};
+    const newDiff: Record<string, unknown> = {};
+    const labels: string[] = [];
+    const norm = (v: unknown) => (v === undefined || v === "" ? null : v);
+    for (const [k, v] of Object.entries(p)) {
+      if (v === undefined) continue;
+      if (k in ADDR_MAP) {
+        const snapKey = ADDR_MAP[k];
+        const before = norm(prevSnapObj[snapKey]);
+        const after = norm(v);
+        if (before !== after) {
+          oldDiff[k] = before;
+          newDiff[k] = after;
+          labels.push(`${k.replace(/_/g, " ")}`);
+        }
+      } else {
+        const before = norm(prevRow[k]);
+        const after = norm(v);
+        if (before !== after) {
+          oldDiff[k] = before;
+          newDiff[k] = after;
+          labels.push(`${k.replace(/_/g, " ")}`);
+        }
+      }
+    }
+
+    if (Object.keys(newDiff).length > 0) {
+      await writeAudit(context, {
+        action: "order_edited",
+        entity_id: data.id,
+        summary:
+          data.changes_summary?.trim() ||
+          (labels.length ? `Updated ${labels.join(", ")}` : "Order details updated"),
+        old_value: oldDiff as Json,
+        new_value: newDiff as Json,
+      });
+    }
 
     return { ok: true };
   });
