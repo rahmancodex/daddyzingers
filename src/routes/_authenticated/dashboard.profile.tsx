@@ -37,7 +37,7 @@ type Profile = {
 
 function ProfilePage() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -48,27 +48,36 @@ function ProfilePage() {
     avatar_url: "",
     birthday: "",
   });
-  const [profile, setProfile] = useState<Profile | null>(null);
 
+  const { data: profile, isPending: loading } = useQuery({
+    queryKey: ["customer-profile", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone, avatar_url, birthday, referral_code, favorite_category")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return (data as Profile | null) ?? null;
+    },
+  });
+
+  // Hydrate the form once the profile query resolves (or when the user switches).
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("full_name, phone, avatar_url, birthday, referral_code, favorite_category")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const p = data as Profile | null;
-        setProfile(p);
-        setForm({
-          full_name: p?.full_name ?? "",
-          phone: p?.phone ?? "",
-          avatar_url: p?.avatar_url ?? "",
-          birthday: p?.birthday ?? "",
-        });
-        setLoading(false);
-      });
-  }, [user]);
+    if (!profile) return;
+    setForm({
+      full_name: profile.full_name ?? "",
+      phone: profile.phone ?? "",
+      avatar_url: profile.avatar_url ?? "",
+      birthday: profile.birthday ?? "",
+    });
+  }, [profile]);
+
+  const invalidateProfile = () => {
+    qc.invalidateQueries({ queryKey: ["customer-profile", user?.id] });
+    qc.invalidateQueries({ queryKey: ["customer-overview", user?.id] });
+  };
 
   async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
