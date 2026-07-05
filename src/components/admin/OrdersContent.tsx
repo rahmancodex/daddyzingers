@@ -320,6 +320,7 @@ function OrdersContentInner() {
           date_from: range.from.toISOString(),
           date_to: range.to.toISOString(),
           limit: 500,
+          exclude_cancelled: urlStatus === "all",
         },
       }),
     refetchOnWindowFocus: true,
@@ -346,6 +347,11 @@ function OrdersContentInner() {
   const rows: AdminOrderRow[] = q.data ?? [];
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const branchNameMap = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const b of branchesQ.data ?? []) m.set(b.id, b.name);
+    return m;
+  }, [branchesQ.data]);
 
   const anyFilterActive =
     urlStatus !== "all" ||
@@ -417,6 +423,17 @@ function OrdersContentInner() {
       cell: (r) => (
         <span className="text-xs capitalize text-muted-foreground">
           {r.fulfillment_method.replace(/_/g, " ")}
+        </span>
+      ),
+    },
+    {
+      id: "branch",
+      header: "Branch",
+      className: "hidden lg:table-cell",
+      headerClassName: "hidden lg:table-cell",
+      cell: (r) => (
+        <span className="text-xs font-medium text-muted-foreground">
+          {r.branch_id ? branchNameMap.get(r.branch_id) ?? "—" : "—"}
         </span>
       ),
     },

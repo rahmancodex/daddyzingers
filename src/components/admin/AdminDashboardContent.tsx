@@ -300,7 +300,11 @@ function useOrderStatsQuery() {
   const fetchStats = useServerFn(adminOrderStats);
   return useQuery({
     queryKey: ["admin", "order-stats"],
-    queryFn: () => fetchStats({ data: undefined }),
+    queryFn: () => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return fetchStats({ data: { today_start: d.toISOString() } });
+    },
     refetchInterval: 30_000,
     retry: 1,
   });

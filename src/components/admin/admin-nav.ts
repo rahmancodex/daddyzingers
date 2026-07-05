@@ -13,6 +13,9 @@ import {
   Rocket,
   ClipboardCheck,
   XCircle,
+  ChefHat,
+  PackageCheck,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,7 +42,10 @@ export const ADMIN_NAV_GROUPS: Array<{ id: AdminNavGroup; label: string }> = [
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, group: "overview" },
   { label: "Orders", to: "/admin/orders", icon: ShoppingBag, group: "operations" },
-  { label: "Cancelled Orders", to: "/admin/orders", icon: XCircle, group: "operations", search: { status: "cancelled" } },
+  { label: "Preparing", to: "/admin/orders", icon: ChefHat, group: "operations", search: { status: "preparing" } },
+  { label: "Ready", to: "/admin/orders", icon: CheckCircle2, group: "operations", search: { status: "ready" } },
+  { label: "Delivered", to: "/admin/orders", icon: PackageCheck, group: "operations", search: { status: "delivered" } },
+  { label: "Cancelled", to: "/admin/orders", icon: XCircle, group: "operations", search: { status: "cancelled" } },
   { label: "Customers", to: "/admin/customers", icon: Users, group: "operations" },
   { label: "Menu", to: "/admin/menu", icon: UtensilsCrossed, group: "catalog" },
   { label: "Categories", to: "/admin/categories", icon: LayoutGrid, group: "catalog" },

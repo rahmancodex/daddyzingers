@@ -66,8 +66,8 @@ export function resolvePreset(preset: Exclude<DateRangePreset, "custom">): {
 }
 
 const DEFAULT: AdminDateRange = (() => {
-  const r = resolvePreset("last_7_days");
-  return { preset: "last_7_days", from: r.from, to: r.to };
+  const r = resolvePreset("today");
+  return { preset: "today", from: r.from, to: r.to };
 })();
 
 const Ctx = React.createContext<{

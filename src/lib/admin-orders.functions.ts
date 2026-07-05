@@ -28,6 +28,7 @@ const ListInput = z.object({
   coupon_used: z.enum(["any", "yes", "no"]).optional(),
   date_from: z.string().datetime().nullish(),
   date_to: z.string().datetime().nullish(),
+  exclude_cancelled: z.boolean().optional(),
 });
 
 export type AdminOrderRow = {
@@ -175,6 +176,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
       .limit(data.limit ?? 200);
 
     if (data.status && data.status !== "all") query = query.eq("status", data.status);
+    else if (data.exclude_cancelled) query = query.neq("status", "cancelled");
     if (data.branch_id) query = query.eq("branch_id", data.branch_id);
     if (data.payment_method) query = query.eq("payment_method", data.payment_method);
     if (data.fulfillment_method) query = query.eq("fulfillment_method", data.fulfillment_method);
@@ -568,13 +570,18 @@ export const adminBranchesForOrders = createServerFn({ method: "GET" })
     return (data ?? []) as { id: string; name: string }[];
   });
 
+const StatsInput = z.object({ today_start: z.string().datetime().optional() }).optional();
+
 export const adminOrderStats = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
-  .handler(async (): Promise<AdminOrderStats> => {
+  .inputValidator((data: unknown) => StatsInput.parse(data))
+  .handler(async ({ data }): Promise<AdminOrderStats> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const iso = startOfDay.toISOString();
+    const iso = data?.today_start ?? (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    })();
 
     const { data: todayRows, error } = await supabaseAdmin
       .from("orders")
