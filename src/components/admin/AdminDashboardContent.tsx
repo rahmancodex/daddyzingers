@@ -580,43 +580,43 @@ function RevenueChart({
               <AreaChart data={trend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.32} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="hsl(var(--border))"
+                  stroke="var(--border)"
                   strokeOpacity={0.6}
                 />
                 <XAxis
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   dy={6}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   width={44}
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   tickFormatter={(v) =>
                     v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
                   }
                 />
                 <Tooltip
-                  cursor={{ stroke: "hsl(var(--primary))", strokeOpacity: 0.25, strokeWidth: 1 }}
+                  cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }}
                   content={<RevenueTooltip />}
                 />
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="hsl(var(--primary))"
+                  stroke="var(--primary)"
                   strokeWidth={2.5}
                   fill="url(#revenueFill)"
-                  activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--background)" }}
                   animationDuration={700}
                   animationEasing="ease-out"
                 />
@@ -860,7 +860,7 @@ function LatestCustomersCard({ canView }: { canView: boolean }) {
   const fetchList = useServerFn(adminListCustomers);
   const q = useQuery({
     queryKey: ["admin", "customers", "recent"],
-    queryFn: () => fetchList() as Promise<AdminCustomerRow[]>,
+    queryFn: () => fetchList({ data: undefined }) as Promise<AdminCustomerRow[]>,
     enabled: canView,
     staleTime: 60_000,
     retry: 1,
