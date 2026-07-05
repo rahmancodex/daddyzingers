@@ -333,18 +333,20 @@ export function CustomersContent() {
               key={s}
               onClick={() => setSegment(s)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors",
+                "rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 segment === s
                   ? "bg-foreground text-background"
                   : "bg-muted text-muted-foreground hover:bg-accent",
               )}
+              aria-pressed={segment === s}
             >
-              {s.replace("_", " ")}
+              {s === "all" ? "All" : SEGMENT_LABEL[s as CustomerSegment]}
             </button>
           ))}
           <select
             value={tier}
             onChange={(e) => setTier(e.target.value as TierFilter)}
+            aria-label="Filter by tier"
             className="ml-1 h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold capitalize"
           >
             <option value="all">All tiers</option>
@@ -356,6 +358,7 @@ export function CustomersContent() {
           <select
             value={pass}
             onChange={(e) => setPass(e.target.value as PassFilter)}
+            aria-label="Filter by pass"
             className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold"
           >
             <option value="any">Any pass</option>
@@ -365,6 +368,7 @@ export function CustomersContent() {
           <select
             value={String(minOrders)}
             onChange={(e) => setMinOrders(Number(e.target.value))}
+            aria-label="Minimum orders"
             className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold"
           >
             <option value="0">Any orders</option>
@@ -375,15 +379,101 @@ export function CustomersContent() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort by"
             className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold"
           >
             <option value="recent">Newest</option>
             <option value="spend">Highest spend</option>
             <option value="orders">Most orders</option>
+            <option value="aov">Highest AOV</option>
             <option value="name">A → Z</option>
           </select>
         </div>
       </div>
+
+      {/* Mobile cards */}
+      <div className="grid gap-3 md:hidden">
+        {q.isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+          ))
+        ) : pageRows.length === 0 ? (
+          <EmptyState />
+        ) : (
+          pageRows.map((c) => {
+            const segs = customerSegments(c);
+            return (
+              <button
+                key={c.id}
+                onClick={() => setOpenId(c.id)}
+                className="w-full rounded-2xl border border-border/70 bg-card p-4 text-left shadow-[var(--shadow-1)] transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-11 w-11 shrink-0">
+                    <AvatarImage src={c.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-primary/20 text-xs font-bold">
+                      {initialsFrom(c.full_name, "?")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="truncate font-semibold">{c.full_name ?? "Unnamed"}</div>
+                      <div className="shrink-0 font-display text-sm font-black tabular-nums">
+                        {formatPKR(c.total_spend_pkr)}
+                      </div>
+                    </div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {c.email ?? c.phone ?? "—"} · #{shortCustomerId(c.id)}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize",
+                          TIER_STYLE[c.loyalty_tier] ?? "bg-muted",
+                        )}
+                      >
+                        {c.loyalty_tier}
+                      </Badge>
+                      {segs.slice(0, 2).map((s) => (
+                        <Badge
+                          key={s}
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            SEGMENT_STYLE[s],
+                          )}
+                        >
+                          {SEGMENT_LABEL[s]}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                      <div>
+                        <div className="tabular-nums font-semibold text-foreground">
+                          {c.total_orders}
+                        </div>
+                        <div>Orders</div>
+                      </div>
+                      <div>
+                        <div className="tabular-nums font-semibold text-foreground">
+                          {formatPKR(averageOrderValue(c))}
+                        </div>
+                        <div>AOV</div>
+                      </div>
+                      <div>
+                        <div className="truncate font-semibold text-foreground">
+                          {c.last_order_at ? fmtRelative(c.last_order_at) : "—"}
+                        </div>
+                        <div>Last order</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+
 
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
