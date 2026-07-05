@@ -685,6 +685,58 @@ export function CustomersContent() {
   );
 }
 
+function Kpi({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  loading,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "primary" | "info" | "success" | "warning";
+  loading?: boolean;
+}) {
+  const toneClass = {
+    primary: "bg-primary/15 text-foreground",
+    info: "bg-info/15 text-info",
+    success: "bg-success/15 text-success-foreground",
+    warning: "bg-warning/20 text-warning-foreground",
+  }[tone];
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-1)] transition-transform hover:-translate-y-0.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </div>
+        <span className={cn("grid h-7 w-7 place-items-center rounded-lg", toneClass)}>
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-2 h-7 w-20 rounded" />
+      ) : (
+        <div className="mt-1 font-display text-2xl font-black tabular-nums">{value}</div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="mx-auto flex max-w-xs flex-col items-center gap-3 py-6 text-center">
+      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+        <Users className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <div className="font-display text-lg font-black">No customers</div>
+      <p className="text-xs text-muted-foreground">
+        Try adjusting your search or filters.
+      </p>
+    </div>
+  );
+}
+
 function InsightCard({
   icon: Icon,
   title,
