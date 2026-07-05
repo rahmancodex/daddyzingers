@@ -354,7 +354,7 @@ export function AdminShell({
             <BrandMark />
           </div>
           <div className="py-3">
-            <NavList roles={roles} onNavigate={() => setMobileOpen(false)} />
+            <NavList roles={roles} failOpen={failOpen} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
