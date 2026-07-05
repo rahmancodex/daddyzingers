@@ -64,13 +64,16 @@ function NavList({
   collapsed,
   onNavigate,
   roles,
+  failOpen,
 }: {
   collapsed?: boolean;
   onNavigate?: () => void;
   roles?: AppRole[];
+  failOpen?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = ADMIN_NAV.filter((item) => {
+    if (failOpen) return true;
     const perm = ROUTE_PERMISSION[item.to];
     return !perm || hasPermission(roles, perm);
   });
