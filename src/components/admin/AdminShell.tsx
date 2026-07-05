@@ -41,6 +41,7 @@ import {
   type Permission,
 } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
+import { CommandPalette } from "./CommandPalette";
 
 function BrandMark({ collapsed }: { collapsed?: boolean }) {
   return (
