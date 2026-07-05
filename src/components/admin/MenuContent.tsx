@@ -91,7 +91,7 @@ function useDebounced<T>(value: T, delay = 300) {
   return v;
 }
 
-type SortKey = "newest" | "name" | "price_asc" | "price_desc";
+type SortKey = "newest" | "name" | "price_asc" | "price_desc" | "display_order";
 type BoolFilter = "any" | "yes" | "no";
 
 export function MenuContent() {
