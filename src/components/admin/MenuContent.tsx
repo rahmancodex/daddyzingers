@@ -541,6 +541,9 @@ export function MenuContent() {
           onDelete={(id) => setDeleteId(id)}
           onToggleAvailable={(id, v) => flagsMutation.mutate({ id, is_available: v })}
           onToggleFeatured={(id, v) => flagsMutation.mutate({ id, is_featured: v })}
+          canReorder={canReorder}
+          onMove={move}
+          reordering={reorderMutation.isPending}
         />
       ) : (
         <GridView
@@ -553,8 +556,12 @@ export function MenuContent() {
           onDelete={(id) => setDeleteId(id)}
           onToggleAvailable={(id, v) => flagsMutation.mutate({ id, is_available: v })}
           onToggleFeatured={(id, v) => flagsMutation.mutate({ id, is_featured: v })}
+          canReorder={canReorder}
+          onMove={move}
+          reordering={reorderMutation.isPending}
         />
       )}
+
 
       {editing && (
         <MenuItemDrawer
