@@ -57,8 +57,19 @@ import {
   adminCreateBranch,
   adminDeleteBranch,
   adminListBranches,
+  adminReorderBranch,
   adminUpdateBranch,
 } from "@/lib/admin-settings.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
 
 type Branch = Awaited<ReturnType<typeof adminListBranches>>[number];
 
