@@ -248,7 +248,7 @@ async function writeAudit(
   await supabaseAdmin.from("audit_logs").insert({
     actor_id: context.userId,
     actor_email: u?.user?.email ?? null,
-    actor_role: (roleRows?.[0] as { role?: string } | undefined)?.role ?? null,
+    actor_role: ((roleRows?.[0] as { role?: string } | undefined)?.role ?? null) as never,
     module: "orders",
     entity_type: "order",
     entity_id: entry.entity_id,
