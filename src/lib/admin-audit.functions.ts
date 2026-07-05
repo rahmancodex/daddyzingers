@@ -84,7 +84,7 @@ export const adminLogClientEvent = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", context.userId)
       .limit(1);
-    await (supabaseAdmin as any).from("audit_logs").insert({
+    const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: context.userId,
       actor_email: u?.user?.email ?? null,
       actor_role: (roleRows?.[0] as any)?.role ?? null,
@@ -92,6 +92,7 @@ export const adminLogClientEvent = createServerFn({ method: "POST" })
       summary: data.summary ?? null,
       metadata: { module: data.module },
     });
+    if (error) throw new Error(`Audit log insert failed: ${error.message}`);
 
     // Mirror last_login_at when action is login
     if (data.action === "login") {

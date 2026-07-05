@@ -98,7 +98,7 @@ async function writeAudit(params: {
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: u } = await supabaseAdmin.auth.admin.getUserById(params.userId);
-  await (supabaseAdmin as any).from("audit_logs").insert({
+  const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
     actor_id: params.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: "owner",
@@ -110,6 +110,7 @@ async function writeAudit(params: {
     after_state: params.after_state ?? null,
     metadata: { module: "production" },
   });
+  if (error) throw new Error(`Audit log insert failed: ${error.message}`);
 }
 
 // =========================================================================

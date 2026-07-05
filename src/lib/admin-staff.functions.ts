@@ -57,7 +57,7 @@ async function logAudit(params: {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(params.actorId);
-    await (supabaseAdmin as any).from("audit_logs").insert({
+    const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: params.actorId,
       actor_email: userRes?.user?.email ?? null,
       actor_role: params.actorRole,
@@ -69,6 +69,7 @@ async function logAudit(params: {
       after_state: params.after_state ?? null,
       metadata: { module: params.module },
     });
+    if (error) throw new Error(error.message);
   } catch (e) {
     console.error("[audit] failed to log", e);
   }
