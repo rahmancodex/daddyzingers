@@ -19,8 +19,6 @@ function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [marketing, setMarketing] = useState(false);
-  const [orderUpdates, setOrderUpdates] = useState(true);
-  const [productDrops, setProductDrops] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -42,23 +40,24 @@ function NotificationsPage() {
     title: string;
     body: string;
     checked: boolean;
-    onChange: (v: boolean) => void;
+    onChange?: (v: boolean) => void;
     live?: boolean;
+    locked?: string;
   }> = [
     {
       icon: Truck,
       title: "Order updates",
       body: "Confirmation, kitchen status, out-for-delivery and delivered.",
-      checked: orderUpdates,
-      onChange: setOrderUpdates,
+      checked: true,
       live: true,
+      locked: "Always on",
     },
     {
       icon: Sparkles,
       title: "New drops & menu updates",
       body: "Be first to try new Zingers and limited-time items.",
-      checked: productDrops,
-      onChange: setProductDrops,
+      checked: false,
+      locked: "Coming soon",
     },
     {
       icon: MessageSquare,
