@@ -47,7 +47,7 @@ export const adminListAuditLogs = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<AuditLogRow[]> => {
     await assertCanReadAudit(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin
+    let q = (supabaseAdmin as any)
       .from("audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
@@ -62,7 +62,7 @@ export const adminListAuditLogs = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as AuditLogRow[];
+    return (rows ?? []) as unknown as AuditLogRow[];
   });
 
 export const adminLogClientEvent = createServerFn({ method: "POST" })
@@ -84,7 +84,7 @@ export const adminLogClientEvent = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", context.userId)
       .limit(1);
-    await supabaseAdmin.from("audit_logs").insert({
+    await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: context.userId,
       actor_email: u?.user?.email ?? null,
       actor_role: (roleRows?.[0] as any)?.role ?? null,

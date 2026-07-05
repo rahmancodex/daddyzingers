@@ -629,7 +629,7 @@ export const adminOrderAuditLog = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<AdminOrderAuditEntry[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
+    const { data: rows, error } = await (supabaseAdmin as any)
       .from("audit_logs")
       .select("id, created_at, action, summary, actor_email, actor_role, before_state, after_state, metadata, entity_type, entity_id")
       .eq("entity_type", "order")

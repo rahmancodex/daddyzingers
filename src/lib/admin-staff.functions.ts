@@ -57,7 +57,7 @@ async function logAudit(params: {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(params.actorId);
-    await supabaseAdmin.from("audit_logs").insert({
+    await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: params.actorId,
       actor_email: userRes?.user?.email ?? null,
       actor_role: params.actorRole,
