@@ -881,34 +881,60 @@ function MiniStat({
 // -----------------------------
 
 function OrdersTab({ data }: { data: ReportsData }) {
-  const statusData = ORDER_STATUSES.map((s) => ({
-    status: s.replace(/_/g, " "),
-    count: data.orders.byStatus[s] ?? 0,
-  }));
+  const statusData = React.useMemo(
+    () =>
+      ORDER_STATUSES.map((s) => ({
+        status: s.replace(/_/g, " "),
+        count: data.orders.byStatus[s] ?? 0,
+      })),
+    [data.orders.byStatus],
+  );
 
-  const fulfilData = [
-    { name: "Delivery", value: data.orders.deliveryCount },
-    { name: "Pickup", value: data.orders.pickupCount },
-  ];
+  const fulfilData = React.useMemo(
+    () => [
+      { name: "Delivery", value: data.orders.deliveryCount },
+      { name: "Pickup", value: data.orders.pickupCount },
+    ],
+    [data.orders.deliveryCount, data.orders.pickupCount],
+  );
+
+  const branchOrders = React.useMemo(
+    () =>
+      [...data.branches]
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 8)
+        .map((b) => ({ name: b.name, orders: b.orders })),
+    [data.branches],
+  );
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <MiniStat label="Completed" value={String(data.orders.completed)} accent="emerald" />
         <MiniStat label="Cancelled" value={String(data.orders.cancelled)} accent="rose" />
         <MiniStat label="Avg Processing" value={`${data.orders.avgProcessingMin}m`} />
       </div>
 
       <Section title="Orders by Status">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={statusData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis dataKey="status" type="category" tick={{ fontSize: 11 }} width={110} className="capitalize" />
-            <Tooltip />
-            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {statusData.every((s) => s.count === 0) ? (
+          <EmptyChart />
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={statusData} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <YAxis
+                dataKey="status"
+                type="category"
+                tick={{ fontSize: 11 }}
+                width={100}
+                className="capitalize"
+              />
+              <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+              <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -941,16 +967,33 @@ function OrdersTab({ data }: { data: ReportsData }) {
           description={`${data.orders.cancelled} of ${data.orders.total} orders cancelled.`}
         >
           <div className="flex h-[220px] flex-col items-center justify-center gap-2">
-            <div className="font-display text-5xl font-black">
+            <div className="font-display text-5xl font-black tabular-nums">
               {data.orders.cancellationRate.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground">of total orders</div>
           </div>
         </Section>
       </div>
+
+      <Section title="Orders by Branch" description="Distribution of orders across branches.">
+        {branchOrders.length === 0 ? (
+          <EmptyChart label="No branch orders in this range" />
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={branchOrders} margin={{ left: 0, right: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+              <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Section>
     </div>
   );
 }
+
 
 // -----------------------------
 // Products Tab
