@@ -120,6 +120,7 @@ function useAdminAuth() {
     email?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
+    rolesFailed?: boolean;
   }>({ status: "loading" });
 
   const loadRoles = React.useCallback(
@@ -131,9 +132,11 @@ function useAdminAuth() {
           email,
           roles: me.roles as AppRole[],
           topRole: (me.topRole ?? null) as AppRole | null,
+          rolesFailed: false,
         });
-      } catch {
-        setState({ status: "ok", email, roles: [], topRole: null });
+      } catch (err) {
+        console.warn("[admin] failed to load roles, failing open:", err);
+        setState({ status: "ok", email, roles: [], topRole: null, rolesFailed: true });
       }
     },
     [meFn],
