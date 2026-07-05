@@ -794,12 +794,14 @@ export function AdminDashboardContent() {
           date: t.date,
           revenue: t.revenue,
         })),
-        totalRevenue: weekly.data.totalRevenue ?? 0,
+        totalRevenue: weekly.data.revenue?.total ?? 0,
         revenueGrowth:
-          typeof weekly.data.revenueGrowth === "number" ? weekly.data.revenueGrowth : null,
+          typeof weekly.data.revenue?.growthPct === "number"
+            ? weekly.data.revenue.growthPct
+            : null,
       }
     : undefined;
-  const topItems = weekly.data?.bestProducts?.map((p) => ({
+  const topItems = weekly.data?.products?.best?.map((p) => ({
     name: p.name,
     qty: p.qty,
     revenue: p.revenue,
