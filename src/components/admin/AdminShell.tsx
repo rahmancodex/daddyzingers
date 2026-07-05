@@ -13,7 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
@@ -41,6 +41,7 @@ import {
   type Permission,
 } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
+import { CommandPalette } from "./CommandPalette";
 
 function BrandMark({ collapsed }: { collapsed?: boolean }) {
   return (
@@ -237,15 +238,19 @@ function Topbar({
   onOpenMobileNav,
   email,
   onSignOut,
+  onOpenPalette,
 }: {
   onOpenMobileNav: () => void;
   email?: string;
   onSignOut: () => void;
+  onOpenPalette: () => void;
 }) {
   const initials = React.useMemo(() => {
     if (!email) return "AD";
     return email.slice(0, 2).toUpperCase();
   }, [email]);
+  const isMac =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 px-4 backdrop-blur-xl md:px-6">
@@ -259,18 +264,30 @@ function Topbar({
         <MenuIcon className="h-5 w-5" />
       </Button>
 
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search orders, customers, items…"
-          className="h-10 rounded-lg border-border/50 bg-muted/50 pl-9 pr-16 text-sm focus-visible:border-input focus-visible:bg-background"
-        />
-        <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
-          <span className="text-[11px]">⌘</span>K
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        aria-label="Open command palette"
+        className="group relative hidden h-10 max-w-md flex-1 items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:border-input focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:flex"
+      >
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate">Search or jump to…</span>
+        <kbd className="pointer-events-none hidden items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
+          <span className="text-[11px]">{isMac ? "⌘" : "Ctrl"}</span>K
         </kbd>
-      </div>
+      </button>
 
       <div className="ml-auto flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenPalette}
+          className="rounded-xl md:hidden"
+          aria-label="Search"
+        >
+          <Search className="h-5 w-5" />
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -331,6 +348,18 @@ export function AdminShell({
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const onSignOut = async () => {
     await supabase.auth.signOut();
@@ -349,6 +378,12 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
+      <a
+        href="#admin-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       {/* Desktop sidebar */}
       <aside
         className={cn(
@@ -363,7 +398,9 @@ export function AdminShell({
             size="icon"
             onClick={() => setCollapsed((c) => !c)}
             className="hidden h-8 w-8 shrink-0 rounded-lg lg:inline-flex"
-            aria-label="Collapse sidebar"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
@@ -424,11 +461,13 @@ export function AdminShell({
           onOpenMobileNav={() => setMobileOpen(true)}
           email={auth.email}
           onSignOut={onSignOut}
+          onOpenPalette={() => setPaletteOpen(true)}
         />
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main id="admin-main" className="flex-1 px-4 py-6 md:px-8 md:py-8">
           {permitted ? children : <AccessDenied requiredPermission={requiredPermission!} />}
         </main>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} roles={roles} />
     </div>
   );
 }
