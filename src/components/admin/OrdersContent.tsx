@@ -528,7 +528,7 @@ function OrdersContentInner() {
   React.useEffect(() => {
     if (initialisedRange.current) return;
     initialisedRange.current = true;
-    if (search.range) {
+    if (search.range && search.range !== "custom") {
       const r = resolvePreset(search.range);
       setRange({ preset: search.range, from: r.from, to: r.to });
     }
