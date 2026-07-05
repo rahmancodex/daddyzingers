@@ -60,6 +60,40 @@ export const Route = createFileRoute("/checkout")({
 const STEPS = ["Method", "Address", "Payment", "Review"] as const;
 type StepIdx = 0 | 1 | 2 | 3;
 
+/** Only these cities are supported for customer delivery. */
+export const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
+type BranchRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+  phone: string | null;
+  pickup_available: boolean;
+  delivery_available: boolean;
+  delivery_charges: number | null;
+  estimated_delivery_minutes: number | null;
+  sort_order: number;
+};
+
+function useActiveBranches() {
+  return useQuery({
+    queryKey: ["public", "branches", "active"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branches")
+        .select("id,name,city,address,phone,pickup_available,delivery_available,delivery_charges,estimated_delivery_minutes,sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BranchRow[];
+    },
+  });
+}
+
+
 type Address = {
   id: string;
   label: string;
