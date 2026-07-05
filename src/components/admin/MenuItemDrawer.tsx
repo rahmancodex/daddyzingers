@@ -738,6 +738,28 @@ function Field({
   );
 }
 
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </h3>
+        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
 function ToggleRow({
   label,
   desc,
