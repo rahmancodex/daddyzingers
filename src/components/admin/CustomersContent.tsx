@@ -476,18 +476,20 @@ export function CustomersContent() {
 
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
+      <div className="hidden overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)] md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-3 font-semibold md:px-6">Customer</th>
+                <th className="px-2 py-3 font-semibold">ID</th>
+                <th className="px-2 py-3 font-semibold">Segments</th>
                 <th className="px-2 py-3 font-semibold">Tier</th>
                 <th className="px-2 py-3 font-semibold">Pass</th>
-                <th className="px-2 py-3 font-semibold">Orders</th>
-                <th className="px-2 py-3 font-semibold">Spend</th>
-                <th className="px-2 py-3 font-semibold">Points</th>
-                <th className="px-2 py-3 font-semibold">Referrals</th>
+                <th className="px-2 py-3 text-right font-semibold">Orders</th>
+                <th className="px-2 py-3 text-right font-semibold">Spend</th>
+                <th className="px-2 py-3 text-right font-semibold">AOV</th>
+                <th className="px-2 py-3 font-semibold">Last order</th>
                 <th className="px-2 py-3 font-semibold">Joined</th>
                 <th className="px-4 py-3 text-right font-semibold md:px-6"></th>
               </tr>
@@ -496,111 +498,128 @@ export function CustomersContent() {
               {q.isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-t border-border/50">
-                    <td colSpan={9} className="px-4 py-3 md:px-6">
+                    <td colSpan={11} className="px-4 py-3 md:px-6">
                       <Skeleton className="h-8 w-full rounded" />
                     </td>
                   </tr>
                 ))
               ) : pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center md:px-6">
-                    <div className="mx-auto flex max-w-xs flex-col items-center gap-3">
-                      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-muted">
-                        <Users className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                      <div className="font-display text-lg font-black">No customers</div>
-                      <p className="text-xs text-muted-foreground">
-                        Try adjusting your search or filters.
-                      </p>
-                    </div>
+                  <td colSpan={11} className="px-4 py-16 text-center md:px-6">
+                    <EmptyState />
                   </td>
                 </tr>
               ) : (
-                pageRows.map((c) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => setOpenId(c.id)}
-                    className="cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/40"
-                  >
-                    <td className="px-4 py-3 md:px-6">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={c.avatar_url ?? undefined} />
-                          <AvatarFallback className="bg-primary/20 text-xs font-bold">
-                            {initialsFrom(c.full_name, "?")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold">
-                            {c.full_name ?? "Unnamed"}
-                          </div>
-                          <div className="truncate text-[11px] text-muted-foreground">
-                            {c.email ?? c.phone ?? "—"}
+                pageRows.map((c) => {
+                  const segs = customerSegments(c);
+                  return (
+                    <tr
+                      key={c.id}
+                      onClick={() => setOpenId(c.id)}
+                      className="cursor-pointer border-t border-border/50 transition-colors hover:bg-muted/40"
+                    >
+                      <td className="px-4 py-3 md:px-6">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={c.avatar_url ?? undefined} />
+                            <AvatarFallback className="bg-primary/20 text-xs font-bold">
+                              {initialsFrom(c.full_name, "?")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold">
+                              {c.full_name ?? "Unnamed"}
+                            </div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {c.email ?? c.phone ?? "—"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3">
-                      <Badge
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
-                          TIER_STYLE[c.loyalty_tier] ?? "bg-muted",
-                        )}
-                      >
-                        <Award className="mr-1 h-3 w-3" />
-                        {c.loyalty_tier}
-                      </Badge>
-                    </td>
-                    <td className="px-2 py-3">
-                      {c.daddy_pass_status !== "none" ? (
+                      </td>
+                      <td className="px-2 py-3 font-mono text-[11px] text-muted-foreground">
+                        #{shortCustomerId(c.id)}
+                      </td>
+                      <td className="px-2 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {segs.slice(0, 2).map((s) => (
+                            <Badge
+                              key={s}
+                              className={cn(
+                                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                                SEGMENT_STYLE[s],
+                              )}
+                            >
+                              {SEGMENT_LABEL[s]}
+                            </Badge>
+                          ))}
+                          {segs.length === 0 && (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-3">
                         <Badge
                           className={cn(
                             "rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
-                            PASS_STYLE[c.daddy_pass_status] ?? "bg-muted",
+                            TIER_STYLE[c.loyalty_tier] ?? "bg-muted",
                           )}
                         >
-                          <BadgeCheck className="mr-1 h-3 w-3" />
-                          {c.daddy_pass_status}
+                          <Award className="mr-1 h-3 w-3" />
+                          {c.loyalty_tier}
                         </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-3 tabular-nums text-muted-foreground">
-                      {c.total_orders}
-                    </td>
-                    <td className="px-2 py-3 font-semibold tabular-nums">
-                      {formatPKR(c.total_spend_pkr)}
-                    </td>
-                    <td className="px-2 py-3 tabular-nums text-muted-foreground">
-                      {c.reward_points}
-                    </td>
-                    <td className="px-2 py-3 tabular-nums text-muted-foreground">
-                      {c.referral_count}
-                    </td>
-                    <td className="px-2 py-3 text-xs text-muted-foreground">
-                      {fmtDate(c.created_at)}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-right md:px-6"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-lg"
-                        onClick={() => setOpenId(c.id)}
-                        aria-label="Open"
+                      </td>
+                      <td className="px-2 py-3">
+                        {c.daddy_pass_status !== "none" ? (
+                          <Badge
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
+                              PASS_STYLE[c.daddy_pass_status] ?? "bg-muted",
+                            )}
+                          >
+                            <BadgeCheck className="mr-1 h-3 w-3" />
+                            {c.daddy_pass_status}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-3 tabular-nums text-right text-muted-foreground">
+                        {c.total_orders}
+                      </td>
+                      <td className="px-2 py-3 font-semibold tabular-nums text-right">
+                        {formatPKR(c.total_spend_pkr)}
+                      </td>
+                      <td className="px-2 py-3 tabular-nums text-right text-muted-foreground">
+                        {formatPKR(averageOrderValue(c))}
+                      </td>
+                      <td className="px-2 py-3 text-xs text-muted-foreground">
+                        {c.last_order_at ? fmtRelative(c.last_order_at) : "—"}
+                      </td>
+                      <td className="px-2 py-3 text-xs text-muted-foreground">
+                        {fmtDate(c.created_at)}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-right md:px-6"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg"
+                          onClick={() => setOpenId(c.id)}
+                          aria-label="Open"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
 
         {filtered.length > 0 && (
           <div className="flex items-center justify-between border-t border-border/60 px-4 py-3 text-xs text-muted-foreground md:px-6">
