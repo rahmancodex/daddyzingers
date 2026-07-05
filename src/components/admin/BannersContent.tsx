@@ -2,15 +2,20 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  AlertCircle,
   ArrowDown,
   ArrowUp,
+  Calendar,
+  Copy,
   Image as ImageIcon,
   MoreHorizontal,
   Pencil,
   Plus,
   Power,
   Search,
+  Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -62,6 +67,13 @@ const STATUS_CLASS: Record<ReturnType<typeof statusOf>, string> = {
   inactive: "bg-destructive/15 text-destructive",
 };
 
+const STATUS_DOT: Record<ReturnType<typeof statusOf>, string> = {
+  active: "bg-success",
+  scheduled: "bg-info",
+  expired: "bg-muted-foreground/50",
+  inactive: "bg-destructive",
+};
+
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -70,6 +82,21 @@ function fmtDate(iso: string | null): string {
     year: "numeric",
   });
 }
+
+function relativeTime(iso: string | null): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return fmtDate(iso);
+}
+
 
 export function BannersContent() {
   const qc = useQueryClient();
@@ -157,66 +184,150 @@ export function BannersContent() {
     reorderMut.mutate(next.map((b) => b.id));
   }
 
+  const stats = React.useMemo(() => {
+    const list = q.data ?? [];
+    const active = list.filter((b) => statusOf(b) === "active").length;
+    const scheduled = list.filter((b) => statusOf(b) === "scheduled").length;
+    const expired = list.filter((b) => statusOf(b) === "expired").length;
+    return { total: list.length, active, scheduled, expired };
+  }, [q.data]);
+
+  const filtersActive = search.trim() !== "" || filter !== "all";
+  const clearFilters = () => {
+    setSearch("");
+    setFilter("all");
+  };
+
+  const openNew = () => {
+    setEditRow(null);
+    setDrawerOpen(true);
+  };
+
+  const duplicate = (b: BannerRow) => {
+    setEditRow({
+      ...b,
+      id: undefined as unknown as string,
+      title: `${b.title} (Copy)`,
+      is_active: false,
+    });
+    setDrawerOpen(true);
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-6 lg:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-black tracking-tight md:text-3xl">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5" /> Marketing
+          </div>
+          <h1 className="mt-0.5 truncate font-display text-2xl font-black tracking-tight md:text-3xl">
             Promo Banners
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Rotating homepage banners. Changes go live instantly.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditRow(null);
-            setDrawerOpen(true);
-          }}
-          className="h-10 rounded-xl"
-        >
-          <Plus className="h-4 w-4" /> New banner
+        <Button onClick={openNew} className="h-10 shrink-0 rounded-xl">
+          <Plus className="h-4 w-4" /> <span className="hidden sm:inline">New banner</span>
+          <span className="sm:hidden">New</span>
         </Button>
-      </div>
+      </header>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search title, subtitle or CTA"
-            className="h-10 rounded-xl border-transparent bg-muted/60 pl-9 focus-visible:border-input focus-visible:bg-background"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(["all", "active", "scheduled", "expired", "inactive"] as Filter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-colors",
-                filter === f
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-accent",
+      {/* KPI strip */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Banner overview">
+        <BannerKpi label="Total" value={stats.total} tone="default" />
+        <BannerKpi label="Active" value={stats.active} tone="success" />
+        <BannerKpi label="Scheduled" value={stats.scheduled} tone="info" />
+        <BannerKpi label="Expired" value={stats.expired} tone="muted" />
+      </section>
+
+      {/* Sticky toolbar */}
+      <div className="sticky top-0 z-20 -mx-4 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search title, subtitle or CTA"
+                aria-label="Search banners"
+                className="h-10 rounded-xl border-transparent bg-muted/60 pl-9 pr-9 focus-visible:border-input focus-visible:bg-background"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                  className="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               )}
-            >
-              {f}
-            </button>
-          ))}
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as "priority" | "recent")}
-            className="ml-2 h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold"
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as "priority" | "recent")}
+                aria-label="Sort banners"
+                className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="priority">Priority</option>
+                <option value="recent">Recent</option>
+              </select>
+              {filtersActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 rounded-lg text-xs"
+                  onClick={clearFilters}
+                >
+                  <X className="h-3.5 w-3.5" /> Clear
+                </Button>
+              )}
+            </div>
+          </div>
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Filter by status"
           >
-            <option value="priority">Priority</option>
-            <option value="recent">Recent</option>
-          </select>
+            {(["all", "active", "scheduled", "expired", "inactive"] as Filter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                aria-pressed={filter === f}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  filter === f
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-accent",
+                )}
+              >
+                {f !== "all" && (
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      STATUS_DOT[f as keyof typeof STATUS_DOT],
+                    )}
+                    aria-hidden
+                  />
+                )}
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {q.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+      {q.isError ? (
+        <BannerError onRetry={() => q.refetch()} />
+      ) : q.isLoading ? (
+        <div
+          className="grid gap-4 md:grid-cols-2"
+          aria-busy="true"
+          aria-live="polite"
+        >
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-56 rounded-2xl" />
           ))}
@@ -226,39 +337,47 @@ export function BannersContent() {
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-muted">
             <ImageIcon className="h-6 w-6 text-muted-foreground" />
           </div>
-          <div className="mt-4 font-display text-lg font-black">No banners yet</div>
+          <div className="mt-4 font-display text-lg font-black">
+            {filtersActive ? "No banners match" : "No banners yet"}
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add your first homepage banner to promote a campaign.
+            {filtersActive
+              ? "Try adjusting your filters or clearing them."
+              : "Add your first homepage banner to promote a campaign."}
           </p>
-          <Button
-            className="mt-4 rounded-xl"
-            onClick={() => {
-              setEditRow(null);
-              setDrawerOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> New banner
-          </Button>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            {filtersActive && (
+              <Button variant="outline" size="sm" className="rounded-xl" onClick={clearFilters}>
+                <X className="h-3.5 w-3.5" /> Clear filters
+              </Button>
+            )}
+            <Button className="rounded-xl" onClick={openNew}>
+              <Plus className="h-4 w-4" /> New banner
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {rows.map((b, i) => {
             const status = statusOf(b);
+            const isFirst = i === 0;
+            const isLast = i === rows.length - 1;
             return (
-              <div
+              <article
                 key={b.id}
-                className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-3)]"
+                className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-3)] focus-within:ring-2 focus-within:ring-ring"
               >
                 <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted">
                   {b.desktop_image_url ? (
                     <img
                       src={b.desktop_image_url}
                       alt={b.title}
+                      loading="lazy"
                       className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="grid h-full w-full place-items-center text-muted-foreground">
-                      <ImageIcon className="h-8 w-8" />
+                      <ImageIcon className="h-8 w-8" aria-hidden />
                     </div>
                   )}
                   <Badge
@@ -267,37 +386,44 @@ export function BannersContent() {
                       STATUS_CLASS[status],
                     )}
                   >
+                    <span
+                      className={cn(
+                        "mr-1 inline-block h-1.5 w-1.5 rounded-full",
+                        STATUS_DOT[status],
+                      )}
+                      aria-hidden
+                    />
                     {status}
                   </Badge>
-                  <div className="absolute right-3 top-3 flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="h-7 w-7 rounded-lg bg-black/60 text-white hover:bg-black/80"
-                      onClick={() => sort === "priority" && move(i, -1)}
-                      disabled={sort !== "priority" || i === 0 || reorderMut.isPending}
-                      aria-label="Move up"
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="h-7 w-7 rounded-lg bg-black/60 text-white hover:bg-black/80"
-                      onClick={() => sort === "priority" && move(i, 1)}
-                      disabled={
-                        sort !== "priority" || i === rows.length - 1 || reorderMut.isPending
-                      }
-                      aria-label="Move down"
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {sort === "priority" && (
+                    <div className="absolute right-3 top-3 flex gap-1 opacity-90 transition-opacity group-hover:opacity-100">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-7 w-7 rounded-lg bg-black/60 text-white hover:bg-black/80"
+                        onClick={() => move(i, -1)}
+                        disabled={isFirst || reorderMut.isPending}
+                        aria-label="Move up"
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-7 w-7 rounded-lg bg-black/60 text-white hover:bg-black/80"
+                        onClick={() => move(i, 1)}
+                        disabled={isLast || reorderMut.isPending}
+                        aria-label="Move down"
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-display text-base font-black leading-tight">
+                      <div className="truncate font-display text-base font-black leading-tight">
                         {b.title}
                       </div>
                       {b.subtitle && (
@@ -312,7 +438,7 @@ export function BannersContent() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 shrink-0 rounded-lg"
-                          aria-label="More"
+                          aria-label="More actions"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -326,10 +452,14 @@ export function BannersContent() {
                         >
                           <Pencil className="h-4 w-4" /> Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => duplicate(b)}>
+                          <Copy className="h-4 w-4" /> Duplicate
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() =>
                             toggleMut.mutate({ id: b.id, is_active: !b.is_active })
                           }
+                          disabled={toggleMut.isPending}
                         >
                           <Power className="h-4 w-4" />
                           {b.is_active ? "Disable" : "Enable"}
@@ -345,29 +475,48 @@ export function BannersContent() {
                     </DropdownMenu>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>
-                      Priority <span className="font-semibold text-foreground">#{b.sort_order}</span>
+                  <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      Priority{" "}
+                      <span className="font-semibold text-foreground tabular-nums">
+                        #{b.sort_order}
+                      </span>
                     </span>
-                    <span>
-                      {fmtDate(b.starts_at)} → {fmtDate(b.ends_at)}
+                    <span className="inline-flex items-center gap-1 truncate">
+                      <Calendar className="h-3 w-3" aria-hidden />
+                      <span className="truncate">
+                        {fmtDate(b.starts_at)} → {fmtDate(b.ends_at)}
+                      </span>
                     </span>
                   </div>
 
-                  {b.cta_text && (
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-[11px] font-semibold">
-                      CTA · {b.cta_text}
-                      {b.cta_link && (
-                        <span className="text-muted-foreground">→ {b.cta_link}</span>
-                      )}
-                    </div>
-                  )}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    {b.cta_text ? (
+                      <div className="inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-[11px] font-semibold">
+                        <span>CTA · {b.cta_text}</span>
+                        {b.cta_link && (
+                          <span className="truncate text-muted-foreground">
+                            → {b.cta_link}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/70">No CTA</span>
+                    )}
+                    <span
+                      className="shrink-0 text-[11px] text-muted-foreground"
+                      title={fmtDate(b.updated_at)}
+                    >
+                      Updated {relativeTime(b.updated_at)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       )}
+
 
       <BannerDrawer
         open={drawerOpen}
@@ -399,6 +548,58 @@ export function BannersContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function BannerKpi({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "default" | "success" | "info" | "muted";
+}) {
+  const tones: Record<string, string> = {
+    default: "bg-primary/10 text-primary",
+    success: "bg-success/15 text-success-foreground",
+    info: "bg-info/15 text-info",
+    muted: "bg-muted text-muted-foreground",
+  };
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-1)]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className={cn("grid h-8 w-8 place-items-center rounded-lg", tones[tone])}
+          aria-hidden
+        >
+          <ImageIcon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="mt-1 font-display text-2xl font-black leading-none tabular-nums">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BannerError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center shadow-[var(--shadow-1)]">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
+        <AlertCircle className="h-5 w-5" />
+      </div>
+      <div className="mt-3 font-display text-base font-bold">Couldn&apos;t load banners</div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Something went wrong on our side. Please try again in a moment.
+      </p>
+      <Button size="sm" className="mt-4 rounded-xl" onClick={onRetry}>
+        Retry
+      </Button>
     </div>
   );
 }
