@@ -837,8 +837,18 @@ function NewAddressForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="na-city">City *</Label>
-        <Input id="na-city" value={d.city} onChange={(e) => set({ city: e.target.value })} placeholder="Lahore" />
+        <Select value={d.city || undefined} onValueChange={(v) => set({ city: v })}>
+          <SelectTrigger id="na-city" aria-label="City">
+            <SelectValue placeholder="Select city" />
+          </SelectTrigger>
+          <SelectContent>
+            {ALLOWED_CITIES.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="na-addr">Address *</Label>
         <Input id="na-addr" value={d.address_line} onChange={(e) => set({ address_line: e.target.value })} placeholder="House / street / building" />
