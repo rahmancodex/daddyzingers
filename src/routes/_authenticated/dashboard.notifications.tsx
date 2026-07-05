@@ -78,28 +78,44 @@ function NotificationsPage() {
       <section>
         <SectionHeader title="Preferences" kicker="Email" />
         <div className="grid gap-3">
-          {rows.map((r) => (
-            <label
-              key={r.title}
-              className="group rounded-2xl border border-border bg-card p-4 md:p-5 flex items-center gap-4 hover:border-primary/40 transition-colors cursor-pointer"
-            >
-              <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-                <r.icon className="h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="font-semibold">{r.title}</div>
-                  {r.live && (
-                    <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 text-[10px]">
-                      Live
-                    </Badge>
-                  )}
+          {rows.map((r) => {
+            const disabled = !r.onChange;
+            const Wrapper: React.ElementType = disabled ? "div" : "label";
+            return (
+              <Wrapper
+                key={r.title}
+                className={`group rounded-2xl border border-border bg-card p-4 md:p-5 flex items-center gap-4 transition-colors ${
+                  disabled ? "opacity-90" : "hover:border-primary/40 cursor-pointer"
+                }`}
+              >
+                <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                  <r.icon className="h-5 w-5" aria-hidden />
                 </div>
-                <div className="text-sm text-muted-foreground">{r.body}</div>
-              </div>
-              <Switch checked={r.checked} onCheckedChange={r.onChange} />
-            </label>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-semibold">{r.title}</div>
+                    {r.live && (
+                      <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30 text-[10px]">
+                        Live
+                      </Badge>
+                    )}
+                    {r.locked && (
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                        {r.locked}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{r.body}</div>
+                </div>
+                <Switch
+                  checked={r.checked}
+                  onCheckedChange={r.onChange}
+                  disabled={disabled}
+                  aria-label={r.title}
+                />
+              </Wrapper>
+            );
+          })}
         </div>
         <div className="mt-5">
           <Button
