@@ -291,15 +291,7 @@ function Topbar({
           <Search className="h-5 w-5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative rounded-xl"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <NotificationsBell roles={roles} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
