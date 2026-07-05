@@ -62,6 +62,12 @@ import {
   formatPKR,
   initialsFrom,
 } from "@/lib/admin-customers";
+import {
+  buildTimeline,
+  orderCounts,
+  type TimelineEvent,
+  type TimelineKind,
+} from "@/lib/admin-customers-derived";
 import { STATUS_LABEL, STATUS_STYLE } from "@/lib/admin-orders";
 import type { AdminOrderStatus } from "@/lib/admin-orders.functions";
 
