@@ -29,8 +29,8 @@ import { toast } from "sonner";
 
 import { ADMIN_NAV } from "./admin-nav";
 import { useServerFn } from "@tanstack/react-start";
-import { adminMe } from "@/lib/admin-staff.functions";
 import { adminLogClientEvent } from "@/lib/admin-audit.functions";
+import { requireAdmin } from "@/lib/require-admin";
 import { ShieldAlert } from "lucide-react";
 import {
   hasPermission,
