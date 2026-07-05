@@ -1,32 +1,42 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { RefreshCw, Search, ShoppingBag } from "lucide-react";
+import { RefreshCw, ShoppingBag, Ticket } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 import {
   adminListOrders,
+  adminBranchesForOrders,
+  type AdminOrderRow,
   type AdminOrderStatus,
 } from "@/lib/admin-orders.functions";
 import {
-  STATUS_DOT,
   STATUS_LABEL,
-  STATUS_STYLE,
+  STATUS_TONE,
   formatPKR,
   formatRelative,
 } from "@/lib/admin-orders";
+
+import { PageHeader } from "./ui/page-header";
+import { FilterBar, SearchInput } from "./ui/filter-bar";
+import { DataTable, TablePagination, type DataColumn } from "./ui/data-table";
+import { StatusPill } from "./ui/status-pill";
+import {
+  DateRangeProvider,
+  DateRangePicker,
+  useDateRange,
+} from "./ui/date-range";
 import { OrderDetailsDrawer } from "./OrderDetailsDrawer";
 
-type FilterKey = "all" | AdminOrderStatus;
+type StatusFilter = "all" | AdminOrderStatus;
+type CouponFilter = "any" | "yes" | "no";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "All" },
+const STATUS_OPTIONS: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "All statuses" },
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
   { key: "preparing", label: "Preparing" },
@@ -35,6 +45,29 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "delivered", label: "Delivered" },
   { key: "cancelled", label: "Cancelled" },
 ];
+
+const PAYMENT_OPTIONS = [
+  { key: "all", label: "Any payment" },
+  { key: "cod", label: "Cash on Delivery" },
+  { key: "card", label: "Card" },
+  { key: "wallet", label: "Wallet" },
+  { key: "online", label: "Online" },
+];
+
+const FULFILLMENT_OPTIONS = [
+  { key: "all", label: "Any type" },
+  { key: "delivery", label: "Delivery" },
+  { key: "pickup", label: "Pickup" },
+  { key: "dine_in", label: "Dine-in" },
+];
+
+const COUPON_OPTIONS: { key: CouponFilter; label: string }[] = [
+  { key: "any", label: "Any coupon" },
+  { key: "yes", label: "Coupon used" },
+  { key: "no", label: "No coupon" },
+];
+
+const PAGE_SIZE = 25;
 
 function useDebounced<T>(value: T, delay = 300) {
   const [v, setV] = React.useState(value);
@@ -45,52 +78,78 @@ function useDebounced<T>(value: T, delay = 300) {
   return v;
 }
 
-function EmptyState({ label }: { label: string }) {
+function initials(name: string | null | undefined, fallback = "?") {
+  const s = (name ?? "").trim();
+  if (!s) return fallback;
+  const parts = s.split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || fallback;
+}
+
+function EmptyOrders({ filtered }: { filtered: boolean }) {
   return (
-    <div className="grid place-items-center rounded-2xl border border-dashed border-border bg-card px-6 py-20 text-center">
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/15">
-        <ShoppingBag className="h-6 w-6 text-foreground" />
+    <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-muted">
+        <ShoppingBag className="h-5 w-5 text-muted-foreground" />
       </div>
-      <h3 className="mt-4 font-display text-lg font-black">No orders found</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{label}</p>
+      <div>
+        <div className="font-semibold">No orders yet</div>
+        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+          {filtered
+            ? "No orders match the current filters. Try widening the date range or clearing filters."
+            : "New orders will appear here in real time as customers check out."}
+        </p>
+      </div>
     </div>
   );
 }
 
-function RowSkeleton() {
-  return (
-    <div className="flex items-center gap-4 border-t border-border/50 px-6 py-4">
-      <Skeleton className="h-4 w-24 rounded-md" />
-      <Skeleton className="h-4 w-40 rounded-md" />
-      <Skeleton className="h-4 w-16 rounded-md" />
-      <div className="flex-1" />
-      <Skeleton className="h-6 w-20 rounded-full" />
-      <Skeleton className="h-4 w-16 rounded-md" />
-    </div>
-  );
-}
-
-export function OrdersContent() {
+function OrdersContentInner() {
   const qc = useQueryClient();
   const listOrders = useServerFn(adminListOrders);
-  const [filter, setFilter] = React.useState<FilterKey>("all");
+  const listBranches = useServerFn(adminBranchesForOrders);
+  const { range } = useDateRange();
+
+  const [status, setStatus] = React.useState<StatusFilter>("all");
+  const [branchId, setBranchId] = React.useState<string>("all");
+  const [payment, setPayment] = React.useState<string>("all");
+  const [fulfillment, setFulfillment] = React.useState<string>("all");
+  const [coupon, setCoupon] = React.useState<CouponFilter>("any");
   const [rawSearch, setRawSearch] = React.useState("");
   const search = useDebounced(rawSearch, 300);
+  const [page, setPage] = React.useState(1);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
+  React.useEffect(() => setPage(1), [status, branchId, payment, fulfillment, coupon, search, range]);
+
+  const branchesQ = useQuery({
+    queryKey: ["admin", "orders", "branches"],
+    queryFn: () => listBranches(),
+    staleTime: 5 * 60_000,
+  });
+
   const q = useQuery({
-    queryKey: ["admin", "orders", filter, search],
+    queryKey: [
+      "admin",
+      "orders",
+      { status, branchId, payment, fulfillment, coupon, search, from: range.from.toISOString(), to: range.to.toISOString() },
+    ],
     queryFn: () =>
       listOrders({
         data: {
-          status: filter,
+          status,
           search: search.trim() || undefined,
+          branch_id: branchId === "all" ? null : branchId,
+          payment_method: payment === "all" ? null : payment,
+          fulfillment_method: fulfillment === "all" ? null : fulfillment,
+          coupon_used: coupon,
+          date_from: range.from.toISOString(),
+          date_to: range.to.toISOString(),
+          limit: 500,
         },
       }),
     refetchOnWindowFocus: true,
   });
 
-  // Realtime: any change in orders → invalidate.
   React.useEffect(() => {
     const channel = supabase
       .channel("admin-orders-live")
@@ -109,197 +168,235 @@ export function OrdersContent() {
     };
   }, [qc, selectedId]);
 
-  const rows = q.data ?? [];
-  const counts = React.useMemo(() => {
-    const c: Record<FilterKey, number> = {
-      all: rows.length,
-      pending: 0,
-      confirmed: 0,
-      preparing: 0,
-      ready: 0,
-      out_for_delivery: 0,
-      delivered: 0,
-      cancelled: 0,
-    };
-    for (const r of rows) c[r.status] += 1;
-    return c;
-  }, [rows]);
+  const rows: AdminOrderRow[] = q.data ?? [];
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const anyFilterActive =
+    status !== "all" ||
+    branchId !== "all" ||
+    payment !== "all" ||
+    fulfillment !== "all" ||
+    coupon !== "any" ||
+    search.trim().length > 0;
+
+  const clearAll = () => {
+    setStatus("all");
+    setBranchId("all");
+    setPayment("all");
+    setFulfillment("all");
+    setCoupon("any");
+    setRawSearch("");
+  };
+
+  const columns: DataColumn<AdminOrderRow>[] = [
+    {
+      id: "order",
+      header: "Order",
+      alwaysVisible: true,
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="font-mono text-xs font-bold tracking-tight">{r.order_number}</div>
+          <div className="mt-0.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            {formatRelative(r.created_at)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "customer",
+      header: "Customer",
+      cell: (r) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-[10.5px] font-bold text-foreground">
+            {initials(r.customer_name ?? r.customer_email)}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{r.customer_name ?? "Guest"}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              {r.customer_phone ?? r.customer_email ?? "—"}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "type",
+      header: "Type",
+      className: "hidden md:table-cell",
+      headerClassName: "hidden md:table-cell",
+      cell: (r) => (
+        <span className="text-xs capitalize text-muted-foreground">
+          {r.fulfillment_method.replace(/_/g, " ")}
+        </span>
+      ),
+    },
+    {
+      id: "payment",
+      header: "Payment",
+      defaultVisible: false,
+      cell: (r) => <span className="text-xs uppercase text-muted-foreground">{r.payment_method}</span>,
+    },
+    {
+      id: "items",
+      header: "Items",
+      className: "hidden md:table-cell text-right",
+      headerClassName: "hidden md:table-cell text-right",
+      cell: (r) => <span className="tabular-nums text-sm text-muted-foreground">{r.items_count}</span>,
+    },
+    {
+      id: "total",
+      header: "Total",
+      className: "text-right",
+      headerClassName: "text-right",
+      alwaysVisible: true,
+      cell: (r) => (
+        <div className="text-right">
+          <div className="text-sm font-semibold tabular-nums">{formatPKR(r.total_pkr)}</div>
+          {r.coupon_code && (
+            <div className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              <Ticket className="h-2.5 w-2.5" /> {r.coupon_code}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      alwaysVisible: true,
+      cell: (r) => <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-black tracking-tight">Orders</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Live feed of every order coming through Daddy Zingers.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={rawSearch}
-              onChange={(e) => setRawSearch(e.target.value)}
-              placeholder="Search order #, name, phone…"
-              className="h-10 w-72 rounded-xl border-transparent bg-muted/60 pl-9 focus-visible:border-input focus-visible:bg-background"
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => q.refetch()}
-            className="rounded-xl"
-            aria-label="Refresh"
-          >
-            <RefreshCw className={cn("h-4 w-4", q.isFetching && "animate-spin")} />
-          </Button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          const n = filter === "all" ? counts[f.key] : f.key === filter ? counts[f.key] : undefined;
-          return (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                active
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground",
-              )}
-            >
-              {f.label}
-              {n !== undefined && n > 0 && (
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 text-[10px] font-bold tabular-nums",
-                    active ? "bg-background/20 text-background" : "bg-muted text-foreground",
-                  )}
-                >
-                  {n}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
-        {/* Header */}
-        <div className="hidden border-b border-border/70 bg-muted/40 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:grid md:grid-cols-[140px_1fr_80px_140px_180px_100px]">
-          <div>Order</div>
-          <div>Customer</div>
-          <div>Items</div>
-          <div>Total</div>
-          <div>Status</div>
-          <div className="text-right">Time</div>
-        </div>
-
-        {q.isLoading ? (
-          <div>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <RowSkeleton key={i} />
-            ))}
-          </div>
-        ) : q.isError ? (
-          <div className="px-6 py-16 text-center">
-            <div className="text-sm font-semibold text-destructive">Couldn't load orders</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {(q.error as Error)?.message ?? "Unknown error"}
-            </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Orders"
+        description="Live feed of every order, with advanced filtering and inline editing."
+        actions={
+          <>
+            <DateRangePicker />
             <Button
-              onClick={() => q.refetch()}
               variant="outline"
-              size="sm"
-              className="mt-4 rounded-xl"
+              size="icon"
+              onClick={() => q.refetch()}
+              className="h-9 w-9 rounded-lg"
+              aria-label="Refresh orders"
             >
-              <RefreshCw className="h-3.5 w-3.5" /> Retry
+              <RefreshCw className={cn("h-4 w-4", q.isFetching && "animate-spin")} />
             </Button>
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="p-6">
-            <EmptyState
-              label={
-                search
-                  ? `No orders match "${search}" in this view.`
-                  : filter === "all"
-                    ? "New orders will appear here in real time."
-                    : `No ${STATUS_LABEL[filter as AdminOrderStatus].toLowerCase()} orders right now.`
-              }
-            />
-          </div>
-        ) : (
-          <ul>
-            {rows.map((r) => (
-              <li key={r.id}>
-                <button
-                  onClick={() => setSelectedId(r.id)}
-                  className="grid w-full grid-cols-[1fr_auto] items-center gap-3 border-t border-border/50 px-6 py-4 text-left transition-colors hover:bg-muted/40 md:grid-cols-[140px_1fr_80px_140px_180px_100px]"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-mono text-xs font-bold">{r.order_number}</div>
-                    <div className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground md:hidden">
-                      {formatRelative(r.created_at)}
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">
-                      {r.customer_name ?? "Guest"}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {r.customer_phone ?? r.customer_email ?? "—"}
-                    </div>
-                  </div>
-                  <div className="hidden text-sm tabular-nums text-muted-foreground md:block">
-                    {r.items_count}
-                  </div>
-                  <div className="hidden text-sm font-semibold tabular-nums md:block">
-                    {formatPKR(r.total_pkr)}
-                  </div>
-                  <div className="hidden md:block">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
-                        STATUS_STYLE[r.status],
-                      )}
-                    >
-                      <span
-                        className={cn("mr-1.5 inline-block h-1.5 w-1.5 rounded-full", STATUS_DOT[r.status])}
-                      />
-                      {STATUS_LABEL[r.status]}
-                    </Badge>
-                  </div>
-                  <div className="hidden text-right text-xs text-muted-foreground md:block">
-                    {formatRelative(r.created_at)}
-                  </div>
+          </>
+        }
+      />
 
-                  {/* mobile summary */}
-                  <div className="flex flex-col items-end gap-1 md:hidden">
-                    <div className="text-sm font-semibold tabular-nums">
-                      {formatPKR(r.total_pkr)}
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                        STATUS_STYLE[r.status],
-                      )}
-                    >
-                      {STATUS_LABEL[r.status]}
-                    </Badge>
-                  </div>
-                </button>
-              </li>
+      <FilterBar>
+        <SearchInput
+          value={rawSearch}
+          onChange={setRawSearch}
+          placeholder="Search order #, customer, phone, coupon…"
+          className="min-w-[260px]"
+        />
+
+        <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
             ))}
-          </ul>
+          </SelectContent>
+        </Select>
+
+        <Select value={branchId} onValueChange={setBranchId}>
+          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+            <SelectValue placeholder="Branch" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All branches</SelectItem>
+            {(branchesQ.data ?? []).map((b) => (
+              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={fulfillment} onValueChange={setFulfillment}>
+          <SelectTrigger className="h-9 w-[140px] rounded-lg text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FULFILLMENT_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={payment} onValueChange={setPayment}>
+          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAYMENT_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={coupon} onValueChange={(v) => setCoupon(v as CouponFilter)}>
+          <SelectTrigger className="h-9 w-[140px] rounded-lg text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {COUPON_OPTIONS.map((o) => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {anyFilterActive && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAll}
+            className="h-9 rounded-lg text-xs font-semibold text-muted-foreground"
+          >
+            Clear filters
+          </Button>
         )}
-      </div>
+      </FilterBar>
+
+      <DataTable
+        columns={columns}
+        data={paged}
+        loading={q.isLoading}
+        getRowKey={(r) => r.id}
+        onRowClick={(r) => setSelectedId(r.id)}
+        emptyState={<EmptyOrders filtered={anyFilterActive} />}
+        toolbar={
+          <div className="text-xs text-muted-foreground">
+            {q.isError ? (
+              <span className="text-destructive">Couldn't load orders — {(q.error as Error)?.message}</span>
+            ) : (
+              <>
+                <span className="font-semibold text-foreground tabular-nums">{rows.length}</span>{" "}
+                {rows.length === 1 ? "order" : "orders"} in view
+              </>
+            )}
+          </div>
+        }
+      />
+
+      <TablePagination
+        page={page}
+        pageCount={pageCount}
+        onPage={setPage}
+        totalLabel={
+          rows.length > 0
+            ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, rows.length)} of ${rows.length}`
+            : "No results"
+        }
+      />
 
       <OrderDetailsDrawer
         orderId={selectedId}
@@ -307,5 +404,13 @@ export function OrdersContent() {
         onOpenChange={(v) => !v && setSelectedId(null)}
       />
     </div>
+  );
+}
+
+export function OrdersContent() {
+  return (
+    <DateRangeProvider>
+      <OrdersContentInner />
+    </DateRangeProvider>
   );
 }
