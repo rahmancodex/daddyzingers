@@ -345,6 +345,11 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
                   )}
                 </TabsContent>
 
+                {/* Timeline */}
+                <TabsContent value="timeline" className="m-0 p-4">
+                  <Timeline events={buildTimeline(q.data.profile, q.data.orders)} />
+                </TabsContent>
+
                 {/* Orders */}
                 <TabsContent value="orders" className="m-0 p-4">
                   {q.data.orders.length === 0 ? (
