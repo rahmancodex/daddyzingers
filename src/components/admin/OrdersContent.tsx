@@ -135,6 +135,38 @@ function initials(name: string | null | undefined, fallback = "?") {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || fallback;
 }
 
+function PriorityBadge({ row }: { row: AdminOrderRow }) {
+  const p = orderPriority(row);
+  if (p === "normal") return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+        PRIORITY_CLASS[p],
+      )}
+      title={`${PRIORITY_LABEL[p]} — awaiting ${p === "urgent" ? "> 25" : "> 15"} min`}
+    >
+      <Flame className="h-2.5 w-2.5" />
+      {PRIORITY_LABEL[p]}
+    </span>
+  );
+}
+
+function EtaBadge({ row }: { row: AdminOrderRow }) {
+  const eta = estimatedPrepMinutes(row);
+  if (eta == null) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground ring-1 ring-inset ring-border/60"
+      title="Estimated remaining time (derived from status)"
+    >
+      <Clock className="h-2.5 w-2.5" />
+      {formatEta(eta)}
+    </span>
+  );
+}
+
+
 function EmptyOrders({ filtered }: { filtered: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
