@@ -306,15 +306,9 @@ export function AdminShell({
   };
 
   if (auth.status !== "ok") {
-    return (
-      <div className="grid min-h-screen place-items-center bg-muted/40">
-        <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-10 w-40 rounded-xl" />
-          <Skeleton className="h-4 w-64 rounded-md" />
-        </div>
-      </div>
-    );
+    return <AdminBootScreen />;
   }
+
 
 
   const roles = auth.roles ?? [];
