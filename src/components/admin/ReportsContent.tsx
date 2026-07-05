@@ -705,7 +705,7 @@ function KpiCard({
             {icon}
           </span>
         </div>
-        <div className="font-display text-3xl font-black leading-none animate-in fade-in slide-in-from-bottom-1">
+        <div className="font-display text-3xl font-black leading-none tabular-nums animate-in fade-in slide-in-from-bottom-1">
           {value}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
