@@ -71,7 +71,15 @@ const CHART_COLORS = ["hsl(var(--primary))", "#f59e0b", "#10b981", "#3b82f6", "#
 // Date range helpers
 // -----------------------------
 
-type PresetKey = "today" | "yesterday" | "7d" | "30d" | "month" | "year" | "custom";
+type PresetKey =
+  | "today"
+  | "yesterday"
+  | "7d"
+  | "30d"
+  | "month"
+  | "lastMonth"
+  | "year"
+  | "custom";
 
 const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "today", label: "Today" },
@@ -79,6 +87,7 @@ const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "7d", label: "Last 7 Days" },
   { key: "30d", label: "Last 30 Days" },
   { key: "month", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
   { key: "year", label: "This Year" },
   { key: "custom", label: "Custom" },
 ];
@@ -113,6 +122,11 @@ function presetRange(key: PresetKey): { from: Date; to: Date } {
       const f = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
       return { from: f, to };
     }
+    case "lastMonth": {
+      const f = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      const t = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { from: f, to: t };
+    }
     case "year": {
       const f = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
       return { from: f, to };
@@ -121,6 +135,7 @@ function presetRange(key: PresetKey): { from: Date; to: Date } {
       return { from, to };
   }
 }
+
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
