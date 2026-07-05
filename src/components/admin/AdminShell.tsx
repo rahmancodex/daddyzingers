@@ -125,11 +125,20 @@ function useAdminAuth() {
     async (userId: string, email?: string) => {
       try {
         const me = await meFn();
+        const roles = (me.roles ?? []) as AppRole[];
+        if (roles.length === 0) {
+          // No role => not a staff member. Deny + redirect.
+          console.warn("[admin] user has no role, redirecting to login");
+          await supabase.auth.signOut();
+          setState({ status: "unauth" });
+          navigate({ to: "/admin/login", replace: true });
+          return;
+        }
         setState({
           status: "ok",
           email,
           userId,
-          roles: me.roles as AppRole[],
+          roles,
           topRole: (me.topRole ?? null) as AppRole | null,
         });
       } catch (err) {
@@ -142,7 +151,7 @@ function useAdminAuth() {
         });
       }
     },
-    [meFn],
+    [meFn, navigate],
   );
 
   const retry = React.useCallback(() => {
