@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 
 /* ============================================================ */
 /*  Types                                                       */
@@ -106,7 +107,7 @@ async function uniqueTextId(
 /* ============================================================ */
 
 export const adminListCategories = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.view")])
   .handler(async (): Promise<AdminCategory[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
@@ -139,7 +140,7 @@ const CategoryUpsertInput = z.object({
 });
 
 export const adminCreateCategory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("categories.manage")])
   .inputValidator((data: unknown) => CategoryUpsertInput.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -158,7 +159,7 @@ export const adminCreateCategory = createServerFn({ method: "POST" })
   });
 
 export const adminUpdateCategory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("categories.manage")])
   .inputValidator((data: unknown) =>
     z
       .object({
@@ -181,7 +182,7 @@ export const adminUpdateCategory = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteCategory = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("categories.manage")])
   .inputValidator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -212,7 +213,7 @@ const ListItemsInput = z.object({
 });
 
 export const adminListMenuItems = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.view")])
   .inputValidator((data: unknown) => ListItemsInput.parse(data ?? {}))
   .handler(async ({ data }): Promise<AdminMenuItem[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -269,7 +270,7 @@ export const adminListMenuItems = createServerFn({ method: "POST" })
   });
 
 export const adminGetMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.view")])
   .inputValidator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ data }): Promise<AdminMenuItemDetail | null> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -440,7 +441,7 @@ async function replaceSizesAndOptions(
 }
 
 export const adminCreateMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) => ItemUpsertInput.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -465,7 +466,7 @@ export const adminCreateMenuItem = createServerFn({ method: "POST" })
   });
 
 export const adminUpdateMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) =>
     ItemUpsertInput.extend({ id: z.string().min(1) }).parse(data),
   )
@@ -494,7 +495,7 @@ export const adminUpdateMenuItem = createServerFn({ method: "POST" })
   });
 
 export const adminDuplicateMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -574,7 +575,7 @@ export const adminDuplicateMenuItem = createServerFn({ method: "POST" })
   });
 
 export const adminSetItemFlags = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) =>
     z
       .object({
@@ -595,7 +596,7 @@ export const adminSetItemFlags = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteMenuItem = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

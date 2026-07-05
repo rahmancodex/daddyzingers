@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 
 // Admin CRM reads bypass RLS on purpose — access is gated by
 // requireSupabaseAuth so the caller must be a signed-in admin.
@@ -104,7 +105,7 @@ async function attachLastOrders(userIds: string[]): Promise<Map<string, string |
 // ------------------------------------------------------------------
 
 export const adminListCustomers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("customers.view")])
   .handler(async (): Promise<AdminCustomerRow[]> => {
     const supabase = await admin();
     const { data, error } = await supabase
@@ -132,7 +133,7 @@ export const adminListCustomers = createServerFn({ method: "GET" })
 // ------------------------------------------------------------------
 
 export const adminGetCustomer = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("customers.view")])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -241,7 +242,7 @@ const LoyaltyInputSchema = z.object({
 });
 
 export const adminUpdateCustomerLoyalty = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("customers.manage")])
   .inputValidator((raw: unknown) => LoyaltyInputSchema.parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -263,7 +264,7 @@ export const adminUpdateCustomerLoyalty = createServerFn({ method: "POST" })
 // ------------------------------------------------------------------
 
 export const adminCustomerStats = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("customers.view")])
   .handler(async () => {
     const supabase = await admin();
     const now = new Date();
