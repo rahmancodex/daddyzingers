@@ -99,6 +99,15 @@ const TONE_DOT: Record<Tone, string> = {
   neutral: "bg-muted-foreground/40",
 };
 
+const TONE_ACCENT: Record<Tone, string> = {
+  primary: "bg-gradient-to-b from-primary to-primary/40",
+  success: "bg-gradient-to-b from-emerald-500 to-emerald-500/40",
+  warning: "bg-gradient-to-b from-amber-500 to-amber-500/40",
+  info: "bg-sky-500 bg-gradient-to-b from-sky-500 to-sky-500/40",
+  destructive: "bg-gradient-to-b from-destructive to-destructive/40",
+  neutral: "bg-gradient-to-b from-muted-foreground/30 to-transparent",
+};
+
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : "Something went wrong";
 }
@@ -247,6 +256,13 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpi.icon;
   const body = (
     <>
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full opacity-70 transition-opacity group-hover/surface:opacity-100",
+          TONE_ACCENT[kpi.tone],
+        )}
+      />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-0 transition-opacity group-hover/surface:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -262,7 +278,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         </div>
         <span
           className={cn(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+            "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover/surface:scale-105",
             TONE_CHIP[kpi.tone],
           )}
         >
@@ -272,14 +288,14 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
     </>
   );
   const surfaceCls =
-    "p-5 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)]";
+    "pl-6 pr-5 py-5 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)] active:translate-y-0 active:shadow-[0_4px_14px_-10px_hsl(var(--foreground)/0.25)]";
   if (kpi.to) {
     return (
       <Link
         to={kpi.to}
         search={kpi.search as never}
-        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-        aria-label={`Open orders filtered by ${kpi.label}`}
+        className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={`Open orders filtered by ${kpi.label}: ${kpi.value}`}
       >
         <Surface className={surfaceCls}>{body}</Surface>
       </Link>
@@ -873,7 +889,7 @@ function RecentOrders() {
           {(q.data ?? []).map((o) => (
             <li
               key={o.id}
-              className="group/row flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
+              className="group/row relative flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
             >
               <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
@@ -894,7 +910,12 @@ function RecentOrders() {
                     {o.items_count} item{o.items_count === 1 ? "" : "s"}
                   </span>
                   <span className="text-border">•</span>
-                  <span className="tabular-nums">{relTime(o.created_at)}</span>
+                  <span
+                    className="tabular-nums"
+                    title={new Date(o.created_at).toLocaleString()}
+                  >
+                    {relTime(o.created_at)}
+                  </span>
                 </div>
               </div>
               <div className="hidden shrink-0 text-right sm:block">
@@ -909,6 +930,17 @@ function RecentOrders() {
               >
                 {STATUS_LABEL[o.status] ?? o.status}
               </Badge>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                aria-label={`Open order ${o.order_number}`}
+                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
+              >
+                <Link to="/admin/orders" search={{ q: o.order_number } as never}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </li>
           ))}
         </ul>
@@ -1003,30 +1035,54 @@ function LatestCustomersCard({ canView }: { canView: boolean }) {
         <ul className="divide-y divide-border/60">
           {rows.map((c) => {
             const name = c.full_name ?? "Unnamed";
+            const joined = new Date(c.created_at).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+            });
             return (
               <li
                 key={c.id}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
               >
-                <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
+                <Avatar className="h-10 w-10 shrink-0 ring-1 ring-inset ring-border">
                   {c.avatar_url && <AvatarImage src={c.avatar_url} alt={name} />}
                   <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
                     {initialsOf(name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold">{name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {c.email ?? c.phone ?? "No contact"}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{name}</span>
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 rounded-full border-0 bg-muted px-1.5 py-0 text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Joined {joined}
+                    </Badge>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="truncate">
+                      {c.total_orders} order{c.total_orders === 1 ? "" : "s"}
+                    </span>
+                    {c.last_order_at && (
+                      <>
+                        <span className="text-border">•</span>
+                        <span
+                          className="tabular-nums"
+                          title={new Date(c.last_order_at).toLocaleString()}
+                        >
+                          last {relTime(c.last_order_at)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-sm font-semibold tabular-nums">{c.total_orders}</div>
+                  <div className="font-display text-sm font-black tabular-nums">
+                    {formatPKR(c.total_spend_pkr)}
+                  </div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                    })}
+                    Lifetime
                   </div>
                 </div>
               </li>
@@ -1362,6 +1418,7 @@ function BranchPerformance({
 }) {
   const list = (branches ?? []).slice(0, 6);
   const maxRev = list.length ? Math.max(...list.map((b) => b.revenue), 1) : 1;
+  const totalRev = list.reduce((s, b) => s + b.revenue, 0);
   return (
     <Surface className="flex h-full flex-col">
       <SectionHeader title="Branch performance" subtitle={rangeLabel} icon={Store} />
@@ -1387,6 +1444,8 @@ function BranchPerformance({
         <ul className="space-y-4 p-5 sm:p-6">
           {list.map((b) => {
             const aov = b.orders ? Math.round(b.revenue / b.orders) : 0;
+            const pct = totalRev > 0 ? Math.round((b.revenue / totalRev) * 100) : 0;
+            const barPct = maxRev > 0 ? (b.revenue / maxRev) * 100 : 0;
             return (
               <li key={b.id}>
                 <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
@@ -1405,11 +1464,23 @@ function BranchPerformance({
                     <span className="ml-2 hidden tabular-nums sm:inline">AOV {formatPKR(aov)}</span>
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="flex items-center gap-2">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
-                    style={{ width: `${(b.revenue / maxRev) * 100}%` }}
-                  />
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${b.name} revenue share`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
+                      style={{ width: `${barPct}%` }}
+                    />
+                  </div>
+                  <span className="w-9 shrink-0 text-right text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {pct}%
+                  </span>
                 </div>
               </li>
             );
@@ -1492,21 +1563,51 @@ function ActivityFeed({ canView }: { canView: boolean }) {
           {(q.data ?? []).slice(0, 8).map((log) => {
             const meta = classifyAction(log.action);
             const Icon = meta.icon;
-            return (
-              <li key={log.id} className="flex items-start gap-3 px-5 py-3 sm:px-6">
+            const summary = log.summary ?? log.action.replace(/[_.]/g, " ");
+            const absTime = new Date(log.created_at).toLocaleString();
+            const entity = (log.entity_type ?? "").toLowerCase();
+            let href: string | null = null;
+            let search: Record<string, string> | undefined;
+            if (entity === "order" || entity === "orders") {
+              href = "/admin/orders";
+              if (log.entity_id) search = { q: log.entity_id };
+            } else if (entity === "customer" || entity === "profile" || entity === "profiles") {
+              href = "/admin/customers";
+            }
+            const inner = (
+              <>
                 <span className={cn("mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg", TONE_CHIP[meta.tone])}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm">
-                    <span className="font-semibold">{log.summary ?? log.action.replace(/[_.]/g, " ")}</span>
+                    <span className="font-semibold capitalize">{summary}</span>
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                     <span className="truncate">{log.actor_email ?? "system"}</span>
                     <span className="text-border">•</span>
-                    <span className="tabular-nums">{relTime(log.created_at)}</span>
+                    <span className="tabular-nums" title={absTime}>{relTime(log.created_at)}</span>
                   </div>
                 </div>
+                {href && (
+                  <ArrowUpRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/act:opacity-100" />
+                )}
+              </>
+            );
+            return (
+              <li key={log.id}>
+                {href ? (
+                  <Link
+                    to={href}
+                    search={search as never}
+                    className="group/act flex items-start gap-3 px-5 py-3 transition-colors hover:bg-muted/40 focus:outline-none focus-visible:bg-muted/60 sm:px-6"
+                    aria-label={`${summary} — open ${entity}`}
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div className="flex items-start gap-3 px-5 py-3 sm:px-6">{inner}</div>
+                )}
               </li>
             );
           })}
@@ -1535,18 +1636,24 @@ function QuickActions() {
   return (
     <Surface className="flex h-full flex-col">
       <SectionHeader title="Quick Actions" subtitle="Common shortcuts" icon={Sparkles} />
-      <div className="grid grid-cols-2 gap-2.5 p-5 sm:p-6">
+      <div className="grid grid-cols-2 gap-2.5 p-5 sm:grid-cols-3 sm:p-6 lg:grid-cols-6">
         {ACTIONS.map((a) => {
           const Icon = a.icon;
           return (
             <Link
               key={a.label}
               to={a.to}
-              className="group/qa flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-[0_6px_20px_-10px_hsl(var(--primary)/0.35)]"
+              aria-label={`${a.label} — ${a.desc}`}
+              className={cn(
+                "group/qa flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-left transition-all",
+                "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-[0_6px_20px_-10px_hsl(var(--primary)/0.35)]",
+                "active:translate-y-0 active:shadow-none",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              )}
             >
               <span
                 className={cn(
-                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-200 group-hover/qa:scale-105",
                   TONE_CHIP[a.tone],
                 )}
               >
