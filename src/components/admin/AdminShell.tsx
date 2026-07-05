@@ -29,8 +29,8 @@ import { toast } from "sonner";
 
 import { ADMIN_NAV } from "./admin-nav";
 import { useServerFn } from "@tanstack/react-start";
-import { adminMe } from "@/lib/admin-staff.functions";
 import { adminLogClientEvent } from "@/lib/admin-audit.functions";
+import { requireAdmin } from "@/lib/require-admin";
 import { ShieldAlert } from "lucide-react";
 import {
   hasPermission,
@@ -110,94 +110,77 @@ function NavList({
 
 function useAdminAuth() {
   const navigate = useNavigate();
-  const meFn = useServerFn(adminMe);
   const logFn = useServerFn(adminLogClientEvent);
   const [state, setState] = React.useState<{
-    status: "loading" | "ok" | "unauth" | "error";
+    status: "loading" | "ok";
     email?: string;
     userId?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
-    errorMessage?: string;
   }>({ status: "loading" });
 
-  const loadRoles = React.useCallback(
-    async (userId: string, email?: string) => {
-      try {
-        const me = await meFn();
-        const roles = (me.roles ?? []) as AppRole[];
-        if (roles.length === 0) {
-          // No role => not a staff member. Deny + redirect.
-          console.warn("[admin] user has no role, redirecting to login");
-          await supabase.auth.signOut();
-          setState({ status: "unauth" });
-          navigate({ to: "/admin/login", replace: true });
-          return;
-        }
-        setState({
-          status: "ok",
-          email,
-          userId,
-          roles,
-          topRole: (me.topRole ?? null) as AppRole | null,
-        });
-      } catch (err) {
-        console.error("[admin] failed to load roles:", err);
-        setState({
-          status: "error",
-          email,
-          userId,
-          errorMessage: err instanceof Error ? err.message : "Failed to load permissions.",
-        });
-      }
+  const goProfile = React.useCallback(
+    (message: string) => {
+      toast.error(message);
+      navigate({ to: "/profile", replace: true });
     },
-    [meFn, navigate],
+    [navigate],
   );
 
-  const retry = React.useCallback(() => {
-    setState((s) => ({ ...s, status: "loading" }));
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (error || !data.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-        return;
-      }
-      loadRoles(data.user.id, data.user.email ?? undefined);
+  const goLogin = React.useCallback(() => {
+    navigate({ to: "/admin/login", replace: true });
+  }, [navigate]);
+
+  const check = React.useCallback(async () => {
+    const result = await requireAdmin();
+    if (!result.authenticated) {
+      goLogin();
+      return;
+    }
+    if (result.errored) {
+      goProfile("Unable to verify your permissions.");
+      return;
+    }
+    if (!result.isAdmin) {
+      goProfile("You don't have permission to access the Admin Panel.");
+      return;
+    }
+    setState({
+      status: "ok",
+      email: result.email,
+      userId: result.userId,
+      roles: result.roles,
+      topRole: result.role,
     });
-  }, [loadRoles, navigate]);
+  }, [goLogin, goProfile]);
 
   React.useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data, error }) => {
+    check().catch((e) => {
       if (!mounted) return;
-      if (error || !data.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-        return;
-      }
-      loadRoles(data.user.id, data.user.email ?? undefined);
+      console.error("[admin] gate check failed", e);
+      goProfile("Unable to verify your permissions.");
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session?.user) {
-        setState({ status: "unauth" });
-        navigate({ to: "/admin/login", replace: true });
-      } else {
-        loadRoles(session.user.id, session.user.email ?? undefined);
-        if (event === "SIGNED_IN") {
-          logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
-            () => {},
-          );
-        }
+      if (event === "SIGNED_OUT" || !session?.user) {
+        setState({ status: "loading" });
+        goLogin();
+        return;
+      }
+      if (event === "SIGNED_IN") {
+        logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
+          () => {},
+        );
+        check();
       }
     });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [navigate, loadRoles, logFn]);
+  }, [check, goLogin, goProfile, logFn]);
 
-  // Realtime role revocation: if any row in user_roles for the current user
-  // changes, re-verify permissions. Deleted/downgraded users are kicked out.
+  // Realtime role revocation
   React.useEffect(() => {
     if (state.status !== "ok" || !state.userId) return;
     const uid = state.userId;
@@ -206,16 +189,17 @@ function useAdminAuth() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${uid}` },
-        () => loadRoles(uid, state.email),
+        () => check(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [state.status, state.userId, state.email, loadRoles]);
+  }, [state.status, state.userId, check]);
 
-  return { ...state, retry };
+  return state;
 }
+
 
 
 function Topbar({
@@ -320,7 +304,7 @@ export function AdminShell({
     navigate({ to: "/admin/login", replace: true });
   };
 
-  if (auth.status === "loading" || auth.status === "unauth") {
+  if (auth.status !== "ok") {
     return (
       <div className="grid min-h-screen place-items-center bg-muted/40">
         <div className="flex flex-col items-center gap-4">
@@ -331,27 +315,6 @@ export function AdminShell({
     );
   }
 
-  if (auth.status === "error") {
-    return (
-      <div className="grid min-h-screen place-items-center bg-muted/40 p-6">
-        <div className="max-w-md rounded-3xl border border-border/70 bg-background p-8 text-center shadow-[var(--shadow-2)]">
-          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
-            <ShieldAlert className="h-7 w-7" />
-          </div>
-          <h1 className="font-display text-2xl font-black">Couldn't verify permissions</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {auth.errorMessage ?? "A temporary error prevented us from loading your role."}
-          </p>
-          <div className="mt-6 flex justify-center gap-2">
-            <Button onClick={auth.retry}>Retry</Button>
-            <Button variant="outline" onClick={onSignOut}>
-              Sign out
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const roles = auth.roles ?? [];
   const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
