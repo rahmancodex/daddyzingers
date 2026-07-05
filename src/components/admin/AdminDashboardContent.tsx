@@ -889,7 +889,7 @@ function RecentOrders() {
           {(q.data ?? []).map((o) => (
             <li
               key={o.id}
-              className="group/row flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
+              className="group/row relative flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
             >
               <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
@@ -910,7 +910,12 @@ function RecentOrders() {
                     {o.items_count} item{o.items_count === 1 ? "" : "s"}
                   </span>
                   <span className="text-border">•</span>
-                  <span className="tabular-nums">{relTime(o.created_at)}</span>
+                  <span
+                    className="tabular-nums"
+                    title={new Date(o.created_at).toLocaleString()}
+                  >
+                    {relTime(o.created_at)}
+                  </span>
                 </div>
               </div>
               <div className="hidden shrink-0 text-right sm:block">
@@ -925,6 +930,17 @@ function RecentOrders() {
               >
                 {STATUS_LABEL[o.status] ?? o.status}
               </Badge>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                aria-label={`Open order ${o.order_number}`}
+                className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100"
+              >
+                <Link to="/admin/orders" search={{ q: o.order_number } as never}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </li>
           ))}
         </ul>
