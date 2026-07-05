@@ -208,10 +208,14 @@ function SignInForm({ onSuccess }: { onSuccess: () => void }) {
           }
           return toast.error("Sign-in failed", { description: error.message });
         }
-        if (!remember) {
-          window.addEventListener("beforeunload", () => {
-            void supabase.auth.signOut({ scope: "local" });
-          });
+        // "Remember me" preference — read on next boot to decide whether to
+        // sign out. Avoids a stacking beforeunload listener that leaked on
+        // every successful sign-in and was never cleaned up.
+        try {
+          if (remember) localStorage.removeItem("dz_session_ephemeral");
+          else localStorage.setItem("dz_session_ephemeral", "1");
+        } catch {
+          /* ignore storage errors */
         }
         toast.success("Welcome back!");
         onSuccess();
