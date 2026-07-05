@@ -238,15 +238,19 @@ function Topbar({
   onOpenMobileNav,
   email,
   onSignOut,
+  onOpenPalette,
 }: {
   onOpenMobileNav: () => void;
   email?: string;
   onSignOut: () => void;
+  onOpenPalette: () => void;
 }) {
   const initials = React.useMemo(() => {
     if (!email) return "AD";
     return email.slice(0, 2).toUpperCase();
   }, [email]);
+  const isMac =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/70 bg-background/80 px-4 backdrop-blur-xl md:px-6">
@@ -259,6 +263,30 @@ function Topbar({
       >
         <MenuIcon className="h-5 w-5" />
       </Button>
+
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        aria-label="Open command palette"
+        className="group relative hidden h-10 max-w-md flex-1 items-center gap-2 rounded-lg border border-border/50 bg-muted/50 px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:border-input focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:flex"
+      >
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate">Search or jump to…</span>
+        <kbd className="pointer-events-none hidden items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
+          <span className="text-[11px]">{isMac ? "⌘" : "Ctrl"}</span>K
+        </kbd>
+      </button>
+
+      <div className="ml-auto flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenPalette}
+          className="rounded-xl md:hidden"
+          aria-label="Search"
+        >
+          <Search className="h-5 w-5" />
+        </Button>
 
       <div className="relative hidden max-w-md flex-1 md:block">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
