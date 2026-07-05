@@ -87,6 +87,7 @@ export function BranchesManager() {
   const listFn = useServerFn(adminListBranches);
   const updateFn = useServerFn(adminUpdateBranch);
   const deleteFn = useServerFn(adminDeleteBranch);
+  const reorderFn = useServerFn(adminReorderBranch);
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -103,6 +104,7 @@ export function BranchesManager() {
     mutationFn: (b: Branch) => updateFn({ data: { id: b.id, is_active: !b.is_active } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
       toast.success("Branch updated");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -112,11 +114,23 @@ export function BranchesManager() {
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
       toast.success("Branch deleted");
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const reorder = useMutation({
+    mutationFn: (v: { id: string; direction: "up" | "down" }) => reorderFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
 
   const openNew = () => {
     setEditing(null);
