@@ -448,7 +448,7 @@ export function AdminShell({
       {/* Main */}
       <div
         className={cn(
-          "flex min-h-screen flex-col transition-[padding] duration-200",
+          "flex min-h-dvh flex-col transition-[padding] duration-200",
           collapsed ? "lg:pl-[72px]" : "lg:pl-[248px]",
         )}
       >
