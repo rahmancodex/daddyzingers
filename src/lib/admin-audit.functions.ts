@@ -10,12 +10,12 @@ export type AuditLogRow = {
   actor_email: string | null;
   actor_role: AppRole | null;
   action: string;
-  module: string;
   entity_type: string | null;
   entity_id: string | null;
   summary: string | null;
-  old_value: any;
-  new_value: any;
+  before_state: any;
+  after_state: any;
+  metadata: Record<string, any> | null;
   ip_address: string | null;
   user_agent: string | null;
 };
@@ -52,7 +52,7 @@ export const adminListAuditLogs = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false })
       .limit(data?.limit ?? 200);
-    if (data?.module && data.module !== "all") q = q.eq("module", data.module);
+    if (data?.module && data.module !== "all") q = q.eq("metadata->>module", data.module);
     if (data?.actor_id) q = q.eq("actor_id", data.actor_id);
     if (data?.search) {
       const s = data.search;
@@ -89,8 +89,8 @@ export const adminLogClientEvent = createServerFn({ method: "POST" })
       actor_email: u?.user?.email ?? null,
       actor_role: (roleRows?.[0] as any)?.role ?? null,
       action: data.action,
-      module: data.module,
       summary: data.summary ?? null,
+      metadata: { module: data.module },
     });
 
     // Mirror last_login_at when action is login

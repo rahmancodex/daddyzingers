@@ -90,8 +90,9 @@ export type AdminOrderAuditEntry = {
   summary: string | null;
   actor_email: string | null;
   actor_role: string | null;
-  old_value: Json | null;
-  new_value: Json | null;
+  before_state: Json | null;
+  after_state: Json | null;
+  metadata: Json | null;
 };
 
 type ProfileRow = {
@@ -259,8 +260,9 @@ async function writeAudit(
     action: string;
     summary?: string | null;
     entity_id: string;
-    old_value?: unknown;
-    new_value?: unknown;
+    before_state?: unknown;
+    after_state?: unknown;
+    metadata?: Record<string, unknown>;
   },
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -272,17 +274,17 @@ async function writeAudit(
       .eq("user_id", context.userId)
       .limit(1),
   ]);
-  const { data: inserted, error } = await supabaseAdmin.from("audit_logs").insert({
+  const { data: inserted, error } = await (supabaseAdmin as any).from("audit_logs").insert({
     actor_id: context.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: ((roleRows?.[0] as { role?: string } | undefined)?.role ?? null) as never,
-    module: "orders",
+    action: entry.action,
     entity_type: "order",
     entity_id: entry.entity_id,
-    action: entry.action,
     summary: entry.summary ?? null,
-    old_value: (entry.old_value ?? null) as Json,
-    new_value: (entry.new_value ?? null) as Json,
+    before_state: (entry.before_state ?? null) as Json,
+    after_state: (entry.after_state ?? null) as Json,
+    metadata: { module: "orders", ...(entry.metadata ?? {}) },
   }).select("id")
     .single();
   if (error) {
@@ -350,8 +352,8 @@ export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
       action: "status_changed",
       entity_id: data.id,
       summary: `Status: ${(prev as { status?: string } | null)?.status ?? "?"} → ${data.status}`,
-      old_value: { status: (prev as { status?: string } | null)?.status ?? null },
-      new_value: { status: data.status },
+      before_state: { status: (prev as { status?: string } | null)?.status ?? null },
+      after_state: { status: data.status },
     });
     return { ok: true, label: STATUS_LABEL[data.status] };
   });
@@ -396,8 +398,8 @@ export const adminCancelOrder = createServerFn({ method: "POST" })
       action: "order_cancelled",
       entity_id: data.id,
       summary: `Cancelled — ${reasonText}`,
-      old_value: { status: (prev as { status?: string } | null)?.status ?? null },
-      new_value: { status: "cancelled", reason: reasonText },
+      before_state: { status: (prev as { status?: string } | null)?.status ?? null },
+      after_state: { status: "cancelled", reason: reasonText },
     });
     return { ok: true };
   });
@@ -539,8 +541,8 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
         summary:
           data.changes_summary?.trim() ||
           (labels.length ? `Updated ${labels.join(", ")}` : "Order details updated"),
-        old_value: oldDiff as Json,
-        new_value: newDiff as Json,
+        before_state: oldDiff as Json,
+        after_state: newDiff as Json,
       });
     }
 
@@ -613,8 +615,8 @@ export const adminUpdateOrderItemQty = createServerFn({ method: "POST" })
         data.qty === 0
           ? `Removed item "${item.name}"`
           : `Qty for "${item.name}": ${item.qty} → ${data.qty}`,
-      old_value: { item_id: data.item_id, qty: item.qty },
-      new_value: { item_id: data.item_id, qty: data.qty },
+      before_state: { item_id: data.item_id, qty: item.qty },
+      after_state: { item_id: data.item_id, qty: data.qty },
     });
 
     return { ok: true };
@@ -629,8 +631,8 @@ export const adminOrderAuditLog = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("audit_logs")
-      .select("id, created_at, action, summary, actor_email, actor_role, old_value, new_value")
-      .eq("module", "orders")
+      .select("id, created_at, action, summary, actor_email, actor_role, before_state, after_state, metadata, entity_type, entity_id")
+      .eq("entity_type", "order")
       .eq("entity_id", data.order_id)
       .order("created_at", { ascending: true })
       .limit(data.limit ?? 100);
