@@ -958,12 +958,41 @@ export function OrderDetailsDrawer({
                     <StatusPill tone={STATUS_TONE[detail.status]}>
                       {STATUS_LABEL[detail.status]}
                     </StatusPill>
+                    {(() => {
+                      const p = orderPriority(detail);
+                      if (p === "normal") return null;
+                      return (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                            PRIORITY_CLASS[p],
+                          )}
+                        >
+                          <Flame className="h-2.5 w-2.5" /> {PRIORITY_LABEL[p]}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {formatDateTime(detail.created_at)}
                     </span>
+                    {(() => {
+                      const eta = estimatedPrepMinutes(detail);
+                      if (eta == null) return null;
+                      return (
+                        <>
+                          <span className="opacity-40">·</span>
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums"
+                            title="Estimated remaining time"
+                          >
+                            <Clock className="h-3 w-3" /> ETA {formatEta(eta)}
+                          </span>
+                        </>
+                      );
+                    })()}
                     <span className="opacity-40">·</span>
                     <span className="capitalize">
                       {detail.fulfillment_method.replace(/_/g, " ")}
@@ -979,6 +1008,7 @@ export function OrderDetailsDrawer({
                     )}
                   </div>
                 </div>
+
                 <div className="flex shrink-0 items-center gap-1.5">
                   {!editing && detail.status !== "cancelled" && (
                     <Button
