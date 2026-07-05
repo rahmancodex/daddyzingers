@@ -101,6 +101,8 @@ export function MenuContent() {
   const setFlags = useServerFn(adminSetItemFlags);
   const dupItem = useServerFn(adminDuplicateMenuItem);
   const delItem = useServerFn(adminDeleteMenuItem);
+  const setSortOrder = useServerFn(adminSetItemSortOrder);
+
 
   const [view, setView] = React.useState<"list" | "grid">("list");
   const [rawSearch, setRawSearch] = React.useState("");
