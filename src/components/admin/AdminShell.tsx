@@ -316,7 +316,7 @@ export function AdminShell({
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          <NavList collapsed={collapsed} roles={roles} />
+          <NavList collapsed={collapsed} roles={roles} failOpen={failOpen} />
         </div>
 
         <div className="border-t border-border/70 p-2">
