@@ -180,16 +180,19 @@ function DashboardLayout() {
           </motion.div>
 
           {/* Nav — mobile horizontal scroll, desktop stacked */}
-          <nav className="lg:hidden -mx-4 overflow-x-auto">
+          <nav className="lg:hidden -mx-4 overflow-x-auto" aria-label="Dashboard sections">
             <div className="flex gap-2 px-4 pb-1">
               {NAV.map(({ to, label, icon: Icon, exact }) => {
-                const active = exact ? location.pathname === "/dashboard" : location.pathname === to;
+                const active = exact
+                  ? location.pathname === "/dashboard"
+                  : location.pathname === to || location.pathname.startsWith(`${to}/`);
                 return (
                   <Link
                     key={to}
                     to={to}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "shrink-0 inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold border transition-colors",
+                      "shrink-0 inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold border transition-colors min-h-11",
                       active
                         ? "bg-primary text-primary-foreground border-primary shadow-[var(--shadow-glow)]"
                         : "bg-card text-foreground/80 border-border hover:border-primary/40",
