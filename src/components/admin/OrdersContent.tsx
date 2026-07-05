@@ -320,6 +320,22 @@ function OrdersContentInner() {
           date_from: range.from.toISOString(),
           date_to: range.to.toISOString(),
           limit: 500,
+          exclude_cancelled: urlStatus === "all",
+        },
+      }),
+    refetchOnWindowFocus: true,
+  });
+      listOrders({
+        data: {
+          status: urlStatus,
+          search: debouncedSearch.trim() || undefined,
+          branch_id: branchId === "all" ? null : branchId,
+          payment_method: payment === "all" ? null : payment,
+          fulfillment_method: fulfillment === "all" ? null : fulfillment,
+          coupon_used: coupon,
+          date_from: range.from.toISOString(),
+          date_to: range.to.toISOString(),
+          limit: 500,
         },
       }),
     refetchOnWindowFocus: true,
