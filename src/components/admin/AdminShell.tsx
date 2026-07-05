@@ -392,7 +392,9 @@ export function AdminShell({
             size="icon"
             onClick={() => setCollapsed((c) => !c)}
             className="hidden h-8 w-8 shrink-0 rounded-lg lg:inline-flex"
-            aria-label="Collapse sidebar"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
