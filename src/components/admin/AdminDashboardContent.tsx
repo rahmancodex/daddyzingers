@@ -402,7 +402,7 @@ function LiveKpiGrid() {
       tone: "destructive",
       hint: "Refunded or voided today",
       to: "/admin/orders",
-      search: { tab: "cancelled", range: "today" },
+      search: { status: "cancelled", range: "today" },
     },
   ];
   return (

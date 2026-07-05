@@ -94,17 +94,17 @@ function NavList({
             )}
             {collapsed && <div className="mx-2 my-1 h-px bg-border/60" />}
             {groupItems.map((item) => {
-              const itemTab = item.search?.tab;
+              const itemFilter = item.search ? Object.values(item.search)[0] : undefined;
               const active =
                 item.to === "/admin"
                   ? pathname === "/admin"
-                  : itemTab
-                    ? false // tab-filtered items don't own the "active" state; base route does
+                  : itemFilter
+                    ? false // filter-preset items don't own the "active" state; base route does
                     : pathname === item.to || pathname.startsWith(item.to + "/");
               const Icon = item.icon;
               return (
                 <Link
-                  key={`${item.to}-${itemTab ?? "base"}`}
+                  key={`${item.to}-${itemFilter ?? "base"}`}
                   to={item.to}
                   search={item.search as never}
                   onClick={onNavigate}
@@ -114,7 +114,7 @@ function NavList({
                       ? "bg-foreground/[0.06] text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border)/0.6)]"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground",
                     collapsed && "justify-center px-2",
-                    itemTab && "pl-6 text-[13px]",
+                    itemFilter && "pl-6 text-[13px]",
                   )}
                   title={collapsed ? item.label : undefined}
                 >
