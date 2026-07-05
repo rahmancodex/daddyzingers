@@ -7,11 +7,14 @@ import {
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
+  BarChart3,
+  BookOpen,
   ChefHat,
   CheckCircle2,
   Clock,
   DollarSign,
   Flame,
+  History,
   Lock,
   Package,
   PackageCheck,
@@ -19,8 +22,10 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
+  Store,
   Ticket,
   Truck,
+  UserPlus,
   Users,
   XCircle,
   CalendarClock,
@@ -30,7 +35,11 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,6 +55,7 @@ import {
   type AdminOrderRow,
 } from "@/lib/admin-orders.functions";
 import { adminMe } from "@/lib/admin-staff.functions";
+import { adminListAuditLogs, type AuditLogRow } from "@/lib/admin-audit.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +70,7 @@ import {
   DateRangePicker,
   useDateRange,
   PRESET_LABEL,
+  type DateRangePreset,
 } from "@/components/admin/ui/date-range";
 import { ChartCard } from "@/components/admin/ui/chart-card";
 import { PageHeader } from "@/components/admin/ui/page-header";
