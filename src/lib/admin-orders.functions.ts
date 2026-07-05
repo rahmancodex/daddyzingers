@@ -176,6 +176,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
       .limit(data.limit ?? 200);
 
     if (data.status && data.status !== "all") query = query.eq("status", data.status);
+    else if (data.exclude_cancelled) query = query.neq("status", "cancelled");
     if (data.branch_id) query = query.eq("branch_id", data.branch_id);
     if (data.payment_method) query = query.eq("payment_method", data.payment_method);
     if (data.fulfillment_method) query = query.eq("fulfillment_method", data.fulfillment_method);
