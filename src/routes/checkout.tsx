@@ -123,7 +123,20 @@ function CheckoutPage() {
   const keyboardOpen = useKeyboardOpen();
   const addressStepRef = useRef<{ prepare: () => Promise<boolean> } | null>(null);
 
+  const branchesQ = useActiveBranches();
+  const activeBranches = branchesQ.data ?? [];
+
+  // Auto-select branch: if only one active branch, pin it. Otherwise keep the
+  // customer's choice, or default to the top of the sort order.
+  useEffect(() => {
+    if (activeBranches.length === 0) return;
+    const stillValid = checkout.branchId && activeBranches.some((b) => b.id === checkout.branchId);
+    if (stillValid) return;
+    checkoutActions.setBranch(activeBranches[0].id);
+  }, [activeBranches, checkout.branchId]);
+
   const placeOrderFn = useServerFn(placeOrder);
+
 
   const goNext = async () => {
     if (step === 1 && checkout.method === "delivery" && addressStepRef.current) {
