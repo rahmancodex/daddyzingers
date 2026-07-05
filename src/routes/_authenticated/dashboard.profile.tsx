@@ -111,6 +111,7 @@ function ProfilePage() {
         .eq("id", user.id);
       if (updErr) throw updErr;
       setForm((f) => ({ ...f, avatar_url: url }));
+      invalidateProfile();
       toast.success("Avatar updated");
     } catch (err) {
       toast.error("Upload failed", {
