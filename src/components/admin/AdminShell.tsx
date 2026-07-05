@@ -240,11 +240,13 @@ function Topbar({
   email,
   onSignOut,
   onOpenPalette,
+  roles,
 }: {
   onOpenMobileNav: () => void;
   email?: string;
   onSignOut: () => void;
   onOpenPalette: () => void;
+  roles?: AppRole[];
 }) {
   const initials = React.useMemo(() => {
     if (!email) return "AD";
