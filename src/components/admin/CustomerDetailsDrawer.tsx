@@ -4,7 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Award,
   BadgeCheck,
+  Ban,
   Calendar,
+  CheckCircle2,
+  Clock,
   ExternalLink,
   Gift,
   Heart,
@@ -14,10 +17,14 @@ import {
   Package,
   Pencil,
   Phone,
+  ShoppingBag,
   Ticket,
+  UserPlus,
+  
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,6 +62,12 @@ import {
   formatPKR,
   initialsFrom,
 } from "@/lib/admin-customers";
+import {
+  buildTimeline,
+  orderCounts,
+  type TimelineEvent,
+  type TimelineKind,
+} from "@/lib/admin-customers-derived";
 import { STATUS_LABEL, STATUS_STYLE } from "@/lib/admin-orders";
 import type { AdminOrderStatus } from "@/lib/admin-orders.functions";
 
@@ -257,18 +270,31 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
             </SheetHeader>
 
             {/* Metrics strip */}
-            <div className="grid grid-cols-2 gap-3 border-b border-border/70 p-4 md:grid-cols-4">
-              <Metric label="Total spend" value={formatPKR(q.data.profile.total_spend_pkr)} />
-              <Metric label="Orders" value={String(q.data.profile.total_orders)} />
-              <Metric label="Reward points" value={String(q.data.profile.reward_points)} />
-              <Metric label="Referrals" value={String(q.data.profile.referral_count)} />
-            </div>
+            {(() => {
+              const counts = orderCounts(q.data.orders);
+              const aov = q.data.profile.total_orders
+                ? q.data.profile.total_spend_pkr / q.data.profile.total_orders
+                : 0;
+              return (
+                <div className="grid grid-cols-2 gap-3 border-b border-border/70 p-4 md:grid-cols-3 xl:grid-cols-6">
+                  <Metric label="Lifetime spend" value={formatPKR(q.data.profile.total_spend_pkr)} />
+                  <Metric label="Orders" value={String(q.data.profile.total_orders)} />
+                  <Metric label="Avg order" value={formatPKR(aov)} />
+                  <Metric label="Completed" value={String(counts.completed)} />
+                  <Metric label="Cancelled" value={String(counts.cancelled)} />
+                  <Metric label="Points" value={String(q.data.profile.reward_points)} />
+                </div>
+              );
+            })()}
 
             <Tabs defaultValue="overview" className="flex flex-1 flex-col overflow-hidden">
               <div className="border-b border-border/70 px-4">
-                <TabsList className="h-11 gap-1 bg-transparent p-0">
+                <TabsList className="h-11 flex-wrap gap-1 bg-transparent p-0">
                   <TabsTrigger value="overview" className="rounded-lg">
                     Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="rounded-lg">
+                    Timeline
                   </TabsTrigger>
                   <TabsTrigger value="orders" className="rounded-lg">
                     Orders ({q.data.orders.length})
@@ -284,6 +310,7 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
                   </TabsTrigger>
                 </TabsList>
               </div>
+
 
               <div className="flex-1 overflow-y-auto">
                 {/* Overview */}
@@ -316,6 +343,11 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
                       </p>
                     </Section>
                   )}
+                </TabsContent>
+
+                {/* Timeline */}
+                <TabsContent value="timeline" className="m-0 p-4">
+                  <Timeline events={buildTimeline(q.data.profile, q.data.orders)} />
                 </TabsContent>
 
                 {/* Orders */}
@@ -683,5 +715,73 @@ function Empty({
       </div>
       <div className="mt-3 font-display text-base font-black">{title}</div>
     </div>
+  );
+}
+
+const TIMELINE_META: Record<
+  TimelineKind,
+  { icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  account_created: {
+    icon: UserPlus,
+    tone: "bg-info/15 text-info",
+  },
+  order_placed: {
+    icon: ShoppingBag,
+    tone: "bg-primary/15 text-foreground",
+  },
+  order_delivered: {
+    icon: CheckCircle2,
+    tone: "bg-success/15 text-success-foreground",
+  },
+  order_cancelled: {
+    icon: Ban,
+    tone: "bg-destructive/15 text-destructive",
+  },
+};
+
+function Timeline({ events }: { events: TimelineEvent[] }) {
+  if (events.length === 0) {
+    return <Empty icon={Clock} title="No activity yet" />;
+  }
+  return (
+    <ol className="relative space-y-4 pl-6">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-[11px] top-1 bottom-1 w-px bg-border"
+      />
+      {events.map((e) => {
+        const meta = TIMELINE_META[e.kind];
+        const Icon = meta.icon;
+        return (
+          <li key={e.id} className="relative">
+            <span
+              className={cn(
+                "absolute -left-6 grid h-6 w-6 place-items-center rounded-full ring-2 ring-background",
+                meta.tone,
+              )}
+            >
+              <Icon className="h-3 w-3" />
+            </span>
+            <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="truncate text-sm font-semibold">{e.title}</div>
+                <div
+                  className="shrink-0 text-[11px] text-muted-foreground"
+                  title={new Date(e.at).toLocaleString()}
+                >
+                  {fmtRelative(e.at)}
+                </div>
+              </div>
+              {e.detail && (
+                <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                  {e.detail}
+                </div>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
