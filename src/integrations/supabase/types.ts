@@ -679,14 +679,22 @@ export type Database = {
       orders: {
         Row: {
           address_snapshot: Json | null
+          assigned_rider_id: string | null
+          assigned_staff_id: string | null
           branch_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           coupon_code: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           delivery_fee_pkr: number
           discount_pkr: number
           estimated_delivery_minutes: number | null
           fulfillment_method: string
           id: string
+          internal_notes: string | null
           notes: string | null
           order_number: string
           payment_method: string
@@ -701,14 +709,22 @@ export type Database = {
         }
         Insert: {
           address_snapshot?: Json | null
+          assigned_rider_id?: string | null
+          assigned_staff_id?: string | null
           branch_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           coupon_code?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_fee_pkr?: number
           discount_pkr?: number
           estimated_delivery_minutes?: number | null
           fulfillment_method?: string
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           order_number?: string
           payment_method?: string
@@ -723,14 +739,22 @@ export type Database = {
         }
         Update: {
           address_snapshot?: Json | null
+          assigned_rider_id?: string | null
+          assigned_staff_id?: string | null
           branch_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           coupon_code?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           delivery_fee_pkr?: number
           discount_pkr?: number
           estimated_delivery_minutes?: number | null
           fulfillment_method?: string
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           order_number?: string
           payment_method?: string
