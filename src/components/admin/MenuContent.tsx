@@ -231,6 +231,18 @@ export function MenuContent() {
     (available !== "any" ? 1 : 0) +
     (priceMin || priceMax ? 1 : 0);
 
+  const canReorder =
+    sort === "display_order" && category !== "all" && !search && !priceMin && !priceMax;
+
+  function move(idx: number, dir: -1 | 1) {
+    if (!canReorder) return;
+    const a = rows[idx];
+    const b = rows[idx + dir];
+    if (!a || !b) return;
+    reorderMutation.mutate({ a, b });
+  }
+
+
   function clearFilters() {
     setRawSearch("");
     setCategory("all");
