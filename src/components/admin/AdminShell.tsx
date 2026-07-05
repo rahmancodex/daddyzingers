@@ -42,6 +42,7 @@ import {
 } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationsBell } from "./NotificationsBell";
 
 function BrandMark({ collapsed }: { collapsed?: boolean }) {
   return (
@@ -239,11 +240,13 @@ function Topbar({
   email,
   onSignOut,
   onOpenPalette,
+  roles,
 }: {
   onOpenMobileNav: () => void;
   email?: string;
   onSignOut: () => void;
   onOpenPalette: () => void;
+  roles?: AppRole[];
 }) {
   const initials = React.useMemo(() => {
     if (!email) return "AD";
@@ -288,15 +291,7 @@ function Topbar({
           <Search className="h-5 w-5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative rounded-xl"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <NotificationsBell roles={roles} />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -462,6 +457,7 @@ export function AdminShell({
           email={auth.email}
           onSignOut={onSignOut}
           onOpenPalette={() => setPaletteOpen(true)}
+          roles={roles}
         />
         <main id="admin-main" className="flex-1 px-4 py-6 md:px-8 md:py-8">
           {permitted ? children : <AccessDenied requiredPermission={requiredPermission!} />}
