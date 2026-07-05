@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderHeader } from "@/components/order/OrderHeader";
-import { MobileBottomNav } from "@/components/order/MobileBottomNav";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -236,7 +235,7 @@ function CheckoutPage() {
   return (
     <div className="min-h-dvh bg-background">
       <OrderHeader />
-      <main className="pt-6 md:pt-10 pb-56 lg:pb-16">
+      <main className="pt-6 md:pt-10 pb-[calc(11rem+env(safe-area-inset-bottom))] lg:pb-16">
         <div className="container-dz">
           <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
             <Link to="/cart" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -326,16 +325,18 @@ function CheckoutPage() {
       >
         <button
           onClick={() => setSummaryOpen((v) => !v)}
-          className="w-full px-5 py-3 flex items-center justify-between min-h-11"
+          className="w-full px-4 sm:px-5 py-3 flex items-center justify-between gap-3 min-h-11"
           aria-expanded={summaryOpen}
           aria-controls="mobile-checkout-summary"
+          aria-label={summaryOpen ? "Hide order summary" : "Show order summary"}
         >
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Order total</span>
-            <span className="font-display font-extrabold text-lg tabular-nums">{formatPKR(totals.total)}</span>
+          <div className="flex items-baseline gap-2 text-sm min-w-0">
+            <span className="text-muted-foreground shrink-0">Order total</span>
+            <span className="font-display font-extrabold text-lg tabular-nums truncate">{formatPKR(totals.total)}</span>
           </div>
-          <ChevronDown className={`h-4 w-4 transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
         </button>
+
         <AnimatePresence>
           {summaryOpen && (
             <motion.div
@@ -472,23 +473,23 @@ function MethodStep() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-border p-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <div className="font-display font-bold text-sm flex items-center gap-2">
-              <Clock className="h-4 w-4" /> When?
+              <Clock className="h-4 w-4 shrink-0" /> When?
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
+            <div className="text-xs text-muted-foreground mt-0.5 truncate">
               {scheduleOpen && checkout.scheduleAt
                 ? `Scheduled: ${new Date(checkout.scheduleAt).toLocaleString()}`
                 : "ASAP — kitchen starts immediately"}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button
               size="sm"
               variant={scheduleOpen ? "outline" : "default"}
               onClick={() => { setScheduleOpen(false); checkoutActions.setSchedule(null); }}
-              className={scheduleOpen ? "border-border" : "bg-primary text-primary-foreground"}
+              className={`min-h-11 ${scheduleOpen ? "border-border" : "bg-primary text-primary-foreground"}`}
             >
               ASAP
             </Button>
@@ -496,7 +497,7 @@ function MethodStep() {
               size="sm"
               variant={scheduleOpen ? "default" : "outline"}
               onClick={() => setScheduleOpen(true)}
-              className={scheduleOpen ? "bg-primary text-primary-foreground" : "border-border"}
+              className={`min-h-11 ${scheduleOpen ? "bg-primary text-primary-foreground" : "border-border"}`}
             >
               Schedule
             </Button>
@@ -509,11 +510,12 @@ function MethodStep() {
               value={checkout.scheduleAt ? checkout.scheduleAt.slice(0, 16) : ""}
               min={new Date(Date.now() + 30 * 60_000).toISOString().slice(0, 16)}
               onChange={(e) => checkoutActions.setSchedule(e.target.value ? new Date(e.target.value).toISOString() : null)}
-              className="max-w-xs"
+              className="w-full max-w-xs"
             />
           </div>
         )}
       </div>
+
     </Section>
   );
 }
