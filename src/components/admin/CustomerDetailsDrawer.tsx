@@ -270,18 +270,31 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
             </SheetHeader>
 
             {/* Metrics strip */}
-            <div className="grid grid-cols-2 gap-3 border-b border-border/70 p-4 md:grid-cols-4">
-              <Metric label="Total spend" value={formatPKR(q.data.profile.total_spend_pkr)} />
-              <Metric label="Orders" value={String(q.data.profile.total_orders)} />
-              <Metric label="Reward points" value={String(q.data.profile.reward_points)} />
-              <Metric label="Referrals" value={String(q.data.profile.referral_count)} />
-            </div>
+            {(() => {
+              const counts = orderCounts(q.data.orders);
+              const aov = q.data.profile.total_orders
+                ? q.data.profile.total_spend_pkr / q.data.profile.total_orders
+                : 0;
+              return (
+                <div className="grid grid-cols-2 gap-3 border-b border-border/70 p-4 md:grid-cols-3 xl:grid-cols-6">
+                  <Metric label="Lifetime spend" value={formatPKR(q.data.profile.total_spend_pkr)} />
+                  <Metric label="Orders" value={String(q.data.profile.total_orders)} />
+                  <Metric label="Avg order" value={formatPKR(aov)} />
+                  <Metric label="Completed" value={String(counts.completed)} />
+                  <Metric label="Cancelled" value={String(counts.cancelled)} />
+                  <Metric label="Points" value={String(q.data.profile.reward_points)} />
+                </div>
+              );
+            })()}
 
             <Tabs defaultValue="overview" className="flex flex-1 flex-col overflow-hidden">
               <div className="border-b border-border/70 px-4">
-                <TabsList className="h-11 gap-1 bg-transparent p-0">
+                <TabsList className="h-11 flex-wrap gap-1 bg-transparent p-0">
                   <TabsTrigger value="overview" className="rounded-lg">
                     Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="rounded-lg">
+                    Timeline
                   </TabsTrigger>
                   <TabsTrigger value="orders" className="rounded-lg">
                     Orders ({q.data.orders.length})
@@ -297,6 +310,7 @@ export function CustomerDetailsDrawer({ open, onOpenChange, customerId }: Props)
                   </TabsTrigger>
                 </TabsList>
               </div>
+
 
               <div className="flex-1 overflow-y-auto">
                 {/* Overview */}
