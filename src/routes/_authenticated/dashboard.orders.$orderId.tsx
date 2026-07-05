@@ -126,11 +126,12 @@ function OrderDetailsPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, status, payment_method, fulfillment_method, subtotal_pkr, delivery_fee_pkr, discount_pkr, tax_pkr, total_pkr, coupon_code, address_snapshot, notes, special_instructions, created_at, schedule_at, order_items(id, product_id, name, qty, unit_price_pkr, options)",
+          "id, order_number, status, payment_method, fulfillment_method, subtotal_pkr, delivery_fee_pkr, discount_pkr, tax_pkr, total_pkr, coupon_code, address_snapshot, notes, special_instructions, created_at, schedule_at, branch_id, branch:branches(id, name, city, address, phone), order_items(id, product_id, name, qty, unit_price_pkr, options)",
         )
         // Try lookup by both id and order_number so links from either work.
         .or(`id.eq.${orderId},order_number.eq.${orderId}`)
         .maybeSingle();
+
       if (error) throw error;
       return (data as Order | null) ?? null;
     },
