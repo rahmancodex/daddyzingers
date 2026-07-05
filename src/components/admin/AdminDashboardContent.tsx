@@ -1130,12 +1130,12 @@ function TopSellingItems({
 // -----------------------------------------------------------------------------
 
 const ACTIONS: Array<{ label: string; icon: LucideIcon; tone: Tone; to: string; desc: string }> = [
-  { label: "Add menu item", desc: "Create a new dish", icon: Plus, tone: "primary", to: "/admin/menu" },
-  { label: "Create coupon", desc: "Discount codes", icon: Ticket, tone: "info", to: "/admin/coupons" },
-  { label: "Promo banner", desc: "Homepage hero", icon: Sparkles, tone: "warning", to: "/admin/promo-banners" },
-  { label: "Dispatch order", desc: "Send to rider", icon: Truck, tone: "success", to: "/admin/orders" },
-  { label: "Mark ready", desc: "Kitchen queue", icon: CheckCircle2, tone: "primary", to: "/admin/orders" },
-  { label: "Manage staff", desc: "Roles & access", icon: Users, tone: "neutral", to: "/admin/staff" },
+  { label: "New Order", desc: "Take an order", icon: Plus, tone: "primary", to: "/admin/orders" },
+  { label: "Orders", desc: "Live queue", icon: ShoppingBag, tone: "info", to: "/admin/orders" },
+  { label: "Menu", desc: "Items & pricing", icon: BookOpen, tone: "warning", to: "/admin/menu" },
+  { label: "Customers", desc: "Directory & CRM", icon: Users, tone: "neutral", to: "/admin/customers" },
+  { label: "Reports", desc: "Analytics deep-dive", icon: BarChart3, tone: "success", to: "/admin/reports" },
+  { label: "Coupons", desc: "Promotions & codes", icon: Ticket, tone: "primary", to: "/admin/coupons" },
 ];
 
 function QuickActions() {
