@@ -186,7 +186,10 @@ function OrderSuccess() {
             transition={{ delay: 0.45, duration: 0.4 }}
             className="mt-6 grid sm:grid-cols-2 gap-3"
           >
-            <Link to="/dashboard/orders">
+            <Link
+              to="/dashboard/orders/$orderId"
+              params={{ orderId: order?.id ?? number }}
+            >
               <Button className="w-full h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold">
                 <ReceiptText className="h-4 w-4" /> Track my order
                 <ArrowRight className="h-4 w-4 ml-1" />
