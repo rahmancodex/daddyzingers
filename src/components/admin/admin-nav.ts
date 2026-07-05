@@ -13,6 +13,9 @@ import {
   Rocket,
   ClipboardCheck,
   XCircle,
+  ChefHat,
+  PackageCheck,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react";
 
