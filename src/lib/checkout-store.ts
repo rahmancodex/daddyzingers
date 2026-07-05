@@ -145,10 +145,14 @@ export const checkoutActions = {
   resetNewAddress() {
     setState({ newAddress: EMPTY_NEW_ADDRESS, useNewAddress: false });
   },
+  setBranch(id: string | null) {
+    setState({ branchId: id });
+  },
   reset() {
     setState(DEFAULT);
   },
 };
+
 
 /* -------------- Fees & totals -------------- */
 
