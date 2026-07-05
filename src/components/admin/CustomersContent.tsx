@@ -226,23 +226,25 @@ export function CustomersContent() {
     toast.success("Excel exported");
   }
 
+  const summary = React.useMemo(() => summarizeCustomers(q.data ?? []), [q.data]);
+
   return (
     <div className="space-y-6 p-4 md:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-black tracking-tight md:text-3xl">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-2xl font-black tracking-tight md:text-3xl">
             Customers
           </h1>
           <p className="text-sm text-muted-foreground">
             {q.data?.length ?? 0} total · CRM, loyalty and Daddy Pass.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="rounded-xl">
-                <Download className="h-4 w-4" /> Export
+                <Download className="h-4 w-4" /> <span className="hidden sm:inline">Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-xl">
@@ -251,9 +253,18 @@ export function CustomersContent() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </header>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <Kpi label="Total customers" value={summary.total.toLocaleString()} icon={Users} tone="primary" loading={q.isLoading} />
+        <Kpi label="New today" value={summary.newToday.toLocaleString()} icon={UserPlus} tone="info" loading={q.isLoading} />
+        <Kpi label="Returning" value={summary.returning.toLocaleString()} icon={BadgeCheck} tone="success" loading={q.isLoading} />
+        <Kpi label="Active · 30d" value={summary.active30d.toLocaleString()} icon={TrendingUp} tone="warning" loading={q.isLoading} />
+        <Kpi label="Avg spend" value={formatPKR(summary.avgSpend)} icon={Wallet} tone="primary" loading={q.isLoading} />
       </div>
 
-      {/* Insights */}
+      {/* Leaderboards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <InsightCard
           icon={Crown}
@@ -303,18 +314,19 @@ export function CustomersContent() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="sticky top-0 z-10 -mx-4 flex flex-col gap-3 border-b border-border/60 bg-background/80 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email, phone or referral"
+            placeholder="Name, email, phone, ID or referral"
+            aria-label="Search customers"
             className="h-10 rounded-xl border-transparent bg-muted/60 pl-9 focus-visible:border-input focus-visible:bg-background"
           />
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {(["all", "new", "active", "high_value", "inactive"] as Segment[]).map((s) => (
+          {(["all", "new", "returning", "vip", "frequent", "high_spender", "inactive"] as Segment[]).map((s) => (
             <button
               key={s}
               onClick={() => setSegment(s)}
