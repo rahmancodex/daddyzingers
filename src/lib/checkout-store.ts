@@ -65,7 +65,9 @@ const DEFAULT: CheckoutState = {
   paymentMethod: "cod",
   useNewAddress: false,
   newAddress: EMPTY_NEW_ADDRESS,
+  branchId: null,
 };
+
 
 function load(): CheckoutState {
   if (typeof window === "undefined") return DEFAULT;
