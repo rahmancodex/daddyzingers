@@ -266,6 +266,46 @@ function RestaurantTimeline({
 }
 
 // ============ Audit history ============
+const AUDIT_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  status_changed: ArrowRight,
+  order_cancelled: XCircle,
+  order_edited: Pencil,
+  item_qty_changed: ShoppingBag,
+  item_removed: Trash2,
+};
+
+function AuditDiff({ entry }: { entry: AdminOrderAuditEntry }) {
+  const before = (entry.before_state ?? {}) as Record<string, unknown>;
+  const after = (entry.after_state ?? {}) as Record<string, unknown>;
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).filter(
+    (k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]),
+  );
+  if (keys.length === 0) return null;
+  const fmt = (v: unknown) => {
+    if (v === null || v === undefined || v === "") return "∅";
+    if (typeof v === "string") return v;
+    return JSON.stringify(v);
+  };
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1">
+      {keys.slice(0, 6).map((k) => (
+        <span
+          key={k}
+          className="inline-flex items-center gap-1 rounded-md bg-muted/70 px-1.5 py-0.5 text-[10px] text-muted-foreground ring-1 ring-inset ring-border/60"
+        >
+          <span className="font-semibold text-foreground">{k.replace(/_/g, " ")}</span>
+          <span className="line-through opacity-70">{fmt(before[k])}</span>
+          <ArrowRight className="h-2.5 w-2.5" />
+          <span className="font-semibold text-foreground">{fmt(after[k])}</span>
+        </span>
+      ))}
+      {keys.length > 6 && (
+        <span className="text-[10px] text-muted-foreground">+{keys.length - 6} more</span>
+      )}
+    </div>
+  );
+}
+
 function AuditHistory({ audit }: { audit: AdminOrderAuditEntry[] }) {
   if (audit.length === 0) {
     return (
@@ -275,29 +315,36 @@ function AuditHistory({ audit }: { audit: AdminOrderAuditEntry[] }) {
     );
   }
   return (
-    <ol className="relative space-y-3 pl-4 before:absolute before:left-1 before:top-1.5 before:bottom-1.5 before:w-px before:bg-border">
-      {[...audit].reverse().map((a) => (
-        <li key={a.id} className="relative">
-          <span className="absolute -left-[13px] top-2 grid h-2 w-2 place-items-center rounded-full bg-primary ring-4 ring-background" />
-          <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-xs">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div className="font-semibold text-foreground">
-                {a.summary ?? a.action.replace(/_/g, " ")}
+    <ol className="relative space-y-3 pl-5 before:absolute before:left-1.5 before:top-1.5 before:bottom-1.5 before:w-px before:bg-border">
+      {[...audit].reverse().map((a) => {
+        const Icon = AUDIT_ICON[a.action] ?? History;
+        return (
+          <li key={a.id} className="relative">
+            <span className="absolute -left-[14px] top-1.5 grid h-4 w-4 place-items-center rounded-full bg-background ring-2 ring-primary/40">
+              <Icon className="h-2.5 w-2.5 text-primary" />
+            </span>
+            <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-xs">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="font-semibold text-foreground">
+                  {a.summary ?? a.action.replace(/_/g, " ")}
+                </div>
+                <div className="tabular-nums text-muted-foreground">
+                  {formatDateTime(a.created_at)}
+                </div>
               </div>
-              <div className="tabular-nums text-muted-foreground">
-                {formatDateTime(a.created_at)}
+              <div className="mt-0.5 text-muted-foreground">
+                {a.actor_email ?? "System"}
+                {a.actor_role ? ` · ${a.actor_role}` : ""}
               </div>
+              <AuditDiff entry={a} />
             </div>
-            <div className="mt-0.5 text-muted-foreground">
-              {a.actor_email ?? "System"}
-              {a.actor_role ? ` · ${a.actor_role}` : ""}
-            </div>
-          </div>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ol>
   );
 }
+
 
 // ============ Edit form types ============
 type EditableFields = {
