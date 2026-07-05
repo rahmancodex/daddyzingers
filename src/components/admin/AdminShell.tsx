@@ -179,7 +179,7 @@ function useAdminAuth() {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [check, goLogin, goProfile, logFn]);
+  }, [check, goLogin, goRedirect, logFn]);
 
   // Realtime role revocation
   React.useEffect(() => {
