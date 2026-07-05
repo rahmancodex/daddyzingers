@@ -235,7 +235,7 @@ function CheckoutPage() {
   return (
     <div className="min-h-dvh bg-background">
       <OrderHeader />
-      <main className="pt-6 md:pt-10 pb-56 lg:pb-16">
+      <main className="pt-6 md:pt-10 pb-[calc(11rem+env(safe-area-inset-bottom))] lg:pb-16">
         <div className="container-dz">
           <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
             <Link to="/cart" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
