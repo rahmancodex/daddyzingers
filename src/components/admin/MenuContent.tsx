@@ -748,8 +748,9 @@ function ListView({
           <div />
         </div>
         <ul>
-          {rows.map((r) => {
+          {rows.map((r, idx) => {
             const isSel = selected.has(r.id);
+
             return (
               <li
                 key={r.id}
