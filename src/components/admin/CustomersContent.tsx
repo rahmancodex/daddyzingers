@@ -619,40 +619,40 @@ export function CustomersContent() {
             </tbody>
           </table>
         </div>
-
-
-        {filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border/60 px-4 py-3 text-xs text-muted-foreground md:px-6">
-            <span>
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of{" "}
-              {filtered.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 rounded-lg"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="px-2 font-semibold text-foreground">
-                {page} / {pageCount}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 rounded-lg"
-                disabled={page >= pageCount}
-                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-card px-4 py-3 text-xs text-muted-foreground md:px-6">
+          <span>
+            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of{" "}
+            {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-lg"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="px-2 font-semibold text-foreground">
+              {page} / {pageCount}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-lg"
+              disabled={page >= pageCount}
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
 
       {insights.inactive > 0 && (
         <div className="flex items-center gap-3 rounded-2xl border border-warning/50 bg-warning/10 p-4 text-sm">
