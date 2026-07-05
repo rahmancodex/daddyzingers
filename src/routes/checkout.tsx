@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderHeader } from "@/components/order/OrderHeader";
-import { MobileBottomNav } from "@/components/order/MobileBottomNav";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
