@@ -457,6 +457,7 @@ export function AdminShell({
           email={auth.email}
           onSignOut={onSignOut}
           onOpenPalette={() => setPaletteOpen(true)}
+          roles={roles}
         />
         <main id="admin-main" className="flex-1 px-4 py-6 md:px-8 md:py-8">
           {permitted ? children : <AccessDenied requiredPermission={requiredPermission!} />}
