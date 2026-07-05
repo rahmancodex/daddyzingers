@@ -69,16 +69,14 @@ function greetingByHour(d = new Date()) {
 function Overview() {
   const { user } = useAuth();
   const menu = useMenuItems();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [orders, setOrders] = useState<OrderRow[] | null>(null);
-  const [favCount, setFavCount] = useState(0);
-  const [addrCount, setAddrCount] = useState(0);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
+  const { data } = useQuery({
+    queryKey: ["customer-overview", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: async () => {
       const [p, o, f, a] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
         supabase
           .from("orders")
           .select("id, order_number, status, total_pkr, created_at")
@@ -87,12 +85,19 @@ function Overview() {
         supabase.from("user_favorites").select("product_id", { count: "exact", head: true }),
         supabase.from("user_addresses").select("id", { count: "exact", head: true }),
       ]);
-      setProfile((p.data as Profile | null) ?? null);
-      setOrders((o.data as OrderRow[]) ?? []);
-      setFavCount(f.count ?? 0);
-      setAddrCount(a.count ?? 0);
-    })();
-  }, [user]);
+      return {
+        profile: (p.data as Profile | null) ?? null,
+        orders: (o.data as OrderRow[]) ?? [],
+        favCount: f.count ?? 0,
+        addrCount: a.count ?? 0,
+      };
+    },
+  });
+
+  const profile = data?.profile ?? null;
+  const orders: OrderRow[] | null = data ? data.orders : null;
+  const favCount = data?.favCount ?? 0;
+  const addrCount = data?.addrCount ?? 0;
 
   const first = (profile?.full_name || user?.email?.split("@")[0] || "").split(" ")[0];
   const points = profile?.reward_points ?? 0;
