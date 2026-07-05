@@ -1636,18 +1636,24 @@ function QuickActions() {
   return (
     <Surface className="flex h-full flex-col">
       <SectionHeader title="Quick Actions" subtitle="Common shortcuts" icon={Sparkles} />
-      <div className="grid grid-cols-2 gap-2.5 p-5 sm:p-6">
+      <div className="grid grid-cols-2 gap-2.5 p-5 sm:grid-cols-3 sm:p-6 lg:grid-cols-6">
         {ACTIONS.map((a) => {
           const Icon = a.icon;
           return (
             <Link
               key={a.label}
               to={a.to}
-              className="group/qa flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-[0_6px_20px_-10px_hsl(var(--primary)/0.35)]"
+              aria-label={`${a.label} — ${a.desc}`}
+              className={cn(
+                "group/qa flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-left transition-all",
+                "hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-[0_6px_20px_-10px_hsl(var(--primary)/0.35)]",
+                "active:translate-y-0 active:shadow-none",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              )}
             >
               <span
                 className={cn(
-                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-transform duration-200 group-hover/qa:scale-105",
                   TONE_CHIP[a.tone],
                 )}
               >
