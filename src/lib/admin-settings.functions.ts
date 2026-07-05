@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -10,7 +11,7 @@ async function admin() {
 // ============ SETTINGS ============
 
 export const adminGetSettings = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("settings.manage")])
   .handler(async () => {
     const supabase = await admin();
     const { data, error } = await supabase
@@ -44,7 +45,7 @@ const settingsPatchSchema = z.object({
 });
 
 export const adminUpdateSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("settings.manage")])
   .inputValidator((input: z.infer<typeof settingsPatchSchema>) => settingsPatchSchema.parse(input))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -61,7 +62,7 @@ export const adminUpdateSettings = createServerFn({ method: "POST" })
 // ============ BRANCHES ============
 
 export const adminListBranches = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("branches.manage")])
   .handler(async () => {
     const supabase = await admin();
     const { data, error } = await supabase
@@ -95,7 +96,7 @@ const branchSchema = z.object({
 });
 
 export const adminCreateBranch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("branches.manage")])
   .inputValidator((input: z.infer<typeof branchSchema>) => branchSchema.parse(input))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -111,7 +112,7 @@ export const adminCreateBranch = createServerFn({ method: "POST" })
 const branchUpdateSchema = branchSchema.partial().extend({ id: z.string().uuid() });
 
 export const adminUpdateBranch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("branches.manage")])
   .inputValidator((input: z.infer<typeof branchUpdateSchema>) => branchUpdateSchema.parse(input))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -127,7 +128,7 @@ export const adminUpdateBranch = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteBranch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("branches.manage")])
   .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
     const supabase = await admin();

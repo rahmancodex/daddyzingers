@@ -64,16 +64,13 @@ function NavList({
   collapsed,
   onNavigate,
   roles,
-  failOpen,
 }: {
   collapsed?: boolean;
   onNavigate?: () => void;
   roles?: AppRole[];
-  failOpen?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = ADMIN_NAV.filter((item) => {
-    if (failOpen) return true;
     const perm = ROUTE_PERMISSION[item.to];
     return !perm || hasPermission(roles, perm);
   });
@@ -116,31 +113,58 @@ function useAdminAuth() {
   const meFn = useServerFn(adminMe);
   const logFn = useServerFn(adminLogClientEvent);
   const [state, setState] = React.useState<{
-    status: "loading" | "ok" | "unauth";
+    status: "loading" | "ok" | "unauth" | "error";
     email?: string;
+    userId?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
-    rolesFailed?: boolean;
+    errorMessage?: string;
   }>({ status: "loading" });
 
   const loadRoles = React.useCallback(
-    async (email?: string) => {
+    async (userId: string, email?: string) => {
       try {
         const me = await meFn();
+        const roles = (me.roles ?? []) as AppRole[];
+        if (roles.length === 0) {
+          // No role => not a staff member. Deny + redirect.
+          console.warn("[admin] user has no role, redirecting to login");
+          await supabase.auth.signOut();
+          setState({ status: "unauth" });
+          navigate({ to: "/admin/login", replace: true });
+          return;
+        }
         setState({
           status: "ok",
           email,
-          roles: me.roles as AppRole[],
+          userId,
+          roles,
           topRole: (me.topRole ?? null) as AppRole | null,
-          rolesFailed: false,
         });
       } catch (err) {
-        console.warn("[admin] failed to load roles, failing open:", err);
-        setState({ status: "ok", email, roles: [], topRole: null, rolesFailed: true });
+        console.error("[admin] failed to load roles:", err);
+        setState({
+          status: "error",
+          email,
+          userId,
+          errorMessage: err instanceof Error ? err.message : "Failed to load permissions.",
+        });
       }
     },
-    [meFn],
+    [meFn, navigate],
   );
+
+  const retry = React.useCallback(() => {
+    setState((s) => ({ ...s, status: "loading" }));
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error || !data.user) {
+        setState({ status: "unauth" });
+        navigate({ to: "/admin/login", replace: true });
+        return;
+      }
+      loadRoles(data.user.id, data.user.email ?? undefined);
+    });
+  }, [loadRoles, navigate]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -151,14 +175,14 @@ function useAdminAuth() {
         navigate({ to: "/admin/login", replace: true });
         return;
       }
-      loadRoles(data.user.email ?? undefined);
+      loadRoles(data.user.id, data.user.email ?? undefined);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
         setState({ status: "unauth" });
         navigate({ to: "/admin/login", replace: true });
       } else {
-        loadRoles(session.user.email ?? undefined);
+        loadRoles(session.user.id, session.user.email ?? undefined);
         if (event === "SIGNED_IN") {
           logFn({ data: { action: "login", module: "auth", summary: "Admin sign-in" } }).catch(
             () => {},
@@ -172,8 +196,27 @@ function useAdminAuth() {
     };
   }, [navigate, loadRoles, logFn]);
 
-  return state;
+  // Realtime role revocation: if any row in user_roles for the current user
+  // changes, re-verify permissions. Deleted/downgraded users are kicked out.
+  React.useEffect(() => {
+    if (state.status !== "ok" || !state.userId) return;
+    const uid = state.userId;
+    const channel = supabase
+      .channel(`user-roles-${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${uid}` },
+        () => loadRoles(uid, state.email),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [state.status, state.userId, state.email, loadRoles]);
+
+  return { ...state, retry };
 }
+
 
 function Topbar({
   onOpenMobileNav,
@@ -277,7 +320,7 @@ export function AdminShell({
     navigate({ to: "/admin/login", replace: true });
   };
 
-  if (auth.status !== "ok") {
+  if (auth.status === "loading" || auth.status === "unauth") {
     return (
       <div className="grid min-h-screen place-items-center bg-muted/40">
         <div className="flex flex-col items-center gap-4">
@@ -288,10 +331,30 @@ export function AdminShell({
     );
   }
 
+  if (auth.status === "error") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-muted/40 p-6">
+        <div className="max-w-md rounded-3xl border border-border/70 bg-background p-8 text-center shadow-[var(--shadow-2)]">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h1 className="font-display text-2xl font-black">Couldn't verify permissions</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {auth.errorMessage ?? "A temporary error prevented us from loading your role."}
+          </p>
+          <div className="mt-6 flex justify-center gap-2">
+            <Button onClick={auth.retry}>Retry</Button>
+            <Button variant="outline" onClick={onSignOut}>
+              Sign out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const roles = auth.roles ?? [];
-  const failOpen = !!auth.rolesFailed;
-  const permitted =
-    !requiredPermission || failOpen || hasPermission(roles, requiredPermission);
+  const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
@@ -316,7 +379,7 @@ export function AdminShell({
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          <NavList collapsed={collapsed} roles={roles} failOpen={failOpen} />
+          <NavList collapsed={collapsed} roles={roles} />
         </div>
 
         <div className="border-t border-border/70 p-2">
@@ -354,7 +417,7 @@ export function AdminShell({
             <BrandMark />
           </div>
           <div className="py-3">
-            <NavList roles={roles} failOpen={failOpen} onNavigate={() => setMobileOpen(false)} />
+            <NavList roles={roles} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>

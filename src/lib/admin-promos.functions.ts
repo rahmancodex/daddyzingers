@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 
 // All admin CRUD needs to see inactive/expired/scheduled rows too, so we use
 // the service-role client (RLS bypassed). Access is still gated by
@@ -33,7 +34,7 @@ const CouponInputSchema = z.object({
 });
 
 export const adminListCoupons = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("coupons.manage")])
   .handler(async () => {
     const supabase = await admin();
     const { data, error } = await supabase
@@ -47,7 +48,7 @@ export const adminListCoupons = createServerFn({ method: "GET" })
   });
 
 export const adminUpsertCoupon = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("coupons.manage")])
   .inputValidator((raw: unknown) => CouponInputSchema.parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -81,7 +82,7 @@ export const adminUpsertCoupon = createServerFn({ method: "POST" })
   });
 
 export const adminToggleCoupon = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("coupons.manage")])
   .inputValidator((raw: unknown) =>
     z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(raw),
   )
@@ -96,7 +97,7 @@ export const adminToggleCoupon = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteCoupon = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("coupons.manage")])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -124,7 +125,7 @@ const BannerInputSchema = z.object({
 });
 
 export const adminListBanners = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .handler(async () => {
     const supabase = await admin();
     const { data, error } = await supabase
@@ -138,7 +139,7 @@ export const adminListBanners = createServerFn({ method: "GET" })
   });
 
 export const adminUpsertBanner = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .inputValidator((raw: unknown) => BannerInputSchema.parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -172,7 +173,7 @@ export const adminUpsertBanner = createServerFn({ method: "POST" })
   });
 
 export const adminToggleBanner = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .inputValidator((raw: unknown) =>
     z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(raw),
   )
@@ -187,7 +188,7 @@ export const adminToggleBanner = createServerFn({ method: "POST" })
   });
 
 export const adminDeleteBanner = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data }) => {
     const supabase = await admin();
@@ -197,7 +198,7 @@ export const adminDeleteBanner = createServerFn({ method: "POST" })
   });
 
 export const adminReorderBanners = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .inputValidator((raw: unknown) =>
     z.object({ ids: z.array(z.string().uuid()).min(1) }).parse(raw),
   )
@@ -216,7 +217,7 @@ export const adminReorderBanners = createServerFn({ method: "POST" })
 // ------------------------------------------------------------------
 
 export const adminPromoStats = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("banners.manage")])
   .handler(async () => {
     const supabase = await admin();
     const [{ data: coupons, error: cErr }, { data: banners, error: bErr }] =

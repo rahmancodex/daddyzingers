@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 
 const filtersSchema = z.object({
   from: z.string(),
@@ -57,7 +58,7 @@ function bucketByDow(d: Date): number {
 }
 
 export const adminReports = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("reports.view")])
   .inputValidator((i: ReportFilters) => filtersSchema.parse(i))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requirePerm } from "@/lib/admin-guard";
 import type { Json } from "@/integrations/supabase/types";
 
 export const ORDER_STATUSES = [
@@ -116,7 +117,7 @@ async function attachCustomers<T extends { user_id: string; address_snapshot: Js
 }
 
 export const adminListOrders = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("orders.view")])
   .inputValidator((data: unknown) => ListInput.parse(data ?? {}))
   .handler(async ({ data }): Promise<AdminOrderRow[]> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -162,7 +163,7 @@ export const adminListOrders = createServerFn({ method: "POST" })
   });
 
 export const adminGetOrder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("orders.view")])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data }): Promise<AdminOrderDetail | null> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -201,7 +202,7 @@ export const adminGetOrder = createServerFn({ method: "POST" })
   });
 
 export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
   .inputValidator((data: unknown) =>
     z.object({ id: z.string().uuid(), status: StatusSchema }).parse(data),
   )
@@ -216,7 +217,7 @@ export const adminUpdateOrderStatus = createServerFn({ method: "POST" })
   });
 
 export const adminOrderStats = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireSupabaseAuth, requirePerm("orders.view")])
   .handler(async (): Promise<AdminOrderStats> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const startOfDay = new Date();
