@@ -1116,9 +1116,18 @@ function QuickActions() {
 // -----------------------------------------------------------------------------
 
 export function AdminDashboardContent() {
+  return (
+    <DateRangeProvider>
+      <DashboardInner />
+    </DateRangeProvider>
+  );
+}
+
+function DashboardInner() {
   const weekly = useWeeklyReport();
   const myRoles = useMyRoles();
   const canViewCustomers = hasPermission(myRoles.data, "customers.view");
+  const { range } = useDateRange();
 
   const chartData = weekly.data
     ? {
@@ -1139,43 +1148,38 @@ export function AdminDashboardContent() {
     revenue: p.revenue,
   }));
 
-  const now = new Date();
-  const dateLabel = now.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const rangeLabel =
+    range.preset === "custom"
+      ? `${range.from.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} – ${range.to.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
+      : PRESET_LABEL[range.preset];
 
   return (
     <div className="space-y-6 sm:space-y-7">
-      {/* Header */}
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <PageHeader
+        eyebrow={
+          <>
             <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            Live · {dateLabel}
-          </div>
-          <h1 className="mt-1.5 font-display text-3xl font-black tracking-tight sm:text-[34px]">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            A real-time overview of today's kitchen performance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm" className="h-9 rounded-lg">
-            <Link to="/admin/reports">
-              Full reports <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-          <Button asChild size="sm" className="h-9 rounded-lg">
-            <Link to="/admin/orders">
-              Open orders <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-      </header>
+            Live · {rangeLabel}
+          </>
+        }
+        title="Dashboard"
+        description="A real-time overview of your restaurant performance."
+        actions={
+          <>
+            <DateRangePicker />
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-lg">
+              <Link to="/admin/reports">
+                Reports <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="h-9 rounded-lg">
+              <Link to="/admin/orders">
+                Open orders <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <LiveKpiGrid />
 
@@ -1188,6 +1192,7 @@ export function AdminDashboardContent() {
             loading={weekly.isLoading}
             error={weekly.isError ? weekly.error : undefined}
             onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
           />
         </div>
         <OrderStatusOverview />
@@ -1207,6 +1212,7 @@ export function AdminDashboardContent() {
             loading={weekly.isLoading}
             error={weekly.isError ? weekly.error : undefined}
             onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
           />
         </div>
         <QuickActions />
