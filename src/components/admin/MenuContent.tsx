@@ -483,6 +483,13 @@ export function MenuContent() {
         )}
       </div>
 
+      {sort === "display_order" && category === "all" && (
+        <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Pick a single category to reorder items with Move up / Move down.
+        </div>
+      )}
+
+
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <div className="sticky top-[132px] z-30 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 shadow-[var(--shadow-1)] backdrop-blur sm:top-[124px]">
