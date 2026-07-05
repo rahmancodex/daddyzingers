@@ -422,3 +422,28 @@ function AccessDenied({ requiredPermission }: { requiredPermission: Permission }
     </div>
   );
 }
+
+function AdminBootScreen() {
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-gradient-to-br from-background via-background to-muted/60">
+      <div className="flex flex-col items-center gap-5">
+        <div className="relative">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-2)]">
+            <span className="font-display text-xl font-black">DZ</span>
+          </div>
+          <div className="absolute -inset-2 animate-ping rounded-3xl border border-primary/40" />
+        </div>
+        <div className="text-center">
+          <div className="font-display text-base font-black tracking-tight">Daddy Zingers</div>
+          <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            Verifying access…
+          </div>
+        </div>
+        <div className="mt-1 h-1 w-40 overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
+        </div>
+      </div>
+      <style>{`@keyframes loading{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}`}</style>
+    </div>
+  );
+}
