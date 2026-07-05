@@ -1418,6 +1418,7 @@ function BranchPerformance({
 }) {
   const list = (branches ?? []).slice(0, 6);
   const maxRev = list.length ? Math.max(...list.map((b) => b.revenue), 1) : 1;
+  const totalRev = list.reduce((s, b) => s + b.revenue, 0);
   return (
     <Surface className="flex h-full flex-col">
       <SectionHeader title="Branch performance" subtitle={rangeLabel} icon={Store} />
