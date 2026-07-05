@@ -38,6 +38,8 @@ export type CheckoutState = {
   paymentMethod: "cod" | "card" | "wallet";
   useNewAddress: boolean;
   newAddress: NewAddressDraft;
+  branchId: string | null;
+
 };
 
 const LS_KEY = "dz_checkout_v1";
