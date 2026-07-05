@@ -2,6 +2,8 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
+  ArrowDown,
+  ArrowUp,
   Copy,
   Eye,
   EyeOff,
@@ -19,6 +21,7 @@ import {
   UtensilsCrossed,
   X,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -59,9 +62,11 @@ import {
   adminListCategories,
   adminListMenuItems,
   adminSetItemFlags,
+  adminSetItemSortOrder,
   type AdminMenuItem,
 } from "@/lib/admin-menu.functions";
 import { MenuItemDrawer } from "./MenuItemDrawer";
+
 
 function formatPKR(n: number) {
   return `PKR ${new Intl.NumberFormat("en-PK").format(n)}`;
@@ -86,7 +91,7 @@ function useDebounced<T>(value: T, delay = 300) {
   return v;
 }
 
-type SortKey = "newest" | "name" | "price_asc" | "price_desc";
+type SortKey = "newest" | "name" | "price_asc" | "price_desc" | "display_order";
 type BoolFilter = "any" | "yes" | "no";
 
 export function MenuContent() {
@@ -96,6 +101,8 @@ export function MenuContent() {
   const setFlags = useServerFn(adminSetItemFlags);
   const dupItem = useServerFn(adminDuplicateMenuItem);
   const delItem = useServerFn(adminDeleteMenuItem);
+  const setSortOrder = useServerFn(adminSetItemSortOrder);
+
 
   const [view, setView] = React.useState<"list" | "grid">("list");
   const [rawSearch, setRawSearch] = React.useState("");
@@ -173,6 +180,23 @@ export function MenuContent() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (v: { a: AdminMenuItem; b: AdminMenuItem }) => {
+      // Swap sort_order between two items in the same category.
+      // If both currently hold the same value, bump one to keep them distinct.
+      const aOrder = v.a.sort_order;
+      const bOrder = v.b.sort_order === aOrder ? aOrder + 1 : v.b.sort_order;
+      await setSortOrder({ data: { id: v.a.id, sort_order: bOrder } });
+      await setSortOrder({ data: { id: v.b.id, sort_order: aOrder } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "menu-items"] });
+      qc.invalidateQueries({ queryKey: ["menu"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const allRows = items.data ?? [];
 
   // Client-side price range refinement (backend has no price range filter)
@@ -206,6 +230,18 @@ export function MenuContent() {
     (featured !== "any" ? 1 : 0) +
     (available !== "any" ? 1 : 0) +
     (priceMin || priceMax ? 1 : 0);
+
+  const canReorder =
+    sort === "display_order" && category !== "all" && !search && !priceMin && !priceMax;
+
+  function move(idx: number, dir: -1 | 1) {
+    if (!canReorder) return;
+    const a = rows[idx];
+    const b = rows[idx + dir];
+    if (!a || !b) return;
+    reorderMutation.mutate({ a, b });
+  }
+
 
   function clearFilters() {
     setRawSearch("");
@@ -345,10 +381,12 @@ export function MenuContent() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="display_order">Display order</SelectItem>
               <SelectItem value="name">Name A→Z</SelectItem>
               <SelectItem value="price_asc">Price low→high</SelectItem>
               <SelectItem value="price_desc">Price high→low</SelectItem>
             </SelectContent>
+
           </Select>
 
           <Button
@@ -445,6 +483,13 @@ export function MenuContent() {
         )}
       </div>
 
+      {sort === "display_order" && category === "all" && (
+        <div className="rounded-xl border border-dashed border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Pick a single category to reorder items with Move up / Move down.
+        </div>
+      )}
+
+
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <div className="sticky top-[132px] z-30 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3 shadow-[var(--shadow-1)] backdrop-blur sm:top-[124px]">
@@ -515,6 +560,9 @@ export function MenuContent() {
           onDelete={(id) => setDeleteId(id)}
           onToggleAvailable={(id, v) => flagsMutation.mutate({ id, is_available: v })}
           onToggleFeatured={(id, v) => flagsMutation.mutate({ id, is_featured: v })}
+          canReorder={canReorder}
+          onMove={move}
+          reordering={reorderMutation.isPending}
         />
       ) : (
         <GridView
@@ -527,8 +575,12 @@ export function MenuContent() {
           onDelete={(id) => setDeleteId(id)}
           onToggleAvailable={(id, v) => flagsMutation.mutate({ id, is_available: v })}
           onToggleFeatured={(id, v) => flagsMutation.mutate({ id, is_featured: v })}
+          canReorder={canReorder}
+          onMove={move}
+          reordering={reorderMutation.isPending}
         />
       )}
+
 
       {editing && (
         <MenuItemDrawer
@@ -657,6 +709,9 @@ type ListProps = {
   onDelete: (id: string) => void;
   onToggleAvailable: (id: string, v: boolean) => void;
   onToggleFeatured: (id: string, v: boolean) => void;
+  canReorder: boolean;
+  onMove: (idx: number, dir: -1 | 1) => void;
+  reordering: boolean;
 };
 
 function ListView({
@@ -670,7 +725,11 @@ function ListView({
   onDelete,
   onToggleAvailable,
   onToggleFeatured,
+  canReorder,
+  onMove,
+  reordering,
 }: ListProps) {
+
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someChecked = !allChecked && rows.some((r) => selected.has(r.id));
 
@@ -696,8 +755,9 @@ function ListView({
           <div />
         </div>
         <ul>
-          {rows.map((r) => {
+          {rows.map((r, idx) => {
             const isSel = selected.has(r.id);
+
             return (
               <li
                 key={r.id}
@@ -780,7 +840,14 @@ function ListView({
                   onToggleFeatured={() => onToggleFeatured(r.id, !r.is_featured)}
                   isAvailable={r.is_available}
                   isFeatured={r.is_featured}
+                  canReorder={canReorder}
+                  onMoveUp={() => onMove(idx, -1)}
+                  onMoveDown={() => onMove(idx, 1)}
+                  canMoveUp={canReorder && idx > 0}
+                  canMoveDown={canReorder && idx < rows.length - 1}
+                  reordering={reordering}
                 />
+
               </li>
             );
           })}
@@ -789,8 +856,9 @@ function ListView({
 
       {/* Mobile cards */}
       <ul className="space-y-3 md:hidden">
-        {rows.map((r) => {
+        {rows.map((r, idx) => {
           const isSel = selected.has(r.id);
+
           return (
             <li
               key={r.id}
@@ -844,7 +912,14 @@ function ListView({
                       onToggleFeatured={() => onToggleFeatured(r.id, !r.is_featured)}
                       isAvailable={r.is_available}
                       isFeatured={r.is_featured}
+                      canReorder={canReorder}
+                      onMoveUp={() => onMove(idx, -1)}
+                      onMoveDown={() => onMove(idx, 1)}
+                      canMoveUp={canReorder && idx > 0}
+                      canMoveDown={canReorder && idx < rows.length - 1}
+                      reordering={reordering}
                     />
+
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="text-sm font-bold tabular-nums">
@@ -889,10 +964,14 @@ function GridView({
   onDelete,
   onToggleAvailable,
   onToggleFeatured,
+  canReorder,
+  onMove,
+  reordering,
 }: GridProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {rows.map((r) => {
+      {rows.map((r, idx) => {
+
         const isSel = selected.has(r.id);
         return (
           <div
@@ -958,7 +1037,14 @@ function GridView({
                   onToggleFeatured={() => onToggleFeatured(r.id, !r.is_featured)}
                   isAvailable={r.is_available}
                   isFeatured={r.is_featured}
+                  canReorder={canReorder}
+                  onMoveUp={() => onMove(idx, -1)}
+                  onMoveDown={() => onMove(idx, 1)}
+                  canMoveUp={canReorder && idx > 0}
+                  canMoveDown={canReorder && idx < rows.length - 1}
+                  reordering={reordering}
                 />
+
               </div>
               <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-2">
                 <span className="text-sm font-bold tabular-nums">
@@ -985,6 +1071,12 @@ function RowActions({
   onToggleFeatured,
   isAvailable,
   isFeatured,
+  canReorder,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  reordering,
 }: {
   onView: () => void;
   onEdit: () => void;
@@ -994,6 +1086,12 @@ function RowActions({
   onToggleFeatured: () => void;
   isAvailable: boolean;
   isFeatured: boolean;
+  canReorder: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  reordering: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -1017,7 +1115,19 @@ function RowActions({
         <DropdownMenuItem onClick={onDuplicate}>
           <Copy className="h-4 w-4" /> Duplicate
         </DropdownMenuItem>
+        {canReorder && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onMoveUp} disabled={!canMoveUp || reordering}>
+              <ArrowUp className="h-4 w-4" /> Move up
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onMoveDown} disabled={!canMoveDown || reordering}>
+              <ArrowDown className="h-4 w-4" /> Move down
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
+
         <DropdownMenuItem onClick={onToggleAvailable}>
           {isAvailable ? (
             <>

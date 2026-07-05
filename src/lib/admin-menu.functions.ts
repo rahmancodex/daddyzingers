@@ -209,7 +209,7 @@ const ListItemsInput = z.object({
   category_id: z.string().optional(),
   featured: z.boolean().optional(),
   available: z.boolean().optional(),
-  sort: z.enum(["newest", "name", "price_asc", "price_desc"]).optional(),
+  sort: z.enum(["newest", "name", "price_asc", "price_desc", "display_order"]).optional(),
 });
 
 export const adminListMenuItems = createServerFn({ method: "POST" })
@@ -241,9 +241,16 @@ export const adminListMenuItems = createServerFn({ method: "POST" })
       case "price_desc":
         query = query.order("price_pkr", { ascending: false });
         break;
+      case "display_order":
+        query = query
+          .order("category_id", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("name", { ascending: true });
+        break;
       default:
         query = query.order("created_at", { ascending: false });
     }
+
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -594,6 +601,27 @@ export const adminSetItemFlags = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const adminSetItemSortOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().min(1),
+        sort_order: z.number().int().min(0).max(9999),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("menu_items")
+      .update({ sort_order: data.sort_order })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const adminDeleteMenuItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
