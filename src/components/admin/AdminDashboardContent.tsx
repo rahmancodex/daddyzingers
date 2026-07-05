@@ -3,16 +3,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import {
+  Activity,
   AlertTriangle,
+  ArrowDownRight,
   ArrowUpRight,
   ChefHat,
   CheckCircle2,
   Clock,
   DollarSign,
   Flame,
+  Lock,
   Package,
   PackageCheck,
   Plus,
+  RefreshCw,
   ShoppingBag,
   Sparkles,
   Ticket,
@@ -23,10 +27,25 @@ import {
   Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 import { adminPromoStats } from "@/lib/admin-promos.functions";
 import { adminListCustomers, type AdminCustomerRow } from "@/lib/admin-customers.functions";
 import { adminReports } from "@/lib/admin-reports.functions";
-import { adminListOrders, adminOrderStats, type AdminOrderRow } from "@/lib/admin-orders.functions";
+import {
+  adminListOrders,
+  adminOrderStats,
+  type AdminOrderRow,
+} from "@/lib/admin-orders.functions";
+import { adminMe } from "@/lib/admin-staff.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -35,100 +54,220 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPKR } from "@/lib/admin-orders";
+import { hasPermission, type AppRole } from "@/lib/rbac";
 
 // -----------------------------------------------------------------------------
-// Shared UI
+// Primitives
 // -----------------------------------------------------------------------------
 
-type Stat = {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-  tone: "primary" | "success" | "warning" | "info" | "destructive" | "neutral";
+type Tone = "primary" | "success" | "warning" | "info" | "destructive" | "neutral";
+
+const TONE_CHIP: Record<Tone, string> = {
+  primary: "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20",
+  success: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400",
+  warning: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400",
+  info: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20 dark:text-sky-400",
+  destructive: "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20",
+  neutral: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
 };
 
-const TONE: Record<Stat["tone"], string> = {
-  primary: "bg-primary/15 text-foreground",
-  success: "bg-success/15 text-success-foreground",
-  warning: "bg-warning/20 text-warning-foreground",
-  info: "bg-info/15 text-info",
-  destructive: "bg-destructive/15 text-destructive",
-  neutral: "bg-muted text-foreground",
+const TONE_DOT: Record<Tone, string> = {
+  primary: "bg-primary",
+  success: "bg-emerald-500",
+  warning: "bg-amber-500",
+  info: "bg-sky-500",
+  destructive: "bg-destructive",
+  neutral: "bg-muted-foreground/40",
 };
 
-function StatCard({ stat }: { stat: Stat }) {
-  const Icon = stat.icon;
-  return (
-    <div className="group rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-1)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-3)]">
-      <div className="flex items-start justify-between">
-        <div className={cn("grid h-10 w-10 place-items-center rounded-xl", TONE[stat.tone])}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-4">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {stat.label}
-        </div>
-        <div className="mt-1 font-display text-2xl font-black tracking-tight">{stat.value}</div>
-      </div>
-    </div>
-  );
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : "Something went wrong";
 }
 
-function StatCardSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-1)]">
-      <Skeleton className="h-10 w-10 rounded-xl" />
-      <Skeleton className="mt-4 h-3 w-24 rounded" />
-      <Skeleton className="mt-2 h-7 w-32 rounded" />
-    </div>
-  );
-}
-
-function ErrorCard({
-  title = "Couldn't load",
-  message,
-  onRetry,
+/** Premium card surface used across the dashboard. */
+function Surface({
   className,
+  children,
 }: {
-  title?: string;
-  message?: string;
-  onRetry?: () => void;
   className?: string;
+  children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm",
+        "group/surface relative overflow-hidden rounded-2xl border border-border/70 bg-card",
+        "shadow-[0_1px_0_0_hsl(var(--foreground)/0.02),0_1px_2px_-1px_hsl(var(--foreground)/0.06)]",
+        "transition-[box-shadow,transform,border-color] duration-200",
         className,
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/15 text-destructive">
-          <AlertTriangle className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-foreground">{title}</div>
-          <div className="mt-0.5 line-clamp-2 text-muted-foreground">
-            {message ?? "Something went wrong. Please try again."}
-          </div>
-        </div>
-        {onRetry && (
-          <Button size="sm" variant="outline" onClick={onRetry} className="rounded-lg">
-            Retry
-          </Button>
-        )}
-      </div>
+      {children}
     </div>
   );
 }
 
-function errMsg(e: unknown): string {
-  return e instanceof Error ? e.message : "Unknown error";
+function SectionHeader({
+  title,
+  subtitle,
+  icon: Icon,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  icon?: LucideIcon;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b border-border/70 px-5 py-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        {Icon && (
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground ring-1 ring-inset ring-border">
+            <Icon className="h-4 w-4" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <div className="truncate font-display text-base font-bold tracking-tight sm:text-lg">
+            {title}
+          </div>
+          {subtitle && (
+            <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
+          )}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function InlineError({
+  message,
+  onRetry,
+}: {
+  message?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-destructive/15 text-destructive">
+        <AlertTriangle className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold text-foreground">Couldn't load</div>
+        <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+          {message ?? "Please try again in a moment."}
+        </div>
+      </div>
+      {onRetry && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRetry}
+          className="h-8 gap-1.5 rounded-lg text-xs"
+        >
+          <RefreshCw className="h-3 w-3" /> Retry
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function EmptyRow({
+  icon: Icon = Activity,
+  title,
+  hint,
+}: {
+  icon?: LucideIcon;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
+      <span className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground ring-1 ring-inset ring-border">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="text-sm font-semibold">{title}</div>
+      {hint && <div className="max-w-xs text-xs text-muted-foreground">{hint}</div>}
+    </div>
+  );
 }
 
 // -----------------------------------------------------------------------------
-// Live stats (orders)
+// Current staff role (for permission-gated widgets)
+// -----------------------------------------------------------------------------
+
+function useMyRoles() {
+  const fetchMe = useServerFn(adminMe);
+  return useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: async () => {
+      const me = await fetchMe();
+      return ((me.roles ?? []) as AppRole[]).filter(Boolean);
+    },
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+}
+
+// -----------------------------------------------------------------------------
+// KPI cards
+// -----------------------------------------------------------------------------
+
+type Kpi = {
+  key: string;
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  tone: Tone;
+  hint?: string;
+};
+
+function KpiCard({ kpi }: { kpi: Kpi }) {
+  const Icon = kpi.icon;
+  return (
+    <Surface className="p-5 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-0 transition-opacity group-hover/surface:opacity-100" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {kpi.label}
+          </div>
+          <div className="mt-2 font-display text-[26px] font-black leading-none tracking-tight tabular-nums">
+            {kpi.value}
+          </div>
+          {kpi.hint && (
+            <div className="mt-1.5 truncate text-xs text-muted-foreground">{kpi.hint}</div>
+          )}
+        </div>
+        <span
+          className={cn(
+            "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+            TONE_CHIP[kpi.tone],
+          )}
+        >
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
+      </div>
+    </Surface>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <Surface className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton className="h-3 w-20 rounded" />
+          <Skeleton className="h-7 w-24 rounded-md" />
+          <Skeleton className="h-3 w-16 rounded" />
+        </div>
+        <Skeleton className="h-9 w-9 rounded-xl" />
+      </div>
+    </Surface>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Live order KPIs
 // -----------------------------------------------------------------------------
 
 function useOrderStatsQuery() {
@@ -141,57 +280,103 @@ function useOrderStatsQuery() {
   });
 }
 
-function LiveStatsGrid() {
+function useOrdersRealtime(keys: string[][]) {
   const qc = useQueryClient();
-  const q = useOrderStatsQuery();
-
   React.useEffect(() => {
     const channel = supabase
-      .channel("admin-dashboard-orders")
+      .channel("admin-dashboard-orders-rt")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        () => qc.invalidateQueries({ queryKey: ["admin", "order-stats"] }),
+        () => {
+          for (const key of keys) qc.invalidateQueries({ queryKey: key });
+        },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+function LiveKpiGrid() {
+  const q = useOrderStatsQuery();
+  useOrdersRealtime([["admin", "order-stats"], ["admin", "dashboard-recent-orders"]]);
 
   if (q.isError) {
-    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+    return <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />;
   }
   if (q.isLoading || !q.data) {
     return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <StatCardSkeleton key={i} />
+          <KpiSkeleton key={i} />
         ))}
       </div>
     );
   }
-
   const d = q.data;
-  const stats: Stat[] = [
-    { label: "Today's Orders", value: String(d.today_orders), icon: ShoppingBag, tone: "primary" },
-    { label: "Revenue Today", value: formatPKR(d.today_revenue_pkr), icon: DollarSign, tone: "success" },
-    { label: "Pending", value: String(d.pending), icon: Clock, tone: "warning" },
-    { label: "Preparing", value: String(d.preparing + d.confirmed), icon: ChefHat, tone: "info" },
-    { label: "Delivered", value: String(d.delivered), icon: PackageCheck, tone: "success" },
-    { label: "Cancelled", value: String(d.cancelled), icon: XCircle, tone: "destructive" },
+  const kpis: Kpi[] = [
+    {
+      key: "today",
+      label: "Orders Today",
+      value: String(d.today_orders),
+      icon: ShoppingBag,
+      tone: "primary",
+      hint: "Placed since midnight",
+    },
+    {
+      key: "rev",
+      label: "Revenue Today",
+      value: formatPKR(d.today_revenue_pkr),
+      icon: DollarSign,
+      tone: "success",
+      hint: "Gross of taxes & fees",
+    },
+    {
+      key: "pending",
+      label: "Pending",
+      value: String(d.pending),
+      icon: Clock,
+      tone: "warning",
+      hint: "Awaiting confirmation",
+    },
+    {
+      key: "kitchen",
+      label: "In Kitchen",
+      value: String(d.preparing + d.confirmed),
+      icon: ChefHat,
+      tone: "info",
+      hint: "Confirmed + preparing",
+    },
+    {
+      key: "delivered",
+      label: "Delivered",
+      value: String(d.delivered),
+      icon: PackageCheck,
+      tone: "success",
+      hint: "Completed today",
+    },
+    {
+      key: "cancelled",
+      label: "Cancelled",
+      value: String(d.cancelled),
+      icon: XCircle,
+      tone: "destructive",
+      hint: "Refunded or voided",
+    },
   ];
-
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-      {stats.map((s) => (
-        <StatCard key={s.label} stat={s} />
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {kpis.map((k) => (
+        <KpiCard key={k.key} kpi={k} />
       ))}
     </div>
   );
 }
 
-function PromoStatsGrid() {
+function PromoKpiGrid() {
   const qc = useQueryClient();
   const fetchStats = useServerFn(adminPromoStats);
   const q = useQuery({
@@ -203,7 +388,7 @@ function PromoStatsGrid() {
 
   React.useEffect(() => {
     const channel = supabase
-      .channel("admin-dashboard-promos")
+      .channel("admin-dashboard-promos-rt")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "coupons" },
@@ -221,34 +406,28 @@ function PromoStatsGrid() {
   }, [qc]);
 
   if (q.isError) {
-    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+    return <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />;
   }
   if (q.isLoading || !q.data) {
     return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <StatCardSkeleton key={i} />
+          <KpiSkeleton key={i} />
         ))}
       </div>
     );
   }
-
   const d = q.data;
-  const stats: Stat[] = [
-    { label: "Active Coupons", value: String(d.active_coupons), icon: Ticket, tone: "primary" },
-    { label: "Active Banners", value: String(d.active_banners), icon: ImageIcon, tone: "info" },
-    {
-      label: "Scheduled Promos",
-      value: String(d.scheduled_promotions),
-      icon: CalendarClock,
-      tone: "warning",
-    },
-    { label: "Expired Coupons", value: String(d.expired_coupons), icon: XCircle, tone: "neutral" },
+  const kpis: Kpi[] = [
+    { key: "ac", label: "Active Coupons", value: String(d.active_coupons), icon: Ticket, tone: "primary" },
+    { key: "ab", label: "Active Banners", value: String(d.active_banners), icon: ImageIcon, tone: "info" },
+    { key: "sp", label: "Scheduled Promos", value: String(d.scheduled_promotions), icon: CalendarClock, tone: "warning" },
+    { key: "ex", label: "Expired Coupons", value: String(d.expired_coupons), icon: XCircle, tone: "neutral" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-      {stats.map((s) => (
-        <StatCard key={s.label} stat={s} />
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+      {kpis.map((k) => (
+        <KpiCard key={k.key} kpi={k} />
       ))}
     </div>
   );
@@ -285,183 +464,264 @@ function useWeeklyReport() {
   });
 }
 
+type TrendPoint = { date: string; revenue: number; label: string };
+
+function RevenueTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: TrendPoint; value: number }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-border/70 bg-popover px-3 py-2 shadow-lg">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {new Date(p.date).toLocaleDateString("en-GB", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short",
+        })}
+      </div>
+      <div className="mt-0.5 font-display text-sm font-black tabular-nums">
+        {formatPKR(p.revenue)}
+      </div>
+    </div>
+  );
+}
+
 function RevenueChart({
   data,
   loading,
   error,
   onRetry,
 }: {
-  data?: { trend: Array<{ date: string; revenue: number }>; totalRevenue: number; revenueGrowth: number | null };
+  data?: {
+    trend: Array<{ date: string; revenue: number }>;
+    totalRevenue: number;
+    revenueGrowth: number | null;
+  };
   loading: boolean;
   error?: unknown;
   onRetry: () => void;
 }) {
-  if (error) return <ErrorCard message={errMsg(error)} onRetry={onRetry} />;
-
-  const trend = data?.trend ?? [];
-  const points = trend.length ? trend.map((t) => t.revenue) : [];
-  const hasData = points.some((p) => p > 0);
-  const max = hasData ? Math.max(...points, 1) : 1;
-  const w = 560;
-  const h = 180;
-  const step = points.length > 1 ? w / (points.length - 1) : w;
-  const line = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${i * step} ${h - (p / max) * (h - 20) - 10}`)
-    .join(" ");
-  const area = points.length ? `${line} L ${w} ${h} L 0 ${h} Z` : "";
-  const growth = data?.revenueGrowth;
+  const trend: TrendPoint[] = React.useMemo(
+    () =>
+      (data?.trend ?? []).map((t) => ({
+        date: t.date,
+        revenue: t.revenue,
+        label: new Date(t.date).toLocaleDateString("en-GB", { weekday: "short" }),
+      })),
+    [data?.trend],
+  );
+  const hasData = trend.some((t) => t.revenue > 0);
+  const growth = data?.revenueGrowth ?? null;
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Revenue last 7 days
+    <Surface className="flex h-full flex-col">
+      <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
+        <div className="min-w-0">
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Revenue · last 7 days
           </div>
-          <div className="mt-1 flex items-baseline gap-3">
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             {loading ? (
-              <Skeleton className="h-8 w-40 rounded" />
+              <Skeleton className="h-8 w-40 rounded-md" />
             ) : (
-              <span className="font-display text-3xl font-black">
+              <span className="font-display text-3xl font-black tracking-tight tabular-nums">
                 {formatPKR(data?.totalRevenue ?? 0)}
               </span>
             )}
-            {growth != null && Number.isFinite(growth) && (
+            {growth != null && Number.isFinite(growth) && !loading && (
               <span
                 className={cn(
-                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
                   growth >= 0
-                    ? "bg-success/15 text-success-foreground"
-                    : "bg-destructive/10 text-destructive",
+                    ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400"
+                    : "bg-destructive/10 text-destructive ring-destructive/20",
                 )}
               >
-                <ArrowUpRight className="h-3 w-3" />
+                {growth >= 0 ? (
+                  <ArrowUpRight className="h-3 w-3" />
+                ) : (
+                  <ArrowDownRight className="h-3 w-3" />
+                )}
                 {growth >= 0 ? "+" : ""}
                 {growth.toFixed(1)}%
               </span>
             )}
           </div>
         </div>
+        <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ring-1 ring-inset ring-border sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          Daily revenue
+        </span>
       </div>
-      <div className="mt-6 h-[200px] w-full overflow-hidden">
-        {loading ? (
-          <Skeleton className="h-full w-full rounded-xl" />
-        ) : hasData ? (
-          <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={area} fill="url(#rev)" />
-            <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
+
+      <div className="mt-4 flex-1 px-2 pb-4 sm:px-3 sm:pb-5">
+        {error ? (
+          <div className="p-4">
+            <InlineError message={errMsg(error)} onRetry={onRetry} />
+          </div>
+        ) : loading ? (
+          <div className="px-3 pb-2">
+            <Skeleton className="h-[220px] w-full rounded-xl" />
+          </div>
+        ) : !hasData ? (
+          <EmptyRow
+            icon={Activity}
+            title="No revenue yet this week"
+            hint="Once orders start coming in, revenue will chart here in real time."
+          />
         ) : (
-          <div className="grid h-full place-items-center text-sm text-muted-foreground">
-            No revenue in the last 7 days yet.
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trend} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="var(--border)"
+                  strokeOpacity={0.6}
+                />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  dy={6}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  width={44}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                  tickFormatter={(v) =>
+                    v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
+                  }
+                />
+                <Tooltip
+                  cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }}
+                  content={<RevenueTooltip />}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--primary)"
+                  strokeWidth={2.5}
+                  fill="url(#revenueFill)"
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--background)" }}
+                  animationDuration={700}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>
-      {trend.length > 0 && (
-        <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          {trend.map((t) => (
-            <span key={t.date}>
-              {new Date(t.date).toLocaleDateString("en-GB", { weekday: "short" })}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
+    </Surface>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Order status overview (from live stats)
+// Order status overview
 // -----------------------------------------------------------------------------
 
 function OrderStatusOverview() {
   const q = useOrderStatsQuery();
 
-  if (q.isError) {
-    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
-  }
-  if (q.isLoading || !q.data) {
-    return (
-      <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
-        <Skeleton className="h-4 w-32 rounded" />
-        <Skeleton className="mt-2 h-7 w-24 rounded" />
-        <Skeleton className="mt-5 h-2.5 w-full rounded-full" />
-        <div className="mt-5 space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-4 w-full rounded" />
-          ))}
+  const body = () => {
+    if (q.isError) return <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+    if (q.isLoading || !q.data) {
+      return (
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-24 rounded-md" />
+          <Skeleton className="h-2.5 w-full rounded-full" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-full rounded" />
+            ))}
+          </div>
         </div>
-      </div>
+      );
+    }
+    const d = q.data;
+    const items: Array<{ label: string; value: number; tone: Tone }> = [
+      { label: "Pending", value: d.pending, tone: "warning" },
+      { label: "In kitchen", value: d.preparing + d.confirmed, tone: "info" },
+      { label: "Out for delivery", value: d.out_for_delivery, tone: "primary" },
+      { label: "Delivered", value: d.delivered, tone: "success" },
+      { label: "Cancelled", value: d.cancelled, tone: "destructive" },
+    ];
+    const total = items.reduce((a, s) => a + s.value, 0);
+    return (
+      <>
+        <div className="font-display text-3xl font-black tabular-nums">{total}</div>
+        <div className="text-xs text-muted-foreground">Active + completed today</div>
+        {total > 0 ? (
+          <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border/60">
+            {items.map((s) => (
+              <div
+                key={s.label}
+                className={cn("h-full transition-[width] duration-500", TONE_DOT[s.tone])}
+                style={{ width: `${(s.value / total) * 100}%` }}
+                title={`${s.label}: ${s.value}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 h-2.5 rounded-full bg-muted" />
+        )}
+        <ul className="mt-5 space-y-2.5">
+          {items.map((s) => {
+            const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
+            return (
+              <li key={s.label} className="flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", TONE_DOT[s.tone])} />
+                  <span className="truncate text-foreground/80">{s.label}</span>
+                </span>
+                <span className="flex shrink-0 items-baseline gap-2">
+                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                    {pct}%
+                  </span>
+                  <span className="w-8 text-right font-semibold tabular-nums">{s.value}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </>
     );
-  }
-
-  const d = q.data;
-  const items = [
-    { label: "Pending", value: d.pending, color: "bg-warning" },
-    { label: "Preparing", value: d.preparing + d.confirmed, color: "bg-info" },
-    { label: "Out for delivery", value: d.out_for_delivery, color: "bg-primary" },
-    { label: "Delivered", value: d.delivered, color: "bg-success" },
-    { label: "Cancelled", value: d.cancelled, color: "bg-destructive" },
-  ];
-  const total = items.reduce((a, s) => a + s.value, 0);
+  };
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Order status
-          </div>
-          <div className="mt-1 font-display text-2xl font-black">{total} orders</div>
-        </div>
-        <Package className="h-5 w-5 text-muted-foreground" />
-      </div>
-      {total > 0 ? (
-        <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-muted">
-          {items.map((s) => (
-            <div
-              key={s.label}
-              className={cn("h-full", s.color)}
-              style={{ width: `${(s.value / total) * 100}%` }}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-5 h-2.5 rounded-full bg-muted" />
-      )}
-      <ul className="mt-5 space-y-3">
-        {items.map((s) => (
-          <li key={s.label} className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
-              <span className={cn("h-2.5 w-2.5 rounded-full", s.color)} />
-              <span className="text-foreground/80">{s.label}</span>
-            </span>
-            <span className="font-semibold tabular-nums">{s.value}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Surface className="h-full">
+      <SectionHeader title="Order status" subtitle="Live breakdown" icon={Package} />
+      <div className="p-5 sm:p-6">{body()}</div>
+    </Surface>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Recent orders (real data)
+// Recent orders
 // -----------------------------------------------------------------------------
 
 const STATUS_STYLE: Record<string, string> = {
-  pending: "bg-warning/20 text-warning-foreground",
-  confirmed: "bg-info/15 text-info",
-  preparing: "bg-info/15 text-info",
-  ready: "bg-primary/20 text-foreground",
-  out_for_delivery: "bg-primary/20 text-foreground",
-  delivered: "bg-success/15 text-success-foreground",
-  cancelled: "bg-destructive/15 text-destructive",
+  pending: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400",
+  confirmed: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20 dark:text-sky-400",
+  preparing: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20 dark:text-sky-400",
+  ready: "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20",
+  out_for_delivery: "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20",
+  delivered:
+    "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400",
+  cancelled: "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -485,8 +745,18 @@ function relTime(iso: string) {
   return `${d}d ago`;
 }
 
+function initialsOf(name: string | null | undefined): string {
+  if (!name) return "?";
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
+
 function RecentOrders() {
-  const qc = useQueryClient();
   const fetchList = useServerFn(adminListOrders);
   const q = useQuery({
     queryKey: ["admin", "dashboard-recent-orders"],
@@ -495,167 +765,196 @@ function RecentOrders() {
     retry: 1,
   });
 
-  React.useEffect(() => {
-    const channel = supabase
-      .channel("admin-dashboard-recent-orders")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders" },
-        () => qc.invalidateQueries({ queryKey: ["admin", "dashboard-recent-orders"] }),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [qc]);
-
   return (
-    <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
-      <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
-        <div>
-          <div className="font-display text-lg font-black">Recent Orders</div>
-          <div className="text-xs text-muted-foreground">Latest activity across the kitchen</div>
-        </div>
-        <Button asChild variant="ghost" size="sm" className="rounded-lg">
-          <Link to="/admin/orders">View all</Link>
-        </Button>
-      </div>
+    <Surface className="flex h-full flex-col">
+      <SectionHeader
+        title="Recent Orders"
+        subtitle="Latest activity across the kitchen"
+        icon={ShoppingBag}
+        action={
+          <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
+            <Link to="/admin/orders">
+              View all <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        }
+      />
       {q.isError ? (
-        <div className="p-6">
-          <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />
+        <div className="p-5">
+          <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />
         </div>
       ) : q.isLoading ? (
-        <div className="space-y-3 p-6">
+        <ul className="divide-y divide-border/60">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full rounded" />
+            <li key={i} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-32 rounded" />
+                <Skeleton className="h-3 w-24 rounded" />
+              </div>
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (q.data ?? []).length === 0 ? (
-        <div className="p-10 text-center text-sm text-muted-foreground">
-          No orders yet. New orders will appear here in real time.
-        </div>
+        <EmptyRow
+          icon={ShoppingBag}
+          title="No orders yet"
+          hint="New orders will appear here the moment they're placed."
+        />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-6 py-3 font-semibold">Order</th>
-                <th className="px-2 py-3 font-semibold">Customer</th>
-                <th className="px-2 py-3 font-semibold">Items</th>
-                <th className="px-2 py-3 font-semibold">Total</th>
-                <th className="px-2 py-3 font-semibold">Status</th>
-                <th className="px-6 py-3 text-right font-semibold">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(q.data ?? []).map((o) => (
-                <tr key={o.id} className="border-t border-border/50 transition-colors hover:bg-muted/40">
-                  <td className="px-6 py-3 font-mono text-xs font-semibold">{o.order_number}</td>
-                  <td className="px-2 py-3">{o.customer_name ?? "—"}</td>
-                  <td className="px-2 py-3 tabular-nums text-muted-foreground">{o.items_count}</td>
-                  <td className="px-2 py-3 font-semibold tabular-nums">{formatPKR(o.total_pkr)}</td>
-                  <td className="px-2 py-3">
-                    <Badge
-                      className={cn(
-                        "rounded-full font-semibold",
-                        STATUS_STYLE[o.status] ?? "bg-muted text-foreground",
-                      )}
-                      variant="secondary"
-                    >
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-3 text-right text-xs text-muted-foreground">
-                    {relTime(o.created_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="divide-y divide-border/60">
+          {(q.data ?? []).map((o) => (
+            <li
+              key={o.id}
+              className="group/row flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
+            >
+              <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
+                  {initialsOf(o.customer_name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="truncate text-sm font-semibold">
+                    {o.customer_name ?? "Guest"}
+                  </span>
+                  <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground">
+                    {o.order_number}
+                  </span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="tabular-nums">
+                    {o.items_count} item{o.items_count === 1 ? "" : "s"}
+                  </span>
+                  <span className="text-border">•</span>
+                  <span className="tabular-nums">{relTime(o.created_at)}</span>
+                </div>
+              </div>
+              <div className="hidden shrink-0 text-right sm:block">
+                <div className="font-semibold tabular-nums">{formatPKR(o.total_pkr)}</div>
+              </div>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "shrink-0 rounded-full border-0 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wider",
+                  STATUS_STYLE[o.status] ?? "bg-muted text-foreground",
+                )}
+              >
+                {STATUS_LABEL[o.status] ?? o.status}
+              </Badge>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </Surface>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Latest customers (real data)
+// Latest customers (permission-gated + resilient)
 // -----------------------------------------------------------------------------
 
-function LatestCustomers() {
+function LatestCustomersCard({ canView }: { canView: boolean }) {
   const qc = useQueryClient();
   const fetchList = useServerFn(adminListCustomers);
   const q = useQuery({
-    queryKey: ["admin", "customers"],
+    queryKey: ["admin", "customers", "recent"],
     queryFn: () => fetchList({ data: undefined }) as Promise<AdminCustomerRow[]>,
+    enabled: canView,
+    staleTime: 60_000,
     retry: 1,
   });
 
   React.useEffect(() => {
+    if (!canView) return;
     const channel = supabase
-      .channel("admin-dashboard-customers")
+      .channel("admin-dashboard-customers-rt")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "profiles" },
-        () => qc.invalidateQueries({ queryKey: ["admin", "customers"] }),
+        () => qc.invalidateQueries({ queryKey: ["admin", "customers", "recent"] }),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, canView]);
 
-  const rows = (q.data ?? [])
-    .slice()
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 6);
+  const rows = React.useMemo(
+    () =>
+      (q.data ?? [])
+        .slice()
+        .sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )
+        .slice(0, 6),
+    [q.data],
+  );
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
-      <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
-        <div>
-          <div className="font-display text-lg font-black">Latest Customers</div>
-          <div className="text-xs text-muted-foreground">New sign-ups</div>
-        </div>
-        <Users className="h-4 w-4 text-muted-foreground" />
-      </div>
-      {q.isError ? (
-        <div className="p-6">
-          <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />
+    <Surface className="flex h-full flex-col">
+      <SectionHeader
+        title="Latest Customers"
+        subtitle="New sign-ups"
+        icon={Users}
+        action={
+          canView ? (
+            <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
+              <Link to="/admin/customers">
+                View all <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
+      {!canView ? (
+        <EmptyRow
+          icon={Lock}
+          title="Not available for your role"
+          hint="Customer records are restricted. Ask an owner to grant Customers access."
+        />
+      ) : q.isError ? (
+        <div className="p-5">
+          <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />
         </div>
       ) : q.isLoading ? (
-        <div className="space-y-3 p-6">
+        <ul className="divide-y divide-border/60">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full rounded" />
+            <li key={i} className="flex items-center gap-3 px-5 py-3.5 sm:px-6">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-28 rounded" />
+                <Skeleton className="h-3 w-40 rounded" />
+              </div>
+              <Skeleton className="h-4 w-10 rounded" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : rows.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">No customers yet</div>
+        <EmptyRow icon={Users} title="No customers yet" hint="Sign-ups will appear here." />
       ) : (
         <ul className="divide-y divide-border/60">
           {rows.map((c) => {
             const name = c.full_name ?? "Unnamed";
-            const initials = name
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase();
             return (
-              <li key={c.id} className="flex items-center gap-3 px-6 py-3">
-                <Avatar className="h-9 w-9">
-                  {c.avatar_url && <AvatarImage src={c.avatar_url} />}
-                  <AvatarFallback className="bg-primary/20 text-xs font-bold">
-                    {initials || "?"}
+              <li
+                key={c.id}
+                className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
+              >
+                <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
+                  {c.avatar_url && <AvatarImage src={c.avatar_url} alt={name} />}
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
+                    {initialsOf(name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{name}</div>
                   <div className="truncate text-xs text-muted-foreground">
-                    {c.email ?? c.phone ?? "—"}
+                    {c.email ?? c.phone ?? "No contact"}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <div className="text-sm font-semibold tabular-nums">{c.total_orders}</div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString("en-GB", {
@@ -669,12 +968,12 @@ function LatestCustomers() {
           })}
         </ul>
       )}
-    </div>
+    </Surface>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Top selling items (real data from weekly report)
+// Top selling items
 // -----------------------------------------------------------------------------
 
 function TopSellingItems({
@@ -691,93 +990,116 @@ function TopSellingItems({
   const list = (items ?? []).slice(0, 5);
   const max = list.length ? Math.max(...list.map((i) => i.qty), 1) : 1;
   return (
-    <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
-      <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
-        <div>
-          <div className="font-display text-lg font-black">Top Selling Items</div>
-          <div className="text-xs text-muted-foreground">Last 7 days</div>
-        </div>
-        <Flame className="h-4 w-4 text-primary" />
-      </div>
+    <Surface className="flex h-full flex-col">
+      <SectionHeader
+        title="Top Selling Items"
+        subtitle="Last 7 days"
+        icon={Flame}
+        action={
+          <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
+            <Link to="/admin/reports">
+              Reports <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        }
+      />
       {error ? (
-        <div className="p-6">
-          <ErrorCard message={errMsg(error)} onRetry={onRetry} />
+        <div className="p-5">
+          <InlineError message={errMsg(error)} onRetry={onRetry} />
         </div>
       ) : loading ? (
-        <div className="space-y-4 p-6">
+        <ul className="space-y-4 p-5 sm:p-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-6 w-full rounded" />
+            <li key={i} className="space-y-2">
+              <div className="flex justify-between">
+                <Skeleton className="h-3.5 w-40 rounded" />
+                <Skeleton className="h-3.5 w-16 rounded" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : list.length === 0 ? (
-        <div className="p-10 text-center text-sm text-muted-foreground">
-          No item sales in the last 7 days.
-        </div>
+        <EmptyRow
+          icon={Flame}
+          title="No item sales this week"
+          hint="Once items sell, the top movers land here."
+        />
       ) : (
-        <ul className="space-y-4 p-6">
-          {list.map((item) => (
+        <ol className="space-y-4 p-5 sm:p-6">
+          {list.map((item, idx) => (
             <li key={item.name}>
-              <div className="mb-1.5 flex items-center justify-between text-sm">
-                <span className="font-semibold">{item.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.qty} sold ·{" "}
-                  <span className="font-semibold text-foreground">{formatPKR(item.revenue)}</span>
+              <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-muted text-[10px] font-black text-muted-foreground ring-1 ring-inset ring-border">
+                    {idx + 1}
+                  </span>
+                  <span className="truncate font-semibold">{item.name}</span>
+                </span>
+                <span className="shrink-0 text-right text-xs text-muted-foreground">
+                  <span className="tabular-nums">{item.qty}</span> sold ·{" "}
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {formatPKR(item.revenue)}
+                  </span>
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
                   style={{ width: `${(item.qty / max) * 100}%` }}
                 />
               </div>
             </li>
           ))}
-        </ul>
+        </ol>
       )}
-    </div>
+    </Surface>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Quick actions (real navigation)
+// Quick actions
 // -----------------------------------------------------------------------------
 
-const ACTIONS: Array<{ label: string; icon: LucideIcon; tone: string; to: string }> = [
-  { label: "Add menu item", icon: Plus, tone: "bg-primary/15 text-foreground", to: "/admin/menu" },
-  { label: "Create coupon", icon: Ticket, tone: "bg-info/15 text-info", to: "/admin/coupons" },
-  { label: "New promo banner", icon: Sparkles, tone: "bg-warning/20 text-warning-foreground", to: "/admin/promo-banners" },
-  { label: "Dispatch order", icon: Truck, tone: "bg-success/15 text-success-foreground", to: "/admin/orders" },
-  { label: "Mark order ready", icon: CheckCircle2, tone: "bg-primary/15 text-foreground", to: "/admin/orders" },
-  { label: "Manage staff", icon: Users, tone: "bg-muted text-foreground", to: "/admin/staff" },
+const ACTIONS: Array<{ label: string; icon: LucideIcon; tone: Tone; to: string; desc: string }> = [
+  { label: "Add menu item", desc: "Create a new dish", icon: Plus, tone: "primary", to: "/admin/menu" },
+  { label: "Create coupon", desc: "Discount codes", icon: Ticket, tone: "info", to: "/admin/coupons" },
+  { label: "Promo banner", desc: "Homepage hero", icon: Sparkles, tone: "warning", to: "/admin/promo-banners" },
+  { label: "Dispatch order", desc: "Send to rider", icon: Truck, tone: "success", to: "/admin/orders" },
+  { label: "Mark ready", desc: "Kitchen queue", icon: CheckCircle2, tone: "primary", to: "/admin/orders" },
+  { label: "Manage staff", desc: "Roles & access", icon: Users, tone: "neutral", to: "/admin/staff" },
 ];
 
 function QuickActions() {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="font-display text-lg font-black">Quick Actions</div>
-          <div className="text-xs text-muted-foreground">Shortcuts to common tasks</div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <Surface className="flex h-full flex-col">
+      <SectionHeader title="Quick Actions" subtitle="Common shortcuts" icon={Sparkles} />
+      <div className="grid grid-cols-2 gap-2.5 p-5 sm:p-6">
         {ACTIONS.map((a) => {
           const Icon = a.icon;
           return (
             <Link
               key={a.label}
               to={a.to}
-              className="group flex flex-col items-start gap-2 rounded-xl border border-border/60 bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-2)]"
+              className="group/qa flex items-start gap-3 rounded-xl border border-border/60 bg-background/60 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-[0_6px_20px_-10px_hsl(var(--primary)/0.35)]"
             >
-              <span className={cn("grid h-9 w-9 place-items-center rounded-lg", a.tone)}>
+              <span
+                className={cn(
+                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+                  TONE_CHIP[a.tone],
+                )}
+              >
                 <Icon className="h-4 w-4" />
               </span>
-              <span className="text-sm font-semibold leading-tight">{a.label}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold leading-tight">{a.label}</div>
+                <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{a.desc}</div>
+              </div>
             </Link>
           );
         })}
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -787,6 +1109,8 @@ function QuickActions() {
 
 export function AdminDashboardContent() {
   const weekly = useWeeklyReport();
+  const myRoles = useMyRoles();
+  const canViewCustomers = hasPermission(myRoles.data, "customers.view");
 
   const chartData = weekly.data
     ? {
@@ -807,22 +1131,49 @@ export function AdminDashboardContent() {
     revenue: p.revenue,
   }));
 
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-black tracking-tight">Dashboard</h1>
+    <div className="space-y-6 sm:space-y-7">
+      {/* Header */}
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="inline-flex h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            Live · {dateLabel}
+          </div>
+          <h1 className="mt-1.5 font-display text-3xl font-black tracking-tight sm:text-[34px]">
+            Dashboard
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Overview of today's kitchen performance.
+            A real-time overview of today's kitchen performance.
           </p>
         </div>
-      </div>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="h-9 rounded-lg">
+            <Link to="/admin/reports">
+              Full reports <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="h-9 rounded-lg">
+            <Link to="/admin/orders">
+              Open orders <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-      <LiveStatsGrid />
+      <LiveKpiGrid />
 
-      <PromoStatsGrid />
+      <PromoKpiGrid />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         <div className="lg:col-span-2">
           <RevenueChart
             data={chartData}
@@ -834,14 +1185,14 @@ export function AdminDashboardContent() {
         <OrderStatusOverview />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-5 xl:grid-cols-3 xl:gap-6">
         <div className="xl:col-span-2">
           <RecentOrders />
         </div>
-        <LatestCustomers />
+        <LatestCustomersCard canView={canViewCustomers} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
         <div className="lg:col-span-2">
           <TopSellingItems
             items={topItems}
