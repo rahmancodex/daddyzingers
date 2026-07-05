@@ -28,6 +28,8 @@ type OrderRow = {
   subtotal_pkr: number;
   delivery_fee_pkr: number;
   created_at: string;
+  branch_id: string | null;
+  branch?: { id: string; name: string; city: string | null; phone: string | null } | null;
   address_snapshot: {
     address_line?: string;
     city?: string;
@@ -46,14 +48,15 @@ function OrderSuccess() {
     if (!user) return;
     supabase
       .from("orders")
-      .select("id, order_number, status, total_pkr, subtotal_pkr, delivery_fee_pkr, created_at, address_snapshot")
+      .select("id, order_number, status, total_pkr, subtotal_pkr, delivery_fee_pkr, created_at, address_snapshot, branch_id, branch:branches(id, name, city, phone)")
       .eq("order_number", number)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setOrder(data as OrderRow);
+        if (data) setOrder(data as unknown as OrderRow);
         else setNotFound(true);
       });
   }, [user, number]);
+
 
   return (
     <div className="min-h-dvh bg-background">
