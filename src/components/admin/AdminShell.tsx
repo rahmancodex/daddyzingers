@@ -119,10 +119,10 @@ function useAdminAuth() {
     topRole?: AppRole | null;
   }>({ status: "loading" });
 
-  const goProfile = React.useCallback(
-    (message: string) => {
+  const goRedirect = React.useCallback(
+    (to: "/profile" | "/", message: string) => {
       toast.error(message);
-      navigate({ to: "/profile", replace: true });
+      navigate({ to, replace: true });
     },
     [navigate],
   );
@@ -138,11 +138,11 @@ function useAdminAuth() {
       return;
     }
     if (result.errored) {
-      goProfile("Unable to verify your permissions.");
+      goRedirect("/", "Unable to verify your access. Please try again.");
       return;
     }
     if (!result.isAdmin) {
-      goProfile("You don't have permission to access the Admin Panel.");
+      goRedirect("/profile", "You don't have permission to access the Admin Panel.");
       return;
     }
     setState({
@@ -152,15 +152,16 @@ function useAdminAuth() {
       roles: result.roles,
       topRole: result.role,
     });
-  }, [goLogin, goProfile]);
+  }, [goLogin, goRedirect]);
 
   React.useEffect(() => {
     let mounted = true;
     check().catch((e) => {
       if (!mounted) return;
       console.error("[admin] gate check failed", e);
-      goProfile("Unable to verify your permissions.");
+      goRedirect("/", "Unable to verify your access. Please try again.");
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
         setState({ status: "loading" });
@@ -178,7 +179,7 @@ function useAdminAuth() {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, [check, goLogin, goProfile, logFn]);
+  }, [check, goLogin, goRedirect, logFn]);
 
   // Realtime role revocation
   React.useEffect(() => {
@@ -305,15 +306,9 @@ export function AdminShell({
   };
 
   if (auth.status !== "ok") {
-    return (
-      <div className="grid min-h-screen place-items-center bg-muted/40">
-        <div className="flex flex-col items-center gap-4">
-          <Skeleton className="h-10 w-40 rounded-xl" />
-          <Skeleton className="h-4 w-64 rounded-md" />
-        </div>
-      </div>
-    );
+    return <AdminBootScreen />;
   }
+
 
 
   const roles = auth.roles ?? [];
@@ -424,6 +419,31 @@ function AccessDenied({ requiredPermission }: { requiredPermission: Permission }
           Back to dashboard
         </Link>
       </div>
+    </div>
+  );
+}
+
+function AdminBootScreen() {
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-gradient-to-br from-background via-background to-muted/60">
+      <div className="flex flex-col items-center gap-5">
+        <div className="relative">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-2)]">
+            <span className="font-display text-xl font-black">DZ</span>
+          </div>
+          <div className="absolute -inset-2 animate-ping rounded-3xl border border-primary/40" />
+        </div>
+        <div className="text-center">
+          <div className="font-display text-base font-black tracking-tight">Daddy Zingers</div>
+          <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            Verifying access…
+          </div>
+        </div>
+        <div className="mt-1 h-1 w-40 overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-1/3 animate-[loading_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
+        </div>
+      </div>
+      <style>{`@keyframes loading{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}`}</style>
     </div>
   );
 }
