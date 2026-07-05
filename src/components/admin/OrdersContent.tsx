@@ -314,9 +314,10 @@ function OrdersContentInner() {
     [urlStatus, branchId, payment, fulfillment, coupon, debouncedSearch, range, tab],
   );
 
-  const setTab = (v: ViewTab) => navigate({ search: (prev) => ({ ...prev, tab: v === "active" ? undefined : v }) });
+  const setTab = (v: ViewTab) =>
+    navigate({ search: (prev: OrdersSearch) => ({ ...prev, tab: v === "active" ? undefined : v }) });
   const setStatus = (v: StatusFilter) =>
-    navigate({ search: (prev) => ({ ...prev, status: v === "all" ? undefined : v }) });
+    navigate({ search: (prev: OrdersSearch) => ({ ...prev, status: v === "all" ? undefined : v }) });
 
   const branchesQ = useQuery({
     queryKey: ["admin", "orders", "branches"],
