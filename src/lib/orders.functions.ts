@@ -42,7 +42,9 @@ const InputSchema = z.object({
   address_snapshot: AddressSnapshotSchema,
   special_instructions: z.string().max(500).nullable().optional(),
   notes: z.string().max(500).optional().nullable(),
+  branch_id: z.string().uuid().nullable().optional(),
 });
+
 
 export type PlaceOrderInput = z.infer<typeof InputSchema>;
 
