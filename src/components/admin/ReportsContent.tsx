@@ -176,15 +176,18 @@ export function ReportsContent() {
   const reportsFn = useServerFn(adminReports);
   const qc = useQueryClient();
 
-  const filters = {
-    from: range.from.toISOString(),
-    to: range.to.toISOString(),
-    branchId,
-    status,
-    categoryId,
-    userId: null,
-    couponCode,
-  };
+  const filters = React.useMemo(
+    () => ({
+      from: range.from.toISOString(),
+      to: range.to.toISOString(),
+      branchId,
+      status,
+      categoryId,
+      userId: null,
+      couponCode,
+    }),
+    [range.from, range.to, branchId, status, categoryId, couponCode],
+  );
 
   const queryKey = ["admin", "reports", filters];
   const { data, isLoading, isFetching, error, refetch } = useQuery({
@@ -209,56 +212,91 @@ export function ReportsContent() {
   }, [qc]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <ReportsHeader
-        preset={preset}
-        onPreset={setPresetAndRange}
-        range={range}
-        onRange={(r) => {
-          setPreset("custom");
-          setRange(r);
-        }}
-        branchId={branchId}
-        setBranchId={setBranchId}
-        status={status}
-        setStatus={setStatus}
-        categoryId={categoryId}
-        setCategoryId={setCategoryId}
-        couponCode={couponCode}
-        setCouponCode={setCouponCode}
-        data={data}
-        isFetching={isFetching}
-        onRefresh={() => refetch()}
-      />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 print:max-w-none">
+      <div className="sticky top-0 z-30 -mx-4 border-b border-border/60 bg-background/85 px-4 pb-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 print:static print:border-0 print:bg-transparent print:p-0 sm:-mx-6 sm:px-6">
+        <ReportsHeader
+          preset={preset}
+          onPreset={setPresetAndRange}
+          range={range}
+          onRange={(r) => {
+            setPreset("custom");
+            setRange(r);
+          }}
+          branchId={branchId}
+          setBranchId={setBranchId}
+          status={status}
+          setStatus={setStatus}
+          categoryId={categoryId}
+          setCategoryId={setCategoryId}
+          couponCode={couponCode}
+          setCouponCode={setCouponCode}
+          data={data}
+          isFetching={isFetching}
+          onRefresh={() => refetch()}
+        />
+      </div>
 
       {isLoading ? (
         <ReportsSkeleton />
       ) : error ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-destructive">
-            Failed to load report: {(error as Error).message}
-          </CardContent>
-        </Card>
+        <ReportsError onRetry={() => refetch()} />
       ) : data ? (
         <ReportsBody data={data} />
-      ) : null}
+      ) : (
+        <ReportsEmpty />
+      )}
     </div>
   );
 }
 
 function ReportsSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy="true" aria-live="polite">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 rounded-2xl" />
         ))}
       </div>
       <Skeleton className="h-72 rounded-2xl" />
-      <Skeleton className="h-72 rounded-2xl" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
     </div>
   );
 }
+
+function ReportsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Card className="rounded-2xl border-destructive/40">
+      <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="font-display text-base font-bold">Report unavailable</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            We couldn&apos;t load analytics right now. Please try again in a moment.
+          </p>
+        </div>
+        <Button size="sm" onClick={onRetry} className="mt-1">
+          <RefreshCw className="mr-1 h-3.5 w-3.5" /> Retry
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportsEmpty() {
+  return (
+    <Card className="rounded-2xl border-dashed">
+      <CardContent className="p-8 text-center text-sm text-muted-foreground">
+        No data for the selected filters.
+      </CardContent>
+    </Card>
+  );
+}
+
 
 // -----------------------------
 // Header (filters + exports)
