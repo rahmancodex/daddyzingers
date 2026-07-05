@@ -105,7 +105,9 @@ export function CustomersContent() {
           (r.full_name ?? "").toLowerCase().includes(s) ||
           (r.email ?? "").toLowerCase().includes(s) ||
           (r.phone ?? "").toLowerCase().includes(s) ||
-          (r.referral_code ?? "").toLowerCase().includes(s),
+          (r.referral_code ?? "").toLowerCase().includes(s) ||
+          r.id.toLowerCase().includes(s) ||
+          shortCustomerId(r.id).toLowerCase().includes(s),
       );
     }
     if (tier !== "all") rows = rows.filter((r) => r.loyalty_tier === tier);
