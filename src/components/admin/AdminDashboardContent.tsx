@@ -1444,6 +1444,8 @@ function BranchPerformance({
         <ul className="space-y-4 p-5 sm:p-6">
           {list.map((b) => {
             const aov = b.orders ? Math.round(b.revenue / b.orders) : 0;
+            const pct = totalRev > 0 ? Math.round((b.revenue / totalRev) * 100) : 0;
+            const barPct = maxRev > 0 ? (b.revenue / maxRev) * 100 : 0;
             return (
               <li key={b.id}>
                 <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
@@ -1462,11 +1464,23 @@ function BranchPerformance({
                     <span className="ml-2 hidden tabular-nums sm:inline">AOV {formatPKR(aov)}</span>
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="flex items-center gap-2">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
-                    style={{ width: `${(b.revenue / maxRev) * 100}%` }}
-                  />
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${b.name} revenue share`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
+                      style={{ width: `${barPct}%` }}
+                    />
+                  </div>
+                  <span className="w-9 shrink-0 text-right text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {pct}%
+                  </span>
                 </div>
               </li>
             );
