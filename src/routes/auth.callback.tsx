@@ -32,7 +32,7 @@ function Callback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen grid place-items-center bg-background text-foreground">
+    <div className="min-h-dvh grid place-items-center bg-background text-foreground">
       <div className="flex items-center gap-3 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
         Signing you in…

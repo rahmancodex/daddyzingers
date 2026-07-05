@@ -73,7 +73,7 @@ function CartPage() {
   const prepMinutes = Math.max(12, Math.min(28, 10 + cart.length * 3));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <OrderHeader />
       <main className="pt-6 md:pt-10 pb-28 md:pb-16">
         <div className="container-dz">
