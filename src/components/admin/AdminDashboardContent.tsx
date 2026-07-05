@@ -7,11 +7,14 @@ import {
   AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
+  BarChart3,
+  BookOpen,
   ChefHat,
   CheckCircle2,
   Clock,
   DollarSign,
   Flame,
+  History,
   Lock,
   Package,
   PackageCheck,
@@ -19,8 +22,10 @@ import {
   RefreshCw,
   ShoppingBag,
   Sparkles,
+  Store,
   Ticket,
   Truck,
+  UserPlus,
   Users,
   XCircle,
   CalendarClock,
@@ -30,7 +35,11 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -46,6 +55,7 @@ import {
   type AdminOrderRow,
 } from "@/lib/admin-orders.functions";
 import { adminMe } from "@/lib/admin-staff.functions";
+import { adminListAuditLogs, type AuditLogRow } from "@/lib/admin-audit.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +70,7 @@ import {
   DateRangePicker,
   useDateRange,
   PRESET_LABEL,
+  type DateRangePreset,
 } from "@/components/admin/ui/date-range";
 import { ChartCard } from "@/components/admin/ui/chart-card";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -333,14 +344,17 @@ function useOrdersRealtime(keys: string[][]) {
 function LiveKpiGrid() {
   const q = useOrderStatsQuery();
   useOrdersRealtime([["admin", "order-stats"], ["admin", "dashboard-recent-orders"]]);
+  const { range } = useDateRange();
+  const rangeParam: Partial<Record<"range", DateRangePreset>> =
+    range.preset !== "custom" ? { range: range.preset } : {};
 
   if (q.isError) {
     return <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />;
   }
   if (q.isLoading || !q.data) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-7">
+        {Array.from({ length: 7 }).map((_, i) => (
           <KpiSkeleton key={i} />
         ))}
       </div>
@@ -354,7 +368,7 @@ function LiveKpiGrid() {
       value: String(d.today_orders),
       icon: ShoppingBag,
       tone: "primary",
-      hint: "Placed since midnight · view all",
+      hint: "Placed since midnight",
       to: "/admin/orders",
       search: { range: "today" },
     },
@@ -364,7 +378,7 @@ function LiveKpiGrid() {
       value: formatPKR(d.today_revenue_pkr),
       icon: DollarSign,
       tone: "success",
-      hint: "Gross of taxes & fees · view orders",
+      hint: "Gross of taxes & fees",
       to: "/admin/orders",
       search: { range: "today" },
     },
@@ -376,7 +390,7 @@ function LiveKpiGrid() {
       tone: "warning",
       hint: "Awaiting confirmation",
       to: "/admin/orders",
-      search: { status: "pending" },
+      search: { status: "pending", ...rangeParam },
     },
     {
       key: "preparing",
@@ -384,15 +398,25 @@ function LiveKpiGrid() {
       value: String(d.preparing),
       icon: ChefHat,
       tone: "info",
-      hint: "In the kitchen right now",
+      hint: "In the kitchen now",
       to: "/admin/orders",
-      search: { status: "preparing" },
+      search: { status: "preparing", ...rangeParam },
+    },
+    {
+      key: "ready",
+      label: "Ready",
+      value: String(d.ready),
+      icon: PackageCheck,
+      tone: "primary",
+      hint: "Awaiting pickup or dispatch",
+      to: "/admin/orders",
+      search: { status: "ready", ...rangeParam },
     },
     {
       key: "delivered",
       label: "Delivered",
       value: String(d.delivered),
-      icon: PackageCheck,
+      icon: CheckCircle2,
       tone: "success",
       hint: "Completed today",
       to: "/admin/orders",
@@ -410,7 +434,7 @@ function LiveKpiGrid() {
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-7">
       {kpis.map((k) => (
         <KpiCard key={k.key} kpi={k} />
       ))}
@@ -1102,16 +1126,409 @@ function TopSellingItems({
 }
 
 // -----------------------------------------------------------------------------
+// Orders trend (count per day)
+// -----------------------------------------------------------------------------
+
+function OrdersTrendChart({
+  trend,
+  loading,
+  error,
+  onRetry,
+  rangeLabel,
+}: {
+  trend?: Array<{ date: string; orders: number }>;
+  loading: boolean;
+  error?: unknown;
+  onRetry: () => void;
+  rangeLabel: string;
+}) {
+  const data = React.useMemo(
+    () =>
+      (trend ?? []).map((t) => ({
+        date: t.date,
+        orders: t.orders,
+        label: new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }),
+      })),
+    [trend],
+  );
+  const total = data.reduce((s, d) => s + d.orders, 0);
+  const hasData = total > 0;
+  return (
+    <ChartCard
+      exportName="orders-trend"
+      title={
+        <div className="flex items-baseline gap-3">
+          {loading ? (
+            <Skeleton className="h-8 w-24 rounded-md" />
+          ) : (
+            <span className="font-display text-2xl font-black tabular-nums sm:text-3xl">
+              {total.toLocaleString()}
+            </span>
+          )}
+          <span className="text-xs font-medium text-muted-foreground">orders</span>
+        </div>
+      }
+      subtitle={`Orders · ${rangeLabel}`}
+    >
+      {error ? (
+        <div className="p-4">
+          <InlineError message={errMsg(error)} onRetry={onRetry} />
+        </div>
+      ) : loading ? (
+        <div className="px-3 pb-2">
+          <Skeleton className="h-[200px] w-full rounded-xl" />
+        </div>
+      ) : !hasData ? (
+        <EmptyRow icon={ShoppingBag} title="No orders in this range" />
+      ) : (
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} dy={6} minTickGap={16} />
+              <YAxis axisLine={false} tickLine={false} width={32} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} allowDecimals={false} />
+              <Tooltip
+                cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25 }}
+                contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", background: "var(--popover)", fontSize: 12 }}
+              />
+              <Line type="monotone" dataKey="orders" stroke="var(--primary)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} animationDuration={700} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </ChartCard>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Peak hours
+// -----------------------------------------------------------------------------
+
+function PeakHoursChart({
+  hourly,
+  bestHour,
+  loading,
+  error,
+  onRetry,
+  rangeLabel,
+}: {
+  hourly?: Array<{ hour: number; count: number }>;
+  bestHour?: number;
+  loading: boolean;
+  error?: unknown;
+  onRetry: () => void;
+  rangeLabel: string;
+}) {
+  const data = (hourly ?? []).map((h) => ({
+    hour: h.hour,
+    count: h.count,
+    label: `${String(h.hour).padStart(2, "0")}:00`,
+  }));
+  const hasData = data.some((d) => d.count > 0);
+  return (
+    <ChartCard
+      exportName="peak-hours"
+      title="Peak order hours"
+      subtitle={
+        loading || bestHour == null
+          ? rangeLabel
+          : hasData
+            ? `Busiest at ${String(bestHour).padStart(2, "0")}:00 · ${rangeLabel}`
+            : rangeLabel
+      }
+    >
+      {error ? (
+        <div className="p-4">
+          <InlineError message={errMsg(error)} onRetry={onRetry} />
+        </div>
+      ) : loading ? (
+        <div className="px-3 pb-2">
+          <Skeleton className="h-[200px] w-full rounded-xl" />
+        </div>
+      ) : !hasData ? (
+        <EmptyRow icon={Clock} title="No orders to profile yet" />
+      ) : (
+        <div className="h-[200px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval={2} />
+              <YAxis axisLine={false} tickLine={false} width={28} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} allowDecimals={false} />
+              <Tooltip
+                cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                contentStyle={{ borderRadius: 8, border: "1px solid var(--border)", background: "var(--popover)", fontSize: 12 }}
+              />
+              <Bar dataKey="count" fill="var(--primary)" radius={[4, 4, 0, 0]} animationDuration={700} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </ChartCard>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// AOV + fulfillment mix card
+// -----------------------------------------------------------------------------
+
+function InsightsCard({
+  aov,
+  orders,
+  delivery,
+  pickup,
+  processingMin,
+  loading,
+  rangeLabel,
+}: {
+  aov?: number;
+  orders?: number;
+  delivery?: number;
+  pickup?: number;
+  processingMin?: number;
+  loading: boolean;
+  rangeLabel: string;
+}) {
+  const totalMix = (delivery ?? 0) + (pickup ?? 0);
+  const dPct = totalMix ? Math.round(((delivery ?? 0) / totalMix) * 100) : 0;
+  return (
+    <Surface className="flex h-full flex-col">
+      <SectionHeader title="Order insights" subtitle={rangeLabel} icon={Sparkles} />
+      <div className="grid grid-cols-2 gap-4 p-5 sm:p-6">
+        <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Avg. order value</div>
+          {loading ? (
+            <Skeleton className="mt-2 h-7 w-24 rounded-md" />
+          ) : (
+            <div className="mt-2 font-display text-2xl font-black tabular-nums">{formatPKR(aov ?? 0)}</div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Total orders</div>
+          {loading ? (
+            <Skeleton className="mt-2 h-7 w-16 rounded-md" />
+          ) : (
+            <div className="mt-2 font-display text-2xl font-black tabular-nums">{(orders ?? 0).toLocaleString()}</div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Avg. prep time</div>
+          {loading ? (
+            <Skeleton className="mt-2 h-7 w-16 rounded-md" />
+          ) : (
+            <div className="mt-2 font-display text-2xl font-black tabular-nums">{processingMin ?? 0}<span className="ml-1 text-sm font-medium text-muted-foreground">min</span></div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Delivery share</div>
+          {loading ? (
+            <Skeleton className="mt-2 h-7 w-16 rounded-md" />
+          ) : (
+            <div className="mt-2 font-display text-2xl font-black tabular-nums">{dPct}%</div>
+          )}
+        </div>
+      </div>
+      {!loading && totalMix > 0 && (
+        <div className="border-t border-border/60 px-5 py-4 sm:px-6">
+          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5"><Truck className="h-3 w-3" /> Delivery {delivery}</span>
+            <span className="inline-flex items-center gap-1.5"><Store className="h-3 w-3" /> Pickup {pickup}</span>
+          </div>
+          <div className="flex h-2 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border/60">
+            <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${dPct}%` }} />
+            <div className="h-full bg-emerald-500 transition-[width] duration-500" style={{ width: `${100 - dPct}%` }} />
+          </div>
+        </div>
+      )}
+    </Surface>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Branch performance
+// -----------------------------------------------------------------------------
+
+function BranchPerformance({
+  branches,
+  loading,
+  error,
+  onRetry,
+  rangeLabel,
+}: {
+  branches?: Array<{ id: string; name: string; city: string | null; revenue: number; orders: number }>;
+  loading: boolean;
+  error?: unknown;
+  onRetry: () => void;
+  rangeLabel: string;
+}) {
+  const list = (branches ?? []).slice(0, 6);
+  const maxRev = list.length ? Math.max(...list.map((b) => b.revenue), 1) : 1;
+  return (
+    <Surface className="flex h-full flex-col">
+      <SectionHeader title="Branch performance" subtitle={rangeLabel} icon={Store} />
+      {error ? (
+        <div className="p-5">
+          <InlineError message={errMsg(error)} onRetry={onRetry} />
+        </div>
+      ) : loading ? (
+        <ul className="space-y-4 p-5 sm:p-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <li key={i} className="space-y-2">
+              <div className="flex justify-between">
+                <Skeleton className="h-3.5 w-32 rounded" />
+                <Skeleton className="h-3.5 w-16 rounded" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+            </li>
+          ))}
+        </ul>
+      ) : list.length === 0 ? (
+        <EmptyRow icon={Store} title="No branch activity" hint="Sales grouped by branch will appear here." />
+      ) : (
+        <ul className="space-y-4 p-5 sm:p-6">
+          {list.map((b) => {
+            const aov = b.orders ? Math.round(b.revenue / b.orders) : 0;
+            return (
+              <li key={b.id}>
+                <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                      <Store className="h-3 w-3" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">{b.name}</span>
+                      {b.city && <span className="block truncate text-[11px] text-muted-foreground">{b.city}</span>}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right text-xs text-muted-foreground">
+                    <span className="tabular-nums">{b.orders}</span> orders ·{" "}
+                    <span className="font-semibold text-foreground tabular-nums">{formatPKR(b.revenue)}</span>
+                    <span className="ml-2 hidden tabular-nums sm:inline">AOV {formatPKR(aov)}</span>
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-[width] duration-700 ease-out"
+                    style={{ width: `${(b.revenue / maxRev) * 100}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Surface>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Activity feed (audit trail)
+// -----------------------------------------------------------------------------
+
+const ACTION_STYLE: Array<{ match: RegExp; icon: LucideIcon; tone: Tone }> = [
+  { match: /order.*(create|placed|new)/i, icon: ShoppingBag, tone: "primary" },
+  { match: /deliver/i, icon: PackageCheck, tone: "success" },
+  { match: /cancel/i, icon: XCircle, tone: "destructive" },
+  { match: /ready/i, icon: CheckCircle2, tone: "info" },
+  { match: /prepar/i, icon: ChefHat, tone: "info" },
+  { match: /dispatch|out_for_delivery|rider/i, icon: Truck, tone: "primary" },
+  { match: /login|signin/i, icon: UserPlus, tone: "neutral" },
+  { match: /customer|profile|signup|register/i, icon: UserPlus, tone: "info" },
+  { match: /status/i, icon: Activity, tone: "warning" },
+];
+
+function classifyAction(action: string): { icon: LucideIcon; tone: Tone } {
+  for (const rule of ACTION_STYLE) if (rule.match.test(action)) return { icon: rule.icon, tone: rule.tone };
+  return { icon: History, tone: "neutral" };
+}
+
+function ActivityFeed({ canView }: { canView: boolean }) {
+  const fetchLogs = useServerFn(adminListAuditLogs);
+  const q = useQuery({
+    queryKey: ["admin", "dashboard-activity"],
+    queryFn: () => fetchLogs({ data: { limit: 12 } }) as Promise<AuditLogRow[]>,
+    enabled: canView,
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+
+  return (
+    <Surface className="flex h-full flex-col">
+      <SectionHeader
+        title="Activity feed"
+        subtitle="Recent staff & system events"
+        icon={History}
+        action={
+          canView ? (
+            <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
+              <Link to="/admin/audit-logs">
+                View all <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          ) : undefined
+        }
+      />
+      {!canView ? (
+        <EmptyRow icon={Lock} title="Not available for your role" hint="Audit logs require Owner, Admin or Manager." />
+      ) : q.isError ? (
+        <div className="p-5">
+          <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />
+        </div>
+      ) : q.isLoading ? (
+        <ul className="divide-y divide-border/60">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li key={i} className="flex items-center gap-3 px-5 py-3 sm:px-6">
+              <Skeleton className="h-8 w-8 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-40 rounded" />
+                <Skeleton className="h-3 w-24 rounded" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (q.data ?? []).length === 0 ? (
+        <EmptyRow icon={History} title="No activity yet" hint="Staff and system events will appear here." />
+      ) : (
+        <ul className="divide-y divide-border/60">
+          {(q.data ?? []).slice(0, 8).map((log) => {
+            const meta = classifyAction(log.action);
+            const Icon = meta.icon;
+            return (
+              <li key={log.id} className="flex items-start gap-3 px-5 py-3 sm:px-6">
+                <span className={cn("mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg", TONE_CHIP[meta.tone])}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">
+                    <span className="font-semibold">{log.summary ?? log.action.replace(/[_.]/g, " ")}</span>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="truncate">{log.actor_email ?? "system"}</span>
+                    <span className="text-border">•</span>
+                    <span className="tabular-nums">{relTime(log.created_at)}</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Surface>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Quick actions
 // -----------------------------------------------------------------------------
 
+
+
 const ACTIONS: Array<{ label: string; icon: LucideIcon; tone: Tone; to: string; desc: string }> = [
-  { label: "Add menu item", desc: "Create a new dish", icon: Plus, tone: "primary", to: "/admin/menu" },
-  { label: "Create coupon", desc: "Discount codes", icon: Ticket, tone: "info", to: "/admin/coupons" },
-  { label: "Promo banner", desc: "Homepage hero", icon: Sparkles, tone: "warning", to: "/admin/promo-banners" },
-  { label: "Dispatch order", desc: "Send to rider", icon: Truck, tone: "success", to: "/admin/orders" },
-  { label: "Mark ready", desc: "Kitchen queue", icon: CheckCircle2, tone: "primary", to: "/admin/orders" },
-  { label: "Manage staff", desc: "Roles & access", icon: Users, tone: "neutral", to: "/admin/staff" },
+  { label: "New Order", desc: "Take an order", icon: Plus, tone: "primary", to: "/admin/orders" },
+  { label: "Orders", desc: "Live queue", icon: ShoppingBag, tone: "info", to: "/admin/orders" },
+  { label: "Menu", desc: "Items & pricing", icon: BookOpen, tone: "warning", to: "/admin/menu" },
+  { label: "Customers", desc: "Directory & CRM", icon: Users, tone: "neutral", to: "/admin/customers" },
+  { label: "Reports", desc: "Analytics deep-dive", icon: BarChart3, tone: "success", to: "/admin/reports" },
+  { label: "Coupons", desc: "Promotions & codes", icon: Ticket, tone: "primary", to: "/admin/coupons" },
 ];
 
 function QuickActions() {
@@ -1163,6 +1580,9 @@ function DashboardInner() {
   const weekly = useWeeklyReport();
   const myRoles = useMyRoles();
   const canViewCustomers = hasPermission(myRoles.data, "customers.view");
+  const canViewAudit = (myRoles.data ?? []).some((r) =>
+    (["owner", "admin", "manager"] as AppRole[]).includes(r),
+  );
   const { range } = useDateRange();
 
   const chartData = weekly.data
@@ -1178,6 +1598,7 @@ function DashboardInner() {
             : null,
       }
     : undefined;
+  const ordersTrend = weekly.data?.trend?.map((t) => ({ date: t.date, orders: t.orders }));
   const topItems = weekly.data?.products?.best?.map((p) => ({
     name: p.name,
     qty: p.qty,
@@ -1234,6 +1655,45 @@ function DashboardInner() {
         <OrderStatusOverview />
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="lg:col-span-2">
+          <OrdersTrendChart
+            trend={ordersTrend}
+            loading={weekly.isLoading}
+            error={weekly.isError ? weekly.error : undefined}
+            onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
+          />
+        </div>
+        <InsightsCard
+          aov={weekly.data?.revenue?.aov}
+          orders={weekly.data?.orders?.total}
+          delivery={weekly.data?.orders?.deliveryCount}
+          pickup={weekly.data?.orders?.pickupCount}
+          processingMin={weekly.data?.orders?.avgProcessingMin}
+          loading={weekly.isLoading}
+          rangeLabel={rangeLabel}
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+        <PeakHoursChart
+          hourly={weekly.data?.peak?.hourly}
+          bestHour={weekly.data?.peak?.bestHour}
+          loading={weekly.isLoading}
+          error={weekly.isError ? weekly.error : undefined}
+          onRetry={() => weekly.refetch()}
+          rangeLabel={rangeLabel}
+        />
+        <BranchPerformance
+          branches={weekly.data?.branches}
+          loading={weekly.isLoading}
+          error={weekly.isError ? weekly.error : undefined}
+          onRetry={() => weekly.refetch()}
+          rangeLabel={rangeLabel}
+        />
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-3 xl:gap-6">
         <div className="xl:col-span-2">
           <RecentOrders />
@@ -1251,8 +1711,10 @@ function DashboardInner() {
             rangeLabel={rangeLabel}
           />
         </div>
-        <QuickActions />
+        <ActivityFeed canView={canViewAudit} />
       </div>
+
+      <QuickActions />
     </div>
   );
 }
