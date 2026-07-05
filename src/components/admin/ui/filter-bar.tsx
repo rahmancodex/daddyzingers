@@ -29,16 +29,19 @@ export function SearchInput({
   onChange,
   placeholder = "Search…",
   className,
+  inputRef,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   className?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
 }) {
   return (
     <div className={cn("relative min-w-[220px] flex-1", className)}>
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -59,3 +62,4 @@ export function SearchInput({
     </div>
   );
 }
+
