@@ -989,11 +989,13 @@ function TopSellingItems({
   loading,
   error,
   onRetry,
+  rangeLabel,
 }: {
   items?: Array<{ name: string; qty: number; revenue: number }>;
   loading: boolean;
   error?: unknown;
   onRetry: () => void;
+  rangeLabel: string;
 }) {
   const list = (items ?? []).slice(0, 5);
   const max = list.length ? Math.max(...list.map((i) => i.qty), 1) : 1;
@@ -1001,7 +1003,7 @@ function TopSellingItems({
     <Surface className="flex h-full flex-col">
       <SectionHeader
         title="Top Selling Items"
-        subtitle="Last 7 days"
+        subtitle={rangeLabel}
         icon={Flame}
         action={
           <Button asChild variant="ghost" size="sm" className="h-8 rounded-lg text-xs">
