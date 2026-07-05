@@ -56,12 +56,12 @@ function AdminLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-brand-black text-neutral-50">
+    <div className="relative min-h-dvh overflow-hidden bg-brand-black text-neutral-50">
       {/* Decorative glow */}
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-4 py-10">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl items-center justify-center px-4 py-10">
         <div className="grid w-full gap-10 lg:grid-cols-2 lg:items-center">
           {/* Left brand pane */}
           <div className="hidden flex-col gap-6 lg:flex">
