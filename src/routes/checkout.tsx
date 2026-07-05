@@ -385,6 +385,15 @@ function CheckoutPage() {
             </Button>
           )}
         </div>
+        {step === 3 && !canPlace && !placing && (
+          <p className="px-5 pb-2 -mt-1 text-[11px] text-destructive">
+            {checkout.method === "delivery" && !checkout.selectedAddressId
+              ? "Select a delivery address to continue"
+              : checkout.contactPhone.trim().length < 8
+                ? "Add a valid phone number (Step 2) to continue"
+                : "Add an item to continue"}
+          </p>
+        )}
       </div>
       <Footer />
     </div>
