@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,7 +15,9 @@ import {
   CreditCard,
   Loader2,
   MapPin,
+  Building2,
   Plus,
+
   Store,
   UtensilsCrossed,
   Wallet,
@@ -27,6 +31,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { cartActions, useCart, useCartTotal } from "@/lib/store";
 import {
   checkoutActions,
@@ -53,6 +59,40 @@ export const Route = createFileRoute("/checkout")({
 
 const STEPS = ["Method", "Address", "Payment", "Review"] as const;
 type StepIdx = 0 | 1 | 2 | 3;
+
+/** Only these cities are supported for customer delivery. */
+export const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
+type BranchRow = {
+  id: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+  phone: string | null;
+  pickup_available: boolean;
+  delivery_available: boolean;
+  delivery_charges: number | null;
+  estimated_delivery_minutes: number | null;
+  sort_order: number;
+};
+
+function useActiveBranches() {
+  return useQuery({
+    queryKey: ["public", "branches", "active"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branches")
+        .select("id,name,city,address,phone,pickup_available,delivery_available,delivery_charges,estimated_delivery_minutes,sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BranchRow[];
+    },
+  });
+}
+
 
 type Address = {
   id: string;
@@ -83,7 +123,20 @@ function CheckoutPage() {
   const keyboardOpen = useKeyboardOpen();
   const addressStepRef = useRef<{ prepare: () => Promise<boolean> } | null>(null);
 
+  const branchesQ = useActiveBranches();
+  const activeBranches = branchesQ.data ?? [];
+
+  // Auto-select branch: if only one active branch, pin it. Otherwise keep the
+  // customer's choice, or default to the top of the sort order.
+  useEffect(() => {
+    if (activeBranches.length === 0) return;
+    const stillValid = checkout.branchId && activeBranches.some((b) => b.id === checkout.branchId);
+    if (stillValid) return;
+    checkoutActions.setBranch(activeBranches[0].id);
+  }, [activeBranches, checkout.branchId]);
+
   const placeOrderFn = useServerFn(placeOrder);
+
 
   const goNext = async () => {
     if (step === 1 && checkout.method === "delivery" && addressStepRef.current) {
@@ -215,6 +268,8 @@ function CheckoutPage() {
             : null,
           notes: checkout.notes,
           special_instructions: null,
+          branch_id: checkout.branchId,
+
         },
       });
       toast.success(`Order ${order.order_number} placed`, {
@@ -447,17 +502,84 @@ const METHODS: { id: DeliveryMethod; label: string; desc: string; icon: React.Co
 function MethodStep() {
   const checkout = useCheckout();
   const [scheduleOpen, setScheduleOpen] = useState(!!checkout.scheduleAt);
+  const branchesQ = useActiveBranches();
+  const branches = branchesQ.data ?? [];
+
+  // Filter methods per selected branch capability so users can't pick a mode
+  // the branch doesn't offer.
+  const selectedBranch = branches.find((b) => b.id === checkout.branchId) ?? null;
 
   return (
     <Section title="How would you like your order?">
+      {/* Branch picker: hidden when only one active branch (auto-selected). */}
+      {branches.length > 1 && (
+        <div className="mb-4 rounded-2xl border border-border p-4">
+          <div className="flex items-center gap-2 mb-2 font-display font-bold text-sm">
+            <Building2 className="h-4 w-4 shrink-0" /> Branch
+          </div>
+          <RadioGroup
+            value={checkout.branchId ?? ""}
+            onValueChange={(v) => checkoutActions.setBranch(v)}
+            className="grid sm:grid-cols-2 gap-2"
+          >
+            {branches.map((b) => {
+              const active = checkout.branchId === b.id;
+              return (
+                <label
+                  key={b.id}
+                  htmlFor={`branch-${b.id}`}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    active
+                      ? "border-primary bg-primary/5 shadow-[var(--shadow-glow)]"
+                      : "border-border hover:border-foreground/30"
+                  }`}
+                >
+                  <RadioGroupItem id={`branch-${b.id}`} value={b.id} className="mt-1" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display font-semibold text-sm truncate">{b.name}</div>
+                    {b.city && <div className="text-xs text-muted-foreground truncate">{b.city}</div>}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {b.delivery_available && <Badge variant="outline" className="text-[10px]">Delivery</Badge>}
+                      {b.pickup_available && <Badge variant="outline" className="text-[10px]">Pickup</Badge>}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </div>
+      )}
+      {branches.length === 1 && selectedBranch && (
+        <div className="mb-4 rounded-2xl border border-border p-3 flex items-center gap-2 text-sm">
+          <Building2 className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-muted-foreground">Ordering from</span>
+          <span className="font-display font-bold truncate">{selectedBranch.name}</span>
+        </div>
+      )}
+      {branchesQ.isSuccess && branches.length === 0 && (
+        <div className="mb-4 rounded-2xl border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          No branches are currently accepting orders. Please try again later.
+        </div>
+      )}
+
       <div className="grid sm:grid-cols-3 gap-3">
+
         {METHODS.map((m) => {
           const active = checkout.method === m.id;
+          const unsupported =
+            !!selectedBranch &&
+            ((m.id === "delivery" && !selectedBranch.delivery_available) ||
+              (m.id === "pickup" && !selectedBranch.pickup_available));
+          const disabled = m.soon || unsupported;
           return (
             <button
               key={m.id}
-              disabled={m.soon}
-              onClick={() => { if (!m.soon) checkoutActions.setMethod(m.id); else toast("Dine-in coming soon"); }}
+              disabled={disabled}
+              onClick={() => {
+                if (m.soon) return toast("Dine-in coming soon");
+                if (unsupported) return toast(`${m.label} is not available at ${selectedBranch?.name}`);
+                checkoutActions.setMethod(m.id);
+              }}
               className={`p-4 rounded-2xl border transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed ${
                 active
                   ? "border-primary bg-primary/10 shadow-[var(--shadow-glow)]"
@@ -466,10 +588,11 @@ function MethodStep() {
             >
               <m.icon className={`h-5 w-5 mb-2 ${active ? "text-primary" : "text-foreground/70"}`} />
               <div className="font-display font-bold">{m.label}</div>
-              <div className="text-xs text-muted-foreground">{m.desc}</div>
+              <div className="text-xs text-muted-foreground">{unsupported ? "Not at this branch" : m.desc}</div>
             </button>
           );
         })}
+
       </div>
 
       <div className="mt-6 rounded-2xl border border-border p-4">
@@ -714,8 +837,18 @@ function NewAddressForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="na-city">City *</Label>
-        <Input id="na-city" value={d.city} onChange={(e) => set({ city: e.target.value })} placeholder="Lahore" />
+        <Select value={d.city || undefined} onValueChange={(v) => set({ city: v })}>
+          <SelectTrigger id="na-city" aria-label="City">
+            <SelectValue placeholder="Select city" />
+          </SelectTrigger>
+          <SelectContent>
+            {ALLOWED_CITIES.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
       <div className="space-y-1.5 sm:col-span-2">
         <Label htmlFor="na-addr">Address *</Label>
         <Input id="na-addr" value={d.address_line} onChange={(e) => set({ address_line: e.target.value })} placeholder="House / street / building" />

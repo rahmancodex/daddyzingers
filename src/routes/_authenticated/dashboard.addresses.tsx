@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -48,15 +50,18 @@ type Address = {
   is_default: boolean;
 };
 
+const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
 const schema = z.object({
   label: z.string().trim().min(1, "Label required").max(40),
   recipient_name: z.string().trim().max(80).optional().or(z.literal("")),
   phone: z.string().trim().max(20).optional().or(z.literal("")),
   address_line: z.string().trim().min(4, "Enter street/house").max(200),
-  city: z.string().trim().min(2, "Enter city").max(60),
+  city: z.enum(ALLOWED_CITIES, { message: "Select a supported city" }),
   area: z.string().trim().max(80).optional().or(z.literal("")),
   notes: z.string().trim().max(200).optional().or(z.literal("")),
 });
+
 
 function iconForLabel(label: string) {
   const l = label.toLowerCase();
@@ -359,8 +364,21 @@ function AddressDialog({
         >
           <div className="grid grid-cols-2 gap-3">
             <Field label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} placeholder="Home" />
-            <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} placeholder="Karachi" />
+            <div className="space-y-1">
+              <Label>City</Label>
+              <Select value={form.city || undefined} onValueChange={(v) => setForm({ ...form, city: v })}>
+                <SelectTrigger aria-label="City">
+                  <SelectValue placeholder="Select city" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALLOWED_CITIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <Field label="Address line" value={form.address_line} onChange={(v) => setForm({ ...form, address_line: v })} placeholder="House 12, Street 4" />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Area" value={form.area} onChange={(v) => setForm({ ...form, area: v })} placeholder="DHA Phase 6" />

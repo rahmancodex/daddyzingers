@@ -38,6 +38,8 @@ export type CheckoutState = {
   paymentMethod: "cod" | "card" | "wallet";
   useNewAddress: boolean;
   newAddress: NewAddressDraft;
+  branchId: string | null;
+
 };
 
 const LS_KEY = "dz_checkout_v1";
@@ -63,7 +65,9 @@ const DEFAULT: CheckoutState = {
   paymentMethod: "cod",
   useNewAddress: false,
   newAddress: EMPTY_NEW_ADDRESS,
+  branchId: null,
 };
+
 
 function load(): CheckoutState {
   if (typeof window === "undefined") return DEFAULT;
@@ -141,10 +145,14 @@ export const checkoutActions = {
   resetNewAddress() {
     setState({ newAddress: EMPTY_NEW_ADDRESS, useNewAddress: false });
   },
+  setBranch(id: string | null) {
+    setState({ branchId: id });
+  },
   reset() {
     setState(DEFAULT);
   },
 };
+
 
 /* -------------- Fees & totals -------------- */
 

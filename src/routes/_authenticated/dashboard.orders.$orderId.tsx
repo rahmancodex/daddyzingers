@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Bike,
+  Building2,
   Check,
   ChefHat,
   Clock,
@@ -16,6 +17,7 @@ import {
   UtensilsCrossed,
   XCircle,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -81,8 +83,11 @@ type Order = {
   special_instructions: string | null;
   created_at: string;
   schedule_at: string | null;
+  branch_id: string | null;
+  branch?: { id: string; name: string; city: string | null; address: string | null; phone: string | null } | null;
   order_items: OrderItem[];
 };
+
 
 const DELIVERY_TIMELINE = [
   { key: "pending", label: "Placed", icon: ReceiptText },
@@ -123,11 +128,12 @@ function OrderDetailsPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, status, payment_method, fulfillment_method, subtotal_pkr, delivery_fee_pkr, discount_pkr, tax_pkr, total_pkr, coupon_code, address_snapshot, notes, special_instructions, created_at, schedule_at, order_items(id, product_id, name, qty, unit_price_pkr, options)",
+          "id, order_number, status, payment_method, fulfillment_method, subtotal_pkr, delivery_fee_pkr, discount_pkr, tax_pkr, total_pkr, coupon_code, address_snapshot, notes, special_instructions, created_at, schedule_at, branch_id, branch:branches(id, name, city, address, phone), order_items(id, product_id, name, qty, unit_price_pkr, options)",
         )
         // Try lookup by both id and order_number so links from either work.
         .or(`id.eq.${orderId},order_number.eq.${orderId}`)
         .maybeSingle();
+
       if (error) throw error;
       return (data as Order | null) ?? null;
     },
@@ -420,6 +426,37 @@ function OrderDetailsPage() {
                   </span>
                 </div>
               </section>
+
+              {order.branch && (
+                <section className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
+                        Branch
+                      </div>
+                      <div className="font-semibold truncate">{order.branch.name}</div>
+                      {(order.branch.address || order.branch.city) && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {[order.branch.address, order.branch.city].filter(Boolean).join(", ")}
+                        </div>
+                      )}
+                      {order.branch.phone && (
+                        <a
+                          href={`tel:${order.branch.phone}`}
+                          className="mt-1 inline-block text-xs text-primary hover:underline"
+                        >
+                          {order.branch.phone}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+
 
               {isDelivery && order.address_snapshot?.address_line ? (
                 <section className="rounded-2xl border border-border bg-card p-5">

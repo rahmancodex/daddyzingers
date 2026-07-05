@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Check, Clock, MapPin, ReceiptText, ArrowRight, Home, Sparkles } from "lucide-react";
+import { Building2, Check, Clock, MapPin, ReceiptText, ArrowRight, Home, Sparkles } from "lucide-react";
 import { OrderHeader } from "@/components/order/OrderHeader";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ type OrderRow = {
   subtotal_pkr: number;
   delivery_fee_pkr: number;
   created_at: string;
+  branch_id: string | null;
+  branch?: { id: string; name: string; city: string | null; phone: string | null } | null;
   address_snapshot: {
     address_line?: string;
     city?: string;
@@ -46,14 +48,15 @@ function OrderSuccess() {
     if (!user) return;
     supabase
       .from("orders")
-      .select("id, order_number, status, total_pkr, subtotal_pkr, delivery_fee_pkr, created_at, address_snapshot")
+      .select("id, order_number, status, total_pkr, subtotal_pkr, delivery_fee_pkr, created_at, address_snapshot, branch_id, branch:branches(id, name, city, phone)")
       .eq("order_number", number)
       .maybeSingle()
       .then(({ data }) => {
-        if (data) setOrder(data as OrderRow);
+        if (data) setOrder(data as unknown as OrderRow);
         else setNotFound(true);
       });
   }, [user, number]);
+
 
   return (
     <div className="min-h-dvh bg-background">
@@ -148,6 +151,20 @@ function OrderSuccess() {
 
             {order && (
               <div className="border-t border-border p-5 md:p-6 grid sm:grid-cols-2 gap-4 text-sm">
+                {order.branch && (
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-secondary grid place-items-center shrink-0 text-primary">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Branch</div>
+                      <div className="font-semibold truncate">{order.branch.name}</div>
+                      {order.branch.city && (
+                        <div className="text-xs text-muted-foreground truncate">{order.branch.city}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {order.address_snapshot?.address_line && (
                   <div className="flex items-start gap-3">
                     <div className="h-9 w-9 rounded-xl bg-secondary grid place-items-center shrink-0 text-primary">
@@ -177,6 +194,7 @@ function OrderSuccess() {
                 </div>
               </div>
             )}
+
           </motion.div>
 
           {/* CTAs */}

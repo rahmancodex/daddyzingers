@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
+  ArrowDown,
+  ArrowUp,
   Building2,
   ExternalLink,
   MapPin,
@@ -14,6 +16,7 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,8 +57,19 @@ import {
   adminCreateBranch,
   adminDeleteBranch,
   adminListBranches,
+  adminReorderBranch,
   adminUpdateBranch,
 } from "@/lib/admin-settings.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ALLOWED_CITIES = ["Bahawalpur", "Lodhran"] as const;
+
 
 type Branch = Awaited<ReturnType<typeof adminListBranches>>[number];
 
@@ -73,6 +87,7 @@ export function BranchesManager() {
   const listFn = useServerFn(adminListBranches);
   const updateFn = useServerFn(adminUpdateBranch);
   const deleteFn = useServerFn(adminDeleteBranch);
+  const reorderFn = useServerFn(adminReorderBranch);
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
@@ -89,6 +104,7 @@ export function BranchesManager() {
     mutationFn: (b: Branch) => updateFn({ data: { id: b.id, is_active: !b.is_active } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
       toast.success("Branch updated");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -98,11 +114,23 @@ export function BranchesManager() {
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
       toast.success("Branch deleted");
       setDeleting(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const reorder = useMutation({
+    mutationFn: (v: { id: string; direction: "up" | "down" }) => reorderFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+      qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
 
   const openNew = () => {
     setEditing(null);
@@ -158,13 +186,17 @@ export function BranchesManager() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {data.map((branch) => (
+          {data.map((branch, i) => (
             <BranchCard
               key={branch.id}
               branch={branch}
+              isFirst={i === 0}
+              isLast={i === data.length - 1}
               onEdit={() => openEdit(branch)}
               onToggle={() => toggleActive.mutate(branch)}
               onDelete={() => setDeleting(branch)}
+              onMoveUp={() => reorder.mutate({ id: branch.id, direction: "up" })}
+              onMoveDown={() => reorder.mutate({ id: branch.id, direction: "down" })}
             />
           ))}
         </div>
@@ -176,9 +208,11 @@ export function BranchesManager() {
         branch={editing}
         onSaved={() => {
           qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+          qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
           setDrawerOpen(false);
         }}
       />
+
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
@@ -205,14 +239,22 @@ export function BranchesManager() {
 
 function BranchCard({
   branch,
+  isFirst,
+  isLast,
   onEdit,
   onToggle,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   branch: Branch;
+  isFirst: boolean;
+  isLast: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   return (
     <Card className="rounded-2xl border-border/70 transition-shadow hover:shadow-md">
@@ -233,30 +275,53 @@ function BranchCard({
               <div className="mt-0.5 text-xs text-muted-foreground">{branch.city}</div>
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Branch actions" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil className="h-4 w-4" /> Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onToggle}>
-                <Power className="h-4 w-4" />
-                {branch.is_active ? "Disable" : "Enable"}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={onDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Move branch up"
+              disabled={isFirst}
+              onClick={onMoveUp}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label="Move branch down"
+              disabled={isLast}
+              onClick={onMoveDown}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Branch actions" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={onEdit}>
+                  <Pencil className="h-4 w-4" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onToggle}>
+                  <Power className="h-4 w-4" />
+                  {branch.is_active ? "Disable" : "Enable"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
+
 
         <div className="space-y-2 text-sm">
           {branch.address && (
@@ -447,8 +512,21 @@ function BranchDrawer({
             </FormField>
             <div className="grid gap-3 md:grid-cols-2">
               <FormField label="City">
-                <Input value={form.city} onChange={(e) => setField("city", e.target.value)} />
+                <Select
+                  value={form.city || undefined}
+                  onValueChange={(v) => setField("city", v)}
+                >
+                  <SelectTrigger aria-label="City">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALLOWED_CITIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
+
               <FormField label="Branch Manager">
                 <Input
                   value={form.manager_name}
