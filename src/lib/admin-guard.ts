@@ -1,6 +1,8 @@
 // Server-only RBAC guard shared by every admin server function.
 // Uses the authenticated (RLS-scoped) supabase client from requireSupabaseAuth
 // so a stale/revoked user simply reads back zero roles and is denied.
+import { createMiddleware } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ROLE_PERMISSIONS, type AppRole, type Permission } from "@/lib/rbac";
 
 export type GuardContext = { supabase: any; userId: string };
