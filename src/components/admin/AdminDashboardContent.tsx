@@ -1035,30 +1035,54 @@ function LatestCustomersCard({ canView }: { canView: boolean }) {
         <ul className="divide-y divide-border/60">
           {rows.map((c) => {
             const name = c.full_name ?? "Unnamed";
+            const joined = new Date(c.created_at).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+            });
             return (
               <li
                 key={c.id}
                 className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-muted/40 sm:px-6"
               >
-                <Avatar className="h-9 w-9 shrink-0 ring-1 ring-inset ring-border">
+                <Avatar className="h-10 w-10 shrink-0 ring-1 ring-inset ring-border">
                   {c.avatar_url && <AvatarImage src={c.avatar_url} alt={name} />}
                   <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-bold">
                     {initialsOf(name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold">{name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {c.email ?? c.phone ?? "No contact"}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold">{name}</span>
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 rounded-full border-0 bg-muted px-1.5 py-0 text-[9.5px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    >
+                      Joined {joined}
+                    </Badge>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="truncate">
+                      {c.total_orders} order{c.total_orders === 1 ? "" : "s"}
+                    </span>
+                    {c.last_order_at && (
+                      <>
+                        <span className="text-border">•</span>
+                        <span
+                          className="tabular-nums"
+                          title={new Date(c.last_order_at).toLocaleString()}
+                        >
+                          last {relTime(c.last_order_at)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-sm font-semibold tabular-nums">{c.total_orders}</div>
+                  <div className="font-display text-sm font-black tabular-nums">
+                    {formatPKR(c.total_spend_pkr)}
+                  </div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                    })}
+                    Lifetime
                   </div>
                 </div>
               </li>
