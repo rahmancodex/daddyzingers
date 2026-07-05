@@ -193,7 +193,7 @@ function AddressesPage() {
                           .eq("id", a.id);
                         if (error) return toast.error(error.message);
                         toast.success("Default address updated");
-                        load();
+                        invalidate();
                       }}
                     >
                       <Star className="h-3.5 w-3.5" /> Set default
@@ -220,7 +220,7 @@ function AddressesPage() {
                         .eq("id", a.id);
                       if (error) return toast.error(error.message);
                       toast.success("Address deleted");
-                      load();
+                      invalidate();
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -256,7 +256,7 @@ function AddressesPage() {
         editing={editing}
         onSaved={() => {
           setDialogOpen(false);
-          load();
+          invalidate();
         }}
       />
     </div>
