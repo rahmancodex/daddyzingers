@@ -427,6 +427,17 @@ function OrdersContentInner() {
       ),
     },
     {
+      id: "branch",
+      header: "Branch",
+      className: "hidden lg:table-cell",
+      headerClassName: "hidden lg:table-cell",
+      cell: (r) => (
+        <span className="text-xs font-medium text-muted-foreground">
+          {r.branch_id ? branchNameMap.get(r.branch_id) ?? "—" : "—"}
+        </span>
+      ),
+    },
+    {
       id: "payment",
       header: "Payment",
       defaultVisible: false,
