@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { OrderHeader } from "@/components/order/OrderHeader";
 import { MobileBottomNav } from "@/components/order/MobileBottomNav";
+import { MobileCheckoutBar } from "@/components/order/MobileCheckoutBar";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
