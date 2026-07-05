@@ -364,8 +364,21 @@ function AddressDialog({
         >
           <div className="grid grid-cols-2 gap-3">
             <Field label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} placeholder="Home" />
-            <Field label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} placeholder="Karachi" />
+            <div className="space-y-1">
+              <Label>City</Label>
+              <Select value={form.city || undefined} onValueChange={(v) => setForm({ ...form, city: v })}>
+                <SelectTrigger aria-label="City">
+                  <SelectValue placeholder="Select city" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALLOWED_CITIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
           <Field label="Address line" value={form.address_line} onChange={(v) => setForm({ ...form, address_line: v })} placeholder="House 12, Street 4" />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Area" value={form.area} onChange={(v) => setForm({ ...form, area: v })} placeholder="DHA Phase 6" />
