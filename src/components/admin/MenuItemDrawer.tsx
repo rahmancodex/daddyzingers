@@ -210,14 +210,42 @@ export function MenuItemDrawer({ mode, itemId, categories, open, onOpenChange }:
         className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
       >
         <SheetHeader className="border-b border-border/60 px-6 py-5">
-          <SheetTitle className="font-display text-xl font-black">
-            {mode === "create" ? "Add Product" : mode === "edit" ? "Edit Product" : draft.name || "Product"}
-          </SheetTitle>
-          <SheetDescription>
-            {mode === "create"
-              ? "New products appear on the customer menu as soon as they're saved."
-              : "Changes go live instantly on the customer site."}
-          </SheetDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <SheetTitle className="truncate font-display text-xl font-black">
+                {mode === "create"
+                  ? "Add Product"
+                  : mode === "edit"
+                  ? `Edit ${draft.name || "Product"}`
+                  : draft.name || "Product"}
+              </SheetTitle>
+              <SheetDescription>
+                {mode === "create"
+                  ? "New products appear on the customer menu as soon as they're saved."
+                  : readOnly
+                  ? "Read-only preview."
+                  : "Changes go live instantly on the customer site."}
+              </SheetDescription>
+            </div>
+            {!readOnly && (
+              <div className="flex shrink-0 items-center gap-2">
+                {draft.is_available ? (
+                  <span className="rounded-full bg-success/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-success">
+                    Available
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Off menu
+                  </span>
+                )}
+                {draft.is_featured && (
+                  <span className="rounded-full bg-primary/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Featured
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -232,123 +260,138 @@ export function MenuItemDrawer({ mode, itemId, categories, open, onOpenChange }:
               <Tabs defaultValue="basic">
                 <TabsList className="w-full rounded-xl">
                   <TabsTrigger value="basic" className="flex-1 rounded-lg">Basic</TabsTrigger>
-                  <TabsTrigger value="sizes" className="flex-1 rounded-lg">Sizes</TabsTrigger>
-                  <TabsTrigger value="options" className="flex-1 rounded-lg">Options</TabsTrigger>
+                  <TabsTrigger value="sizes" className="flex-1 rounded-lg">
+                    Sizes{draft.sizes.length > 0 && ` (${draft.sizes.length})`}
+                  </TabsTrigger>
+                  <TabsTrigger value="options" className="flex-1 rounded-lg">
+                    Options{draft.option_groups.length > 0 && ` (${draft.option_groups.length})`}
+                  </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="basic" className="mt-5 space-y-5">
-                  <ImageUploader
-                    value={draft.image_url}
-                    onChange={(url) => setDraft((d) => ({ ...d, image_url: url }))}
-                    prefix="items"
-                  />
-
-                  <Field label="Product Name" required>
-                    <Input
-                      value={draft.name}
-                      onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                      placeholder="Zinger Burger"
-                      className="h-11 rounded-xl"
+                <TabsContent value="basic" className="mt-5 space-y-6">
+                  <Section title="Image" hint="A square, well-lit photo works best.">
+                    <ImageUploader
+                      value={draft.image_url}
+                      onChange={(url) => setDraft((d) => ({ ...d, image_url: url }))}
+                      prefix="items"
                     />
-                  </Field>
+                  </Section>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Category" required>
-                      <Select
-                        value={draft.category_id}
-                        onValueChange={(v) => setDraft((d) => ({ ...d, category_id: v }))}
-                      >
-                        <SelectTrigger className="h-11 rounded-xl">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <Section title="Basic Information">
+                    <Field label="Product Name" required>
+                      <Input
+                        value={draft.name}
+                        onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                        placeholder="Zinger Burger"
+                        className="h-11 rounded-xl"
+                      />
                     </Field>
 
-                    <Field label="Base Price (PKR)" required>
+                    <Field label="Short Description">
                       <Input
-                        type="number"
-                        min={0}
-                        value={draft.price_pkr}
+                        value={draft.short_description}
                         onChange={(e) =>
-                          setDraft((d) => ({ ...d, price_pkr: Number(e.target.value) || 0 }))
+                          setDraft((d) => ({ ...d, short_description: e.target.value }))
                         }
+                        placeholder="A quick, tasty one-liner"
                         className="h-11 rounded-xl"
                       />
                     </Field>
-                  </div>
 
-                  <Field label="Short Description">
-                    <Input
-                      value={draft.short_description}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, short_description: e.target.value }))
-                      }
-                      placeholder="A quick, tasty one-liner"
-                      className="h-11 rounded-xl"
-                    />
-                  </Field>
-
-                  <Field label="Description">
-                    <Textarea
-                      value={draft.long_description}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, long_description: e.target.value }))
-                      }
-                      rows={4}
-                      placeholder="Detailed description shown on the product drawer"
-                      className="rounded-xl"
-                    />
-                  </Field>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Display Order">
-                      <Input
-                        type="number"
-                        value={draft.sort_order}
+                    <Field label="Description">
+                      <Textarea
+                        value={draft.long_description}
                         onChange={(e) =>
-                          setDraft((d) => ({ ...d, sort_order: Number(e.target.value) || 0 }))
+                          setDraft((d) => ({ ...d, long_description: e.target.value }))
                         }
-                        className="h-11 rounded-xl"
+                        rows={4}
+                        placeholder="Detailed description shown on the product drawer"
+                        className="rounded-xl"
                       />
                     </Field>
-                    <Field label="Tags (comma separated)">
-                      <Input
-                        value={draft.tags}
-                        onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))}
-                        placeholder="spicy, new"
-                        className="h-11 rounded-xl"
-                      />
-                    </Field>
-                  </div>
+                  </Section>
 
-                  <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/30 p-4">
-                    <ToggleRow
-                      label="Available"
-                      desc="Customers can order this item."
-                      checked={draft.is_available}
-                      onChange={(v) => setDraft((d) => ({ ...d, is_available: v }))}
-                    />
-                    <ToggleRow
-                      label="Featured"
-                      desc="Highlighted on the homepage."
-                      checked={draft.is_featured}
-                      onChange={(v) => setDraft((d) => ({ ...d, is_featured: v }))}
-                    />
-                    <ToggleRow
-                      label="Bestseller"
-                      desc="Shows a bestseller badge."
-                      checked={draft.is_bestseller}
-                      onChange={(v) => setDraft((d) => ({ ...d, is_bestseller: v }))}
-                    />
-                  </div>
+                  <Section title="Category & Pricing">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Field label="Category" required>
+                        <Select
+                          value={draft.category_id}
+                          onValueChange={(v) => setDraft((d) => ({ ...d, category_id: v }))}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+
+                      <Field label="Base Price (PKR)" required>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={draft.price_pkr}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, price_pkr: Number(e.target.value) || 0 }))
+                          }
+                          className="h-11 rounded-xl"
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+
+                  <Section title="Display & Metadata">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Field label="Display Order">
+                        <Input
+                          type="number"
+                          value={draft.sort_order}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, sort_order: Number(e.target.value) || 0 }))
+                          }
+                          className="h-11 rounded-xl"
+                        />
+                      </Field>
+                      <Field label="Tags (comma separated)">
+                        <Input
+                          value={draft.tags}
+                          onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))}
+                          placeholder="spicy, new"
+                          className="h-11 rounded-xl"
+                        />
+                      </Field>
+                    </div>
+                  </Section>
+
+                  <Section title="Visibility">
+                    <div className="space-y-3 rounded-2xl border border-border/60 bg-muted/30 p-4">
+                      <ToggleRow
+                        label="Available"
+                        desc="Customers can order this item."
+                        checked={draft.is_available}
+                        onChange={(v) => setDraft((d) => ({ ...d, is_available: v }))}
+                      />
+                      <ToggleRow
+                        label="Featured"
+                        desc="Highlighted on the homepage."
+                        checked={draft.is_featured}
+                        onChange={(v) => setDraft((d) => ({ ...d, is_featured: v }))}
+                      />
+                      <ToggleRow
+                        label="Bestseller"
+                        desc="Shows a bestseller badge."
+                        checked={draft.is_bestseller}
+                        onChange={(v) => setDraft((d) => ({ ...d, is_bestseller: v }))}
+                      />
+                    </div>
+                  </Section>
                 </TabsContent>
+
 
                 <TabsContent value="sizes" className="mt-5 space-y-3">
                   <p className="text-xs text-muted-foreground">
