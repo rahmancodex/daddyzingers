@@ -527,11 +527,11 @@ function OrdersContentInner() {
           value={rawSearch}
           onChange={setRawSearch}
           placeholder="Search order #, customer, phone, coupon…"
-          className="min-w-[240px]"
+          className="w-full min-w-0 sm:min-w-[240px] sm:flex-1"
         />
 
         <Select value={urlStatus} onValueChange={(v) => setStatus(v as StatusFilter)}>
-          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+          <SelectTrigger className="h-9 flex-1 rounded-lg text-sm sm:w-[160px] sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -542,7 +542,7 @@ function OrdersContentInner() {
         </Select>
 
         <Select value={branchId} onValueChange={setBranchId}>
-          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+          <SelectTrigger className="h-9 flex-1 rounded-lg text-sm sm:w-[160px] sm:flex-none">
             <SelectValue placeholder="Branch" />
           </SelectTrigger>
           <SelectContent>
@@ -554,7 +554,7 @@ function OrdersContentInner() {
         </Select>
 
         <Select value={fulfillment} onValueChange={setFulfillment}>
-          <SelectTrigger className="h-9 w-[140px] rounded-lg text-sm">
+          <SelectTrigger className="h-9 flex-1 rounded-lg text-sm sm:w-[140px] sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -565,7 +565,7 @@ function OrdersContentInner() {
         </Select>
 
         <Select value={payment} onValueChange={setPayment}>
-          <SelectTrigger className="h-9 w-[160px] rounded-lg text-sm">
+          <SelectTrigger className="h-9 flex-1 rounded-lg text-sm sm:w-[160px] sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -576,7 +576,7 @@ function OrdersContentInner() {
         </Select>
 
         <Select value={coupon} onValueChange={(v) => setCoupon(v as CouponFilter)}>
-          <SelectTrigger className="h-9 w-[140px] rounded-lg text-sm">
+          <SelectTrigger className="h-9 flex-1 rounded-lg text-sm sm:w-[140px] sm:flex-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -591,7 +591,7 @@ function OrdersContentInner() {
             variant="ghost"
             size="sm"
             onClick={clearAll}
-            className="h-9 rounded-lg text-xs font-semibold text-muted-foreground"
+            className="h-9 w-full rounded-lg text-xs font-semibold text-muted-foreground sm:w-auto"
           >
             Clear filters
           </Button>

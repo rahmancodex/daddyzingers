@@ -9,19 +9,22 @@ import {
   CheckCircle2,
   ChefHat,
   ClipboardList,
+  Clock,
   Copy,
   History,
   Loader2,
+  Mail,
   MapPin,
   Minus,
+  Navigation,
   Package,
   Pencil,
   Phone,
   Plus,
   Printer,
   Receipt,
+  Save,
   ShoppingBag,
-  Sparkles,
   StickyNote,
   Ticket,
   Trash2,
@@ -72,13 +75,30 @@ import {
   nextStatus,
 } from "@/lib/admin-orders";
 import type { Json } from "@/integrations/supabase/types";
-import { StatusPill } from "./ui/status-pill";
+import { StatusPill, STATUS_TONE_CLASS } from "./ui/status-pill";
 
-// ============ Helpers ============
-function getAddressField(snap: Json | null, key: string): string | null {
+// ============ Snapshot helpers ============
+function snapField(snap: Json | null, key: string): string | null {
   if (!snap || typeof snap !== "object" || Array.isArray(snap)) return null;
   const v = (snap as { [k: string]: Json | undefined })[key];
   return typeof v === "string" && v.trim().length > 0 ? v : null;
+}
+
+function snapNumber(snap: Json | null, keys: string[]): number | null {
+  if (!snap || typeof snap !== "object" || Array.isArray(snap)) return null;
+  for (const k of keys) {
+    const v = (snap as { [k: string]: Json | undefined })[k];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string" && v.trim() && !Number.isNaN(Number(v))) return Number(v);
+  }
+  return null;
+}
+
+function initialsOf(name: string | null | undefined): string {
+  const s = (name ?? "").trim();
+  if (!s) return "??";
+  const p = s.split(/\s+/);
+  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "??";
 }
 
 const CANCEL_REASON_LABEL: Record<OrderCancelReason, string> = {
@@ -97,34 +117,39 @@ function Section({
   title,
   action,
   children,
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      <header className="flex items-center justify-between gap-2 border-b border-border/70 bg-muted/30 px-4 py-2.5">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+    <section
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_1px_0_0_hsl(var(--foreground)/0.02),0_1px_2px_-1px_hsl(var(--foreground)/0.06)]",
+        className,
+      )}
+    >
+      <header className="flex items-center justify-between gap-2 border-b border-border/70 bg-muted/40 px-4 py-2.5">
+        <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Icon className="h-3.5 w-3.5" /> {title}
         </div>
         {action}
       </header>
-      <div className="px-4 py-4">{children}</div>
+      <div className="px-4 py-4 sm:px-5 sm:py-5">{children}</div>
     </section>
   );
 }
 
 // ============ Simplified restaurant timeline ============
 type SimpleStep = "preparing" | "ready" | "delivered";
-
 const SIMPLE_ICON: Record<SimpleStep, React.ComponentType<{ className?: string }>> = {
   preparing: ChefHat,
   ready: Package,
   delivered: Truck,
 };
-
 const SIMPLE_LABEL: Record<SimpleStep, string> = {
   preparing: "Preparing",
   ready: "Ready",
@@ -139,7 +164,6 @@ function reachedStep(status: AdminOrderStatus): number {
     case "preparing":
       return 0;
     case "ready":
-      return 1;
     case "out_for_delivery":
       return 1;
     case "delivered":
@@ -178,7 +202,7 @@ function RestaurantTimeline({
   if (cancelled) {
     const entry = findCancelAudit(audit);
     return (
-      <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+      <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-destructive text-destructive-foreground">
           <XCircle className="h-5 w-5" />
         </div>
@@ -197,19 +221,19 @@ function RestaurantTimeline({
   }
 
   return (
-    <ol className="flex items-stretch justify-between gap-2">
+    <ol className="grid grid-cols-3 gap-2">
       {steps.map((s, i) => {
         const done = i <= idx;
         const current = i === idx;
         const Icon = SIMPLE_ICON[s.key];
         return (
-          <li key={s.key} className="flex flex-1 items-center gap-2">
+          <li key={s.key} className="min-w-0">
             <button
               type="button"
               onClick={() => onSet(s.targetStatus)}
               disabled={pending || current}
               className={cn(
-                "group flex flex-1 items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                "group flex w-full min-w-0 flex-col items-start gap-1.5 rounded-xl border p-3 text-left transition-all",
                 done
                   ? "border-primary/40 bg-primary/5"
                   : "border-border/70 bg-card hover:border-primary/40 hover:bg-primary/5",
@@ -219,27 +243,21 @@ function RestaurantTimeline({
             >
               <span
                 className={cn(
-                  "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+                  "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
                   done ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                 )}
               >
                 {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
               </span>
               <div className="min-w-0">
-                <div className={cn("text-sm font-semibold", !done && "text-muted-foreground")}>
+                <div className={cn("truncate text-sm font-semibold", !done && "text-muted-foreground")}>
                   {SIMPLE_LABEL[s.key]}
                 </div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-[10.5px] text-muted-foreground">
                   {done ? "Done" : current ? "Current" : "Tap to set"}
                 </div>
               </div>
             </button>
-            {i < steps.length - 1 && (
-              <span
-                aria-hidden
-                className={cn("h-0.5 w-3 shrink-0 rounded-full", done ? "bg-primary" : "bg-border")}
-              />
-            )}
           </li>
         );
       })}
@@ -251,24 +269,29 @@ function RestaurantTimeline({
 function AuditHistory({ audit }: { audit: AdminOrderAuditEntry[] }) {
   if (audit.length === 0) {
     return (
-      <div className="text-xs text-muted-foreground">
+      <div className="rounded-lg border border-dashed border-border/60 px-3 py-4 text-center text-xs text-muted-foreground">
         No changes have been recorded yet.
       </div>
     );
   }
   return (
-    <ol className="space-y-3">
+    <ol className="relative space-y-3 pl-4 before:absolute before:left-1 before:top-1.5 before:bottom-1.5 before:w-px before:bg-border">
       {[...audit].reverse().map((a) => (
-        <li key={a.id} className="rounded-xl border border-border/60 bg-background/60 p-3 text-xs">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <div className="font-semibold text-foreground">
-              {a.summary ?? a.action.replace(/_/g, " ")}
+        <li key={a.id} className="relative">
+          <span className="absolute -left-[13px] top-2 grid h-2 w-2 place-items-center rounded-full bg-primary ring-4 ring-background" />
+          <div className="rounded-xl border border-border/60 bg-background/60 p-3 text-xs">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="font-semibold text-foreground">
+                {a.summary ?? a.action.replace(/_/g, " ")}
+              </div>
+              <div className="tabular-nums text-muted-foreground">
+                {formatDateTime(a.created_at)}
+              </div>
             </div>
-            <div className="tabular-nums text-muted-foreground">{formatDateTime(a.created_at)}</div>
-          </div>
-          <div className="mt-0.5 text-muted-foreground">
-            {a.actor_email ?? "System"}
-            {a.actor_role ? ` · ${a.actor_role}` : ""}
+            <div className="mt-0.5 text-muted-foreground">
+              {a.actor_email ?? "System"}
+              {a.actor_role ? ` · ${a.actor_role}` : ""}
+            </div>
           </div>
         </li>
       ))}
@@ -294,13 +317,13 @@ type EditableFields = {
 
 function fromDetail(d: AdminOrderDetail): EditableFields {
   return {
-    recipient_name: getAddressField(d.address_snapshot, "recipient_name") ?? d.customer_name ?? "",
-    recipient_phone: getAddressField(d.address_snapshot, "phone") ?? d.customer_phone ?? "",
-    address_line: getAddressField(d.address_snapshot, "address_line") ?? "",
-    address_area: getAddressField(d.address_snapshot, "area") ?? "",
-    address_city: getAddressField(d.address_snapshot, "city") ?? "",
-    landmark: getAddressField(d.address_snapshot, "landmark") ?? "",
-    delivery_instructions: getAddressField(d.address_snapshot, "notes") ?? "",
+    recipient_name: snapField(d.address_snapshot, "recipient_name") ?? d.customer_name ?? "",
+    recipient_phone: snapField(d.address_snapshot, "phone") ?? d.customer_phone ?? "",
+    address_line: snapField(d.address_snapshot, "address_line") ?? "",
+    address_area: snapField(d.address_snapshot, "area") ?? "",
+    address_city: snapField(d.address_snapshot, "city") ?? "",
+    landmark: snapField(d.address_snapshot, "landmark") ?? "",
+    delivery_instructions: snapField(d.address_snapshot, "notes") ?? "",
     payment_method: d.payment_method ?? "",
     branch_id: d.branch_id ?? "",
     special_instructions: d.special_instructions ?? "",
@@ -353,7 +376,6 @@ function toPatch(a: EditableFields, b: EditableFields) {
   return patch;
 }
 
-// ============ Field editor row ============
 function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1.5">
@@ -365,76 +387,188 @@ function FieldRow({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-// ============ Item editor ============
-function ItemsEditor({
+// ============ Autosize textarea ============
+function Autosize({
+  value,
+  onChange,
+  placeholder,
+  minRows = 3,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  minRows?: number;
+  className?: string;
+}) {
+  const ref = React.useRef<HTMLTextAreaElement | null>(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <Textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={minRows}
+      className={cn("resize-none overflow-hidden", className)}
+    />
+  );
+}
+
+// ============ Items list (read-only + editor) ============
+type ItemOptionShape = {
+  customizations?: Array<{ id: string; label: string; price?: number }>;
+  upgrades?: Array<{ id: string; label: string; price?: number }>;
+  notes?: string;
+  size?: string;
+  image?: string;
+  image_url?: string;
+};
+
+function itemOpts(opts: Json | null): ItemOptionShape {
+  if (!opts || typeof opts !== "object" || Array.isArray(opts)) return {};
+  return opts as ItemOptionShape;
+}
+
+function ItemModifiers({ opts }: { opts: ItemOptionShape }) {
+  const rows: Array<{ label: string; price?: number; tone: "size" | "extra" | "upgrade" }> = [];
+  if (opts.size) rows.push({ label: opts.size, tone: "size" });
+  (opts.customizations ?? []).forEach((c) => rows.push({ label: c.label, price: c.price, tone: "extra" }));
+  (opts.upgrades ?? []).forEach((u) => rows.push({ label: u.label, price: u.price, tone: "upgrade" }));
+  if (rows.length === 0 && !opts.notes) return null;
+  return (
+    <div className="mt-1.5 space-y-1">
+      {rows.length > 0 && (
+        <ul className="flex flex-wrap gap-1">
+          {rows.map((r, i) => (
+            <li
+              key={`${r.tone}-${i}-${r.label}`}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium",
+                r.tone === "size" && "bg-primary/10 text-primary ring-1 ring-inset ring-primary/20",
+                r.tone === "extra" && "bg-muted text-foreground ring-1 ring-inset ring-border",
+                r.tone === "upgrade" && "bg-amber-500/10 text-amber-700 ring-1 ring-inset ring-amber-500/20 dark:text-amber-400",
+              )}
+            >
+              {r.label}
+              {r.price ? <span className="tabular-nums opacity-70">+{formatPKR(r.price)}</span> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      {opts.notes && (
+        <div className="text-[11px] italic text-muted-foreground">“{opts.notes}”</div>
+      )}
+    </div>
+  );
+}
+
+function ItemThumb({ opts, name }: { opts: ItemOptionShape; name: string }) {
+  const src = opts.image ?? opts.image_url;
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="h-12 w-12 shrink-0 rounded-lg border border-border/60 object-cover"
+        loading="lazy"
+      />
+    );
+  }
+  return (
+    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-muted to-muted/60 text-[11px] font-black text-muted-foreground ring-1 ring-inset ring-border/60">
+      {initialsOf(name)}
+    </div>
+  );
+}
+
+function ItemsList({
   detail,
+  editable,
   onChangeQty,
   pendingItemId,
 }: {
   detail: AdminOrderDetail;
-  onChangeQty: (itemId: string, qty: number) => void;
-  pendingItemId: string | null;
+  editable: boolean;
+  onChangeQty?: (itemId: string, qty: number) => void;
+  pendingItemId?: string | null;
 }) {
   return (
     <ul className="divide-y divide-border/60">
       {detail.items.map((it) => {
-        const isPending = pendingItemId === it.id;
+        const opts = itemOpts(it.options);
+        const isPending = editable && pendingItemId === it.id;
+        const subtotal = it.unit_price_pkr * it.qty;
         return (
           <li key={it.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-xs font-bold tabular-nums">
-              {it.qty}×
-            </div>
+            <ItemThumb opts={opts} name={it.name} />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold">{it.name}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
-                {formatPKR(it.unit_price_pkr)} each
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{it.name}</div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                    {formatPKR(it.unit_price_pkr)} each
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-sm font-semibold tabular-nums">{formatPKR(subtotal)}</div>
+                  {!editable && (
+                    <div className="mt-0.5 inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums">
+                      ×{it.qty}
+                    </div>
+                  )}
+                </div>
               </div>
-              {it.options && typeof it.options === "object" && "notes" in it.options && (it.options as { notes?: string }).notes && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Note: {(it.options as { notes?: string }).notes}
+              <ItemModifiers opts={opts} />
+              {editable && onChangeQty && (
+                <div className="mt-2 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={isPending || it.qty <= 1}
+                    onClick={() => onChangeQty(it.id, it.qty - 1)}
+                    className="h-7 w-7 rounded-md"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <div className="min-w-[2rem] text-center text-sm font-semibold tabular-nums">
+                    {isPending ? (
+                      <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      it.qty
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() => onChangeQty(it.id, it.qty + 1)}
+                    className="h-7 w-7 rounded-md"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={isPending}
+                    onClick={() => onChangeQty(it.id, 0)}
+                    className="ml-auto h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
+                    aria-label="Remove item"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               )}
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                disabled={isPending || it.qty <= 1}
-                onClick={() => onChangeQty(it.id, it.qty - 1)}
-                className="h-7 w-7 rounded-md"
-                aria-label="Decrease quantity"
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <div className="w-6 text-center text-sm font-semibold tabular-nums">
-                {isPending ? <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin" /> : it.qty}
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => onChangeQty(it.id, it.qty + 1)}
-                className="h-7 w-7 rounded-md"
-                aria-label="Increase quantity"
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                disabled={isPending}
-                onClick={() => onChangeQty(it.id, 0)}
-                className="ml-1 h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
-                aria-label="Remove item"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">
-              {formatPKR(it.unit_price_pkr * it.qty)}
             </div>
           </li>
         );
@@ -478,9 +612,9 @@ function printReceipt(kind: "invoice" | "kitchen", detail: AdminOrderDetail) {
         </table>`
       : "";
   const addr = [
-    getAddressField(detail.address_snapshot, "address_line"),
-    getAddressField(detail.address_snapshot, "area"),
-    getAddressField(detail.address_snapshot, "city"),
+    snapField(detail.address_snapshot, "address_line"),
+    snapField(detail.address_snapshot, "area"),
+    snapField(detail.address_snapshot, "city"),
   ]
     .filter(Boolean)
     .join(", ");
@@ -521,11 +655,8 @@ function printReceipt(kind: "invoice" | "kitchen", detail: AdminOrderDetail) {
 function DetailSkeleton() {
   return (
     <div className="space-y-4 p-6">
-      <Skeleton className="h-8 w-40 rounded-lg" />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
-      </div>
+      <Skeleton className="h-16 w-full rounded-2xl" />
+      <Skeleton className="h-24 rounded-2xl" />
       <Skeleton className="h-40 w-full rounded-2xl" />
       <Skeleton className="h-32 w-full rounded-2xl" />
     </div>
@@ -558,6 +689,8 @@ export function OrderDetailsDrawer({
   const [form, setForm] = React.useState<EditableFields | null>(null);
   const [confirmSave, setConfirmSave] = React.useState(false);
   const [pendingItemId, setPendingItemId] = React.useState<string | null>(null);
+  const [internalNote, setInternalNote] = React.useState("");
+  const [noteDirty, setNoteDirty] = React.useState(false);
 
   const orderQ = useQuery({
     queryKey: ["admin", "order", orderId],
@@ -581,12 +714,23 @@ export function OrderDetailsDrawer({
   const detail = orderQ.data ?? null;
   const audit = auditQ.data ?? [];
   const branches = branchesQ.data ?? [];
+  const branchName = detail?.branch_id
+    ? branches.find((b) => b.id === detail.branch_id)?.name ?? null
+    : null;
 
   React.useEffect(() => {
     if (!detail) return;
     if (editing && form === null) setForm(fromDetail(detail));
     if (!editing) setForm(null);
   }, [detail, editing, form]);
+
+  // Reset internal note when order changes
+  React.useEffect(() => {
+    if (detail) {
+      setInternalNote(detail.special_instructions ?? "");
+      setNoteDirty(false);
+    }
+  }, [detail?.id, detail?.special_instructions]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin", "orders"] });
@@ -631,12 +775,27 @@ export function OrderDetailsDrawer({
     onError: (err: Error) => toast.error("Failed to save", { description: err.message }),
   });
 
+  const noteMut = useMutation({
+    mutationFn: async (value: string) =>
+      updateOrder({
+        data: {
+          id: orderId!,
+          patch: { special_instructions: value.trim() === "" ? null : value } as never,
+          changes_summary: "Updated kitchen notes",
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Notes saved");
+      setNoteDirty(false);
+      invalidate();
+    },
+    onError: (err: Error) => toast.error("Failed to save notes", { description: err.message }),
+  });
+
   const itemMut = useMutation({
     mutationFn: (input: { itemId: string; qty: number }) =>
       updateItemQty({ data: { order_id: orderId!, item_id: input.itemId, qty: input.qty } }),
-    onMutate: ({ itemId }) => {
-      setPendingItemId(itemId);
-    },
+    onMutate: ({ itemId }) => setPendingItemId(itemId),
     onSettled: () => setPendingItemId(null),
     onSuccess: () => {
       toast.success("Items updated");
@@ -657,7 +816,30 @@ export function OrderDetailsDrawer({
     return toPatch(fromDetail(detail), form);
   }, [detail, form]);
 
-  const isPickup = detail?.fulfillment_method !== "delivery";
+  const isDelivery = detail?.fulfillment_method === "delivery";
+  const lat = detail ? snapNumber(detail.address_snapshot, ["lat", "latitude"]) : null;
+  const lng = detail ? snapNumber(detail.address_snapshot, ["lng", "longitude", "long"]) : null;
+  const mapsHref =
+    lat != null && lng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      : detail
+        ? (() => {
+            const parts = [
+              snapField(detail.address_snapshot, "address_line"),
+              snapField(detail.address_snapshot, "area"),
+              snapField(detail.address_snapshot, "city"),
+            ].filter(Boolean);
+            return parts.length
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`
+              : null;
+          })()
+        : null;
+
+  const addrLine = detail && snapField(detail.address_snapshot, "address_line");
+  const addrArea = detail && snapField(detail.address_snapshot, "area");
+  const addrCity = detail && snapField(detail.address_snapshot, "city");
+  const addrLandmark = detail && snapField(detail.address_snapshot, "landmark");
+  const addrNotes = detail && snapField(detail.address_snapshot, "notes");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -669,12 +851,12 @@ export function OrderDetailsDrawer({
           <DetailSkeleton />
         ) : (
           <>
-            {/* Header */}
-            <div className="sticky top-0 z-10 border-b border-border/70 bg-background/95 px-5 py-4 backdrop-blur">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Order
+            {/* ============ Header ============ */}
+            <div className="sticky top-0 z-20 border-b border-border/70 bg-background/95 backdrop-blur">
+              <div className="flex items-start gap-3 px-4 py-3.5 sm:px-5 sm:py-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span>Order</span>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(detail.order_number);
@@ -686,22 +868,40 @@ export function OrderDetailsDrawer({
                       <Copy className="h-3 w-3" />
                     </button>
                   </div>
-                  <div className="mt-0.5 font-display text-2xl font-black tracking-tight">
-                    {detail.order_number}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <div className="font-display text-xl font-black tracking-tight sm:text-2xl">
+                      {detail.order_number}
+                    </div>
+                    <StatusPill tone={STATUS_TONE[detail.status]}>
+                      {STATUS_LABEL[detail.status]}
+                    </StatusPill>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    <span>Placed {formatDateTime(detail.created_at)}</span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {formatDateTime(detail.created_at)}
+                    </span>
                     <span className="opacity-40">·</span>
-                    <span className="capitalize">{detail.fulfillment_method.replace(/_/g, " ")}</span>
+                    <span className="capitalize">
+                      {detail.fulfillment_method.replace(/_/g, " ")}
+                    </span>
+                    {branchName && (
+                      <>
+                        <span className="opacity-40">·</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {branchName}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusPill tone={STATUS_TONE[detail.status]}>{STATUS_LABEL[detail.status]}</StatusPill>
+                <div className="flex shrink-0 items-center gap-1.5">
                   {!editing && detail.status !== "cancelled" && (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 gap-1.5 rounded-lg"
+                      className="hidden h-8 gap-1.5 rounded-lg sm:inline-flex"
                       onClick={() => setEditing(true)}
                     >
                       <Pencil className="h-3.5 w-3.5" /> Edit
@@ -712,6 +912,7 @@ export function OrderDetailsDrawer({
                     size="icon"
                     onClick={() => onOpenChange(false)}
                     className="h-8 w-8 rounded-lg"
+                    aria-label="Close"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -719,17 +920,9 @@ export function OrderDetailsDrawer({
               </div>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-              <Section icon={Sparkles} title="Restaurant timeline">
-                <RestaurantTimeline
-                  detail={detail}
-                  audit={audit}
-                  onSet={(s) => statusMut.mutate(s)}
-                  pending={statusMut.isPending}
-                />
-              </Section>
-
+            {/* ============ Body ============ */}
+            <div className="flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4 sm:px-5 sm:py-5">
+              {/* Kitchen ops — big touch targets */}
               {detail.status !== "cancelled" && (
                 <Section icon={ChefHat} title="Kitchen operations">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -737,7 +930,7 @@ export function OrderDetailsDrawer({
                       [
                         { s: "preparing" as AdminOrderStatus, label: "Preparing", icon: ChefHat },
                         { s: "ready" as AdminOrderStatus, label: "Ready", icon: Package },
-                        { s: "out_for_delivery" as AdminOrderStatus, label: "Handed to rider", icon: Bike },
+                        { s: "out_for_delivery" as AdminOrderStatus, label: "To rider", icon: Bike },
                         { s: "delivered" as AdminOrderStatus, label: "Delivered", icon: CheckCircle2 },
                       ] as const
                     ).map((b) => {
@@ -765,23 +958,47 @@ export function OrderDetailsDrawer({
                 </Section>
               )}
 
+              {/* Timeline */}
+              <Section icon={Truck} title="Order timeline">
+                <RestaurantTimeline
+                  detail={detail}
+                  audit={audit}
+                  onSet={(s) => statusMut.mutate(s)}
+                  pending={statusMut.isPending}
+                />
+              </Section>
+
+              {/* Customer */}
               <Section icon={User} title="Customer">
                 {!editing ? (
-                  <div className="space-y-1">
-                    <div className="text-sm font-semibold">
-                      {detail.customer_name ?? "—"}
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 text-sm font-black text-primary ring-1 ring-inset ring-primary/20">
+                      {initialsOf(detail.customer_name ?? detail.customer_email)}
                     </div>
-                    {detail.customer_email && (
-                      <div className="text-xs text-muted-foreground">{detail.customer_email}</div>
-                    )}
-                    {detail.customer_phone && (
-                      <a
-                        href={`tel:${detail.customer_phone}`}
-                        className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-xs font-semibold hover:bg-accent"
-                      >
-                        <Phone className="h-3 w-3" /> {detail.customer_phone}
-                      </a>
-                    )}
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="truncate text-sm font-semibold">
+                        {detail.customer_name ?? "Guest customer"}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {detail.customer_phone && (
+                          <a
+                            href={`tel:${detail.customer_phone}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-xs font-semibold hover:bg-accent"
+                          >
+                            <Phone className="h-3 w-3" /> {detail.customer_phone}
+                          </a>
+                        )}
+                        {detail.customer_email && (
+                          <a
+                            href={`mailto:${detail.customer_email}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                          >
+                            <Mail className="h-3 w-3" />
+                            <span className="max-w-[180px] truncate">{detail.customer_email}</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   form && (
@@ -805,32 +1022,42 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              <Section icon={MapPin} title="Delivery">
-                {isPickup ? (
+              {/* Delivery */}
+              <Section
+                icon={MapPin}
+                title={isDelivery ? "Delivery" : "Fulfillment"}
+                action={
+                  !editing && isDelivery && mapsHref ? (
+                    <a
+                      href={mapsHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-accent"
+                    >
+                      <Navigation className="h-3 w-3" /> Maps
+                    </a>
+                  ) : undefined
+                }
+              >
+                {!isDelivery ? (
                   <div className="text-sm capitalize text-muted-foreground">
                     {detail.fulfillment_method.replace(/_/g, " ")} — no delivery address
                   </div>
                 ) : !editing ? (
-                  <div className="space-y-1 text-sm">
-                    <div className="font-semibold">
-                      {getAddressField(detail.address_snapshot, "address_line") ?? "—"}
-                    </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="font-semibold">{addrLine ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">
-                      {[
-                        getAddressField(detail.address_snapshot, "area"),
-                        getAddressField(detail.address_snapshot, "city"),
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
+                      {[addrArea, addrCity].filter(Boolean).join(", ") || "—"}
                     </div>
-                    {getAddressField(detail.address_snapshot, "landmark") && (
-                      <div className="text-xs text-muted-foreground">
-                        Landmark: {getAddressField(detail.address_snapshot, "landmark")}
-                      </div>
+                    {addrLandmark && (
+                      <div className="text-xs text-muted-foreground">Landmark: {addrLandmark}</div>
                     )}
-                    {getAddressField(detail.address_snapshot, "notes") && (
-                      <div className="mt-2 rounded-lg bg-muted px-2 py-1.5 text-xs">
-                        {getAddressField(detail.address_snapshot, "notes")}
+                    {addrNotes && (
+                      <div className="rounded-lg border border-border/60 bg-muted/60 px-3 py-2 text-xs">
+                        <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Delivery notes
+                        </div>
+                        {addrNotes}
                       </div>
                     )}
                   </div>
@@ -870,7 +1097,9 @@ export function OrderDetailsDrawer({
                       <FieldRow label="Delivery instructions">
                         <Textarea
                           value={form.delivery_instructions}
-                          onChange={(e) => setForm({ ...form, delivery_instructions: e.target.value })}
+                          onChange={(e) =>
+                            setForm({ ...form, delivery_instructions: e.target.value })
+                          }
                           rows={2}
                         />
                       </FieldRow>
@@ -879,77 +1108,53 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              {/* Branch */}
-              <Section icon={Building2} title="Branch">
-                {!editing ? (
-                  <div className="text-sm font-semibold">
-                    {branches.find((b) => b.id === detail.branch_id)?.name ?? "—"}
-                  </div>
-                ) : (
-                  form && (
-                    <FieldRow label="Branch">
-                      <Select
-                        value={form.branch_id || "none"}
-                        onValueChange={(v) => setForm({ ...form, branch_id: v === "none" ? "" : v })}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Unassigned —</SelectItem>
-                          {branches.map((b) => (
-                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FieldRow>
-                  )
-                )}
-              </Section>
+              {/* Branch (edit only) */}
+              {editing && form && (
+                <Section icon={Building2} title="Branch">
+                  <FieldRow label="Branch">
+                    <Select
+                      value={form.branch_id || "none"}
+                      onValueChange={(v) => setForm({ ...form, branch_id: v === "none" ? "" : v })}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Unassigned —</SelectItem>
+                        {branches.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                </Section>
+              )}
 
+              {/* Items */}
               <Section
                 icon={ShoppingBag}
                 title={`Items · ${detail.items.length}`}
                 action={
                   editing && (
                     <span className="text-[10.5px] font-medium text-muted-foreground">
-                      Adjust qty inline
+                      Tap qty to adjust
                     </span>
                   )
                 }
               >
-                {editing ? (
-                  <ItemsEditor
-                    detail={detail}
-                    pendingItemId={pendingItemId}
-                    onChangeQty={(itemId, qty) => itemMut.mutate({ itemId, qty })}
-                  />
-                ) : (
-                  <ul className="divide-y divide-border/60">
-                    {detail.items.map((it) => (
-                      <li key={it.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-xs font-bold tabular-nums">
-                          {it.qty}×
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold">{it.name}</div>
-                          {it.options && typeof it.options === "object" && "notes" in it.options && (it.options as { notes?: string }).notes && (
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              Note: {(it.options as { notes?: string }).notes}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right text-sm font-semibold tabular-nums">
-                          {formatPKR(it.unit_price_pkr * it.qty)}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <ItemsList
+                  detail={detail}
+                  editable={editing}
+                  pendingItemId={pendingItemId}
+                  onChangeQty={(itemId, qty) => itemMut.mutate({ itemId, qty })}
+                />
               </Section>
 
-              <Section icon={Receipt} title="Payment">
-                <dl className="space-y-1.5 text-sm">
+              {/* Payment */}
+              <Section icon={Receipt} title="Payment summary">
+                <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Subtotal</dt>
                     <dd className="tabular-nums">{formatPKR(detail.subtotal_pkr)}</dd>
@@ -992,19 +1197,29 @@ export function OrderDetailsDrawer({
                         />
                       ) : detail.coupon_code ? (
                         <span className="text-emerald-600 dark:text-emerald-400">
-                          {detail.coupon_code} · −{formatPKR(detail.discount_pkr)}
+                          {detail.coupon_code}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </dd>
                   </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between text-base font-black">
-                    <dt>Total</dt>
-                    <dd className="tabular-nums">{formatPKR(detail.total_pkr)}</dd>
+                  {detail.discount_pkr > 0 && (
+                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                      <dt>Discount</dt>
+                      <dd className="tabular-nums">−{formatPKR(detail.discount_pkr)}</dd>
+                    </div>
+                  )}
+                  <Separator className="my-1" />
+                  <div className="flex items-baseline justify-between rounded-lg bg-muted/60 px-3 py-2">
+                    <dt className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                      Grand total
+                    </dt>
+                    <dd className="font-display text-xl font-black tabular-nums">
+                      {formatPKR(detail.total_pkr)}
+                    </dd>
                   </div>
-                  <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                     <dt className="text-muted-foreground">Payment method</dt>
                     <dd>
                       {editing && form ? (
@@ -1023,64 +1238,98 @@ export function OrderDetailsDrawer({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="uppercase">{detail.payment_method}</span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider",
+                            STATUS_TONE_CLASS.neutral,
+                          )}
+                        >
+                          {detail.payment_method}
+                        </span>
                       )}
                     </dd>
                   </div>
                 </dl>
               </Section>
 
-              <Section icon={StickyNote} title="Notes">
-                {!editing ? (
-                  <div className="space-y-3 text-sm">
-                    {detail.notes ? (
-                      <div>
-                        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Customer notes
-                        </div>
-                        <div className="mt-0.5 whitespace-pre-line">{detail.notes}</div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">No customer notes.</div>
-                    )}
-                    {detail.special_instructions && (
-                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
-                        <div className="mb-0.5 inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                          <ChefHat className="h-3 w-3" /> Kitchen
-                        </div>
-                        <div className="whitespace-pre-line text-foreground">
-                          {detail.special_instructions}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  form && (
-                    <FieldRow label="Kitchen notes">
-                      <Textarea
-                        value={form.special_instructions}
-                        onChange={(e) => setForm({ ...form, special_instructions: e.target.value })}
-                        rows={3}
-                        placeholder="e.g. no onions, extra sauce"
-                      />
-                    </FieldRow>
+              {/* Customer notes (read only) + Internal notes (editable) */}
+              {detail.notes && (
+                <Section icon={StickyNote} title="Customer notes">
+                  <div className="whitespace-pre-line text-sm text-foreground">{detail.notes}</div>
+                </Section>
+              )}
+
+              <Section
+                icon={ChefHat}
+                title="Internal notes"
+                action={
+                  noteDirty && (
+                    <span className="text-[10.5px] font-medium text-amber-600 dark:text-amber-400">
+                      Unsaved
+                    </span>
                   )
-                )}
+                }
+              >
+                <div className="space-y-2">
+                  <Autosize
+                    value={internalNote}
+                    onChange={(v) => {
+                      setInternalNote(v);
+                      setNoteDirty(v !== (detail.special_instructions ?? ""));
+                    }}
+                    placeholder="Kitchen or ops notes visible only to staff…"
+                    minRows={3}
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    {noteDirty && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-lg"
+                        onClick={() => {
+                          setInternalNote(detail.special_instructions ?? "");
+                          setNoteDirty(false);
+                        }}
+                        disabled={noteMut.isPending}
+                      >
+                        Reset
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 gap-1.5 rounded-lg"
+                      disabled={!noteDirty || noteMut.isPending}
+                      onClick={() => noteMut.mutate(internalNote)}
+                    >
+                      {noteMut.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Save className="h-3.5 w-3.5" />
+                      )}
+                      Save notes
+                    </Button>
+                  </div>
+                </div>
               </Section>
 
+              {/* Audit history */}
               <Section
                 icon={History}
                 title="Audit history"
                 action={
-                  auditQ.isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  auditQ.isFetching && (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  )
                 }
               >
                 <AuditHistory audit={audit} />
               </Section>
             </div>
 
-            {/* Sticky footer actions */}
-            <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border/70 bg-background/95 px-5 py-3 backdrop-blur">
+            {/* ============ Sticky footer ============ */}
+            <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border/70 bg-background/95 px-3 py-3 backdrop-blur sm:px-5">
               {editing ? (
                 <>
                   <Button
@@ -1094,15 +1343,17 @@ export function OrderDetailsDrawer({
                     Discard
                   </Button>
                   <div className="flex-1" />
-                  <div className="text-xs text-muted-foreground">
-                    {diff.length === 0 ? "No changes yet" : `${diff.length} change${diff.length === 1 ? "" : "s"}`}
+                  <div className="hidden text-xs text-muted-foreground sm:block">
+                    {diff.length === 0
+                      ? "No changes yet"
+                      : `${diff.length} change${diff.length === 1 ? "" : "s"}`}
                   </div>
                   <Button
                     disabled={diff.length === 0 || saveMut.isPending}
                     onClick={() => setConfirmSave(true)}
                     className="rounded-lg"
                   >
-                    Review & save
+                    Review &amp; save
                   </Button>
                 </>
               ) : (
@@ -1113,23 +1364,38 @@ export function OrderDetailsDrawer({
                       onClick={() => setConfirmCancel(true)}
                       className="rounded-lg border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       disabled={cancelMut.isPending}
+                      size="sm"
                     >
-                      <XCircle className="h-4 w-4" /> Cancel order
+                      <XCircle className="h-4 w-4" /> Cancel
+                    </Button>
+                  )}
+                  {detail.status !== "cancelled" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg sm:hidden"
+                      onClick={() => setEditing(true)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Edit
                     </Button>
                   )}
                   <Button
                     variant="outline"
                     onClick={() => printReceipt("invoice", detail)}
                     className="rounded-lg"
+                    size="sm"
                   >
-                    <Printer className="h-4 w-4" /> Invoice
+                    <Printer className="h-4 w-4" />
+                    <span className="hidden sm:inline">Invoice</span>
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => printReceipt("kitchen", detail)}
                     className="rounded-lg"
+                    size="sm"
                   >
-                    <ClipboardList className="h-4 w-4" /> Kitchen
+                    <ClipboardList className="h-4 w-4" />
+                    <span className="hidden sm:inline">Kitchen</span>
                   </Button>
                   <div className="flex-1" />
                   {upcoming && (
@@ -1142,7 +1408,8 @@ export function OrderDetailsDrawer({
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          Mark as {STATUS_LABEL[upcoming]} <ArrowRight className="h-4 w-4" />
+                          <span className="hidden sm:inline">Mark as</span>{" "}
+                          {STATUS_LABEL[upcoming]} <ArrowRight className="h-4 w-4" />
                         </>
                       )}
                     </Button>
@@ -1154,13 +1421,14 @@ export function OrderDetailsDrawer({
         )}
       </SheetContent>
 
-      {/* Cancel with reason (stored in audit trail) */}
+      {/* Cancel dialog */}
       <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
             <AlertDialogDescription>
-              Choose a reason. The customer will see the order as cancelled and this action is recorded in the audit trail.
+              Choose a reason. The customer will see the order as cancelled and this action is
+              recorded in the audit trail.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-3">
@@ -1168,13 +1436,18 @@ export function OrderDetailsDrawer({
               <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Reason
               </Label>
-              <Select value={cancelReason} onValueChange={(v) => setCancelReason(v as OrderCancelReason)}>
+              <Select
+                value={cancelReason}
+                onValueChange={(v) => setCancelReason(v as OrderCancelReason)}
+              >
                 <SelectTrigger className="mt-1.5 h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {CANCEL_REASONS.map((r) => (
-                    <SelectItem key={r} value={r}>{CANCEL_REASON_LABEL[r]}</SelectItem>
+                    <SelectItem key={r} value={r}>
+                      {CANCEL_REASON_LABEL[r]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
