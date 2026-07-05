@@ -28,6 +28,7 @@ const ListInput = z.object({
   coupon_used: z.enum(["any", "yes", "no"]).optional(),
   date_from: z.string().datetime().nullish(),
   date_to: z.string().datetime().nullish(),
+  exclude_cancelled: z.boolean().optional(),
 });
 
 export type AdminOrderRow = {
