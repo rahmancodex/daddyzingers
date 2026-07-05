@@ -1064,6 +1064,12 @@ function RowActions({
   onToggleFeatured,
   isAvailable,
   isFeatured,
+  canReorder,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  reordering,
 }: {
   onView: () => void;
   onEdit: () => void;
@@ -1073,6 +1079,12 @@ function RowActions({
   onToggleFeatured: () => void;
   isAvailable: boolean;
   isFeatured: boolean;
+  canReorder: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  reordering: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -1096,7 +1108,19 @@ function RowActions({
         <DropdownMenuItem onClick={onDuplicate}>
           <Copy className="h-4 w-4" /> Duplicate
         </DropdownMenuItem>
+        {canReorder && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onMoveUp} disabled={!canMoveUp || reordering}>
+              <ArrowUp className="h-4 w-4" /> Move up
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onMoveDown} disabled={!canMoveDown || reordering}>
+              <ArrowDown className="h-4 w-4" /> Move down
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
+
         <DropdownMenuItem onClick={onToggleAvailable}>
           {isAvailable ? (
             <>
