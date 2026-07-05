@@ -186,13 +186,17 @@ export function BranchesManager() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {data.map((branch) => (
+          {data.map((branch, i) => (
             <BranchCard
               key={branch.id}
               branch={branch}
+              isFirst={i === 0}
+              isLast={i === data.length - 1}
               onEdit={() => openEdit(branch)}
               onToggle={() => toggleActive.mutate(branch)}
               onDelete={() => setDeleting(branch)}
+              onMoveUp={() => reorder.mutate({ id: branch.id, direction: "up" })}
+              onMoveDown={() => reorder.mutate({ id: branch.id, direction: "down" })}
             />
           ))}
         </div>
@@ -204,9 +208,11 @@ export function BranchesManager() {
         branch={editing}
         onSaved={() => {
           qc.invalidateQueries({ queryKey: ["admin", "branches"] });
+          qc.invalidateQueries({ queryKey: ["public", "branches", "active"] });
           setDrawerOpen(false);
         }}
       />
+
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
