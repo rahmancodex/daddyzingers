@@ -314,7 +314,7 @@ export function AdminShell({
     navigate({ to: "/admin/login", replace: true });
   };
 
-  if (auth.status !== "ok") {
+  if (auth.status === "loading" || auth.status === "unauth") {
     return (
       <div className="grid min-h-screen place-items-center bg-muted/40">
         <div className="flex flex-col items-center gap-4">
@@ -325,10 +325,30 @@ export function AdminShell({
     );
   }
 
+  if (auth.status === "error") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-muted/40 p-6">
+        <div className="max-w-md rounded-3xl border border-border/70 bg-background p-8 text-center shadow-[var(--shadow-2)]">
+          <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+            <ShieldAlert className="h-7 w-7" />
+          </div>
+          <h1 className="font-display text-2xl font-black">Couldn't verify permissions</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {auth.errorMessage ?? "A temporary error prevented us from loading your role."}
+          </p>
+          <div className="mt-6 flex justify-center gap-2">
+            <Button onClick={auth.retry}>Retry</Button>
+            <Button variant="outline" onClick={onSignOut}>
+              Sign out
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const roles = auth.roles ?? [];
-  const failOpen = !!auth.rolesFailed;
-  const permitted =
-    !requiredPermission || failOpen || hasPermission(roles, requiredPermission);
+  const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
@@ -353,7 +373,7 @@ export function AdminShell({
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          <NavList collapsed={collapsed} roles={roles} failOpen={failOpen} />
+          <NavList collapsed={collapsed} roles={roles} />
         </div>
 
         <div className="border-t border-border/70 p-2">
