@@ -256,6 +256,13 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon = kpi.icon;
   const body = (
     <>
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full opacity-70 transition-opacity group-hover/surface:opacity-100",
+          TONE_ACCENT[kpi.tone],
+        )}
+      />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent opacity-0 transition-opacity group-hover/surface:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -271,7 +278,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
         </div>
         <span
           className={cn(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+            "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover/surface:scale-105",
             TONE_CHIP[kpi.tone],
           )}
         >
@@ -281,14 +288,14 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
     </>
   );
   const surfaceCls =
-    "p-5 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)]";
+    "pl-6 pr-5 py-5 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_10px_30px_-15px_hsl(var(--foreground)/0.25)] active:translate-y-0 active:shadow-[0_4px_14px_-10px_hsl(var(--foreground)/0.25)]";
   if (kpi.to) {
     return (
       <Link
         to={kpi.to}
         search={kpi.search as never}
-        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-        aria-label={`Open orders filtered by ${kpi.label}`}
+        className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={`Open orders filtered by ${kpi.label}: ${kpi.value}`}
       >
         <Surface className={surfaceCls}>{body}</Surface>
       </Link>
