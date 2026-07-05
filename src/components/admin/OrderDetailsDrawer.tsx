@@ -702,7 +702,43 @@ export function OrderDetailsDrawer({
     queryKey: ["admin", "order-audit", orderId],
     queryFn: () => getAudit({ data: { order_id: orderId! } }),
     enabled: !!orderId && open,
+    refetchOnWindowFocus: true,
   });
+
+  // Realtime: refetch audit as soon as any new audit_logs row for this order lands.
+  React.useEffect(() => {
+    if (!orderId || !open) return;
+    let cancelled = false;
+    let channelRef: ReturnType<typeof import("@/integrations/supabase/client").supabase.channel> | null = null;
+    (async () => {
+      const mod = await import("@/integrations/supabase/client");
+      if (cancelled) return;
+      const ch = mod.supabase
+        .channel(`order-audit-${orderId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "audit_logs",
+            filter: `entity_id=eq.${orderId}`,
+          },
+          () => {
+            qc.invalidateQueries({ queryKey: ["admin", "order-audit", orderId] });
+          },
+        )
+        .subscribe();
+      channelRef = ch;
+    })();
+    return () => {
+      cancelled = true;
+      if (channelRef) {
+        import("@/integrations/supabase/client").then((mod) => {
+          if (channelRef) mod.supabase.removeChannel(channelRef);
+        });
+      }
+    };
+  }, [orderId, open, qc]);
 
   const branchesQ = useQuery({
     queryKey: ["admin", "orders", "branches"],
