@@ -702,6 +702,9 @@ type ListProps = {
   onDelete: (id: string) => void;
   onToggleAvailable: (id: string, v: boolean) => void;
   onToggleFeatured: (id: string, v: boolean) => void;
+  canReorder: boolean;
+  onMove: (idx: number, dir: -1 | 1) => void;
+  reordering: boolean;
 };
 
 function ListView({
@@ -715,7 +718,11 @@ function ListView({
   onDelete,
   onToggleAvailable,
   onToggleFeatured,
+  canReorder,
+  onMove,
+  reordering,
 }: ListProps) {
+
   const allChecked = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someChecked = !allChecked && rows.some((r) => selected.has(r.id));
 
