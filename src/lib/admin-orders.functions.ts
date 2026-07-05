@@ -377,7 +377,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
 
     const { error } = await supabaseAdmin
       .from("orders")
-      .update(update)
+      .update(update as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
