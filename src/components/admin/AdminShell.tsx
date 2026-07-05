@@ -42,6 +42,7 @@ import {
 } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "./CommandPalette";
+import { NotificationsBell } from "./NotificationsBell";
 
 function BrandMark({ collapsed }: { collapsed?: boolean }) {
   return (
