@@ -877,7 +877,7 @@ function ListView({
   );
 }
 
-type GridProps = ListProps;
+type GridProps = Omit<ListProps, "onToggleAll">;
 
 function GridView({
   rows,
