@@ -344,14 +344,17 @@ function useOrdersRealtime(keys: string[][]) {
 function LiveKpiGrid() {
   const q = useOrderStatsQuery();
   useOrdersRealtime([["admin", "order-stats"], ["admin", "dashboard-recent-orders"]]);
+  const { range } = useDateRange();
+  const rangeParam: Partial<Record<"range", DateRangePreset>> =
+    range.preset !== "custom" ? { range: range.preset } : {};
 
   if (q.isError) {
     return <InlineError message={errMsg(q.error)} onRetry={() => q.refetch()} />;
   }
   if (q.isLoading || !q.data) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-7">
+        {Array.from({ length: 7 }).map((_, i) => (
           <KpiSkeleton key={i} />
         ))}
       </div>
@@ -365,7 +368,7 @@ function LiveKpiGrid() {
       value: String(d.today_orders),
       icon: ShoppingBag,
       tone: "primary",
-      hint: "Placed since midnight · view all",
+      hint: "Placed since midnight",
       to: "/admin/orders",
       search: { range: "today" },
     },
@@ -375,7 +378,7 @@ function LiveKpiGrid() {
       value: formatPKR(d.today_revenue_pkr),
       icon: DollarSign,
       tone: "success",
-      hint: "Gross of taxes & fees · view orders",
+      hint: "Gross of taxes & fees",
       to: "/admin/orders",
       search: { range: "today" },
     },
@@ -387,7 +390,7 @@ function LiveKpiGrid() {
       tone: "warning",
       hint: "Awaiting confirmation",
       to: "/admin/orders",
-      search: { status: "pending" },
+      search: { status: "pending", ...rangeParam },
     },
     {
       key: "preparing",
@@ -395,15 +398,25 @@ function LiveKpiGrid() {
       value: String(d.preparing),
       icon: ChefHat,
       tone: "info",
-      hint: "In the kitchen right now",
+      hint: "In the kitchen now",
       to: "/admin/orders",
-      search: { status: "preparing" },
+      search: { status: "preparing", ...rangeParam },
+    },
+    {
+      key: "ready",
+      label: "Ready",
+      value: String(d.ready),
+      icon: PackageCheck,
+      tone: "primary",
+      hint: "Awaiting pickup or dispatch",
+      to: "/admin/orders",
+      search: { status: "ready", ...rangeParam },
     },
     {
       key: "delivered",
       label: "Delivered",
       value: String(d.delivered),
-      icon: PackageCheck,
+      icon: CheckCircle2,
       tone: "success",
       hint: "Completed today",
       to: "/admin/orders",
@@ -421,7 +434,7 @@ function LiveKpiGrid() {
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-7">
       {kpis.map((k) => (
         <KpiCard key={k.key} kpi={k} />
       ))}
