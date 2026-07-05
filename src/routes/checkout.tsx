@@ -39,6 +39,7 @@ import { formatPKR } from "@/lib/menu";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { placeOrder } from "@/lib/orders.functions";
+import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
