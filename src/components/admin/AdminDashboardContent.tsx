@@ -1580,6 +1580,9 @@ function DashboardInner() {
   const weekly = useWeeklyReport();
   const myRoles = useMyRoles();
   const canViewCustomers = hasPermission(myRoles.data, "customers.view");
+  const canViewAudit = (myRoles.data ?? []).some((r) =>
+    (["owner", "admin", "manager"] as AppRole[]).includes(r),
+  );
   const { range } = useDateRange();
 
   const chartData = weekly.data
@@ -1595,6 +1598,7 @@ function DashboardInner() {
             : null,
       }
     : undefined;
+  const ordersTrend = weekly.data?.trend?.map((t) => ({ date: t.date, orders: t.orders }));
   const topItems = weekly.data?.products?.best?.map((p) => ({
     name: p.name,
     qty: p.qty,
@@ -1651,6 +1655,45 @@ function DashboardInner() {
         <OrderStatusOverview />
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+        <div className="lg:col-span-2">
+          <OrdersTrendChart
+            trend={ordersTrend}
+            loading={weekly.isLoading}
+            error={weekly.isError ? weekly.error : undefined}
+            onRetry={() => weekly.refetch()}
+            rangeLabel={rangeLabel}
+          />
+        </div>
+        <InsightsCard
+          aov={weekly.data?.revenue?.aov}
+          orders={weekly.data?.orders?.total}
+          delivery={weekly.data?.orders?.deliveryCount}
+          pickup={weekly.data?.orders?.pickupCount}
+          processingMin={weekly.data?.orders?.avgProcessingMin}
+          loading={weekly.isLoading}
+          rangeLabel={rangeLabel}
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+        <PeakHoursChart
+          hourly={weekly.data?.peak?.hourly}
+          bestHour={weekly.data?.peak?.bestHour}
+          loading={weekly.isLoading}
+          error={weekly.isError ? weekly.error : undefined}
+          onRetry={() => weekly.refetch()}
+          rangeLabel={rangeLabel}
+        />
+        <BranchPerformance
+          branches={weekly.data?.branches}
+          loading={weekly.isLoading}
+          error={weekly.isError ? weekly.error : undefined}
+          onRetry={() => weekly.refetch()}
+          rangeLabel={rangeLabel}
+        />
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-3 xl:gap-6">
         <div className="xl:col-span-2">
           <RecentOrders />
@@ -1668,8 +1711,10 @@ function DashboardInner() {
             rangeLabel={rangeLabel}
           />
         </div>
-        <QuickActions />
+        <ActivityFeed canView={canViewAudit} />
       </div>
+
+      <QuickActions />
     </div>
   );
 }
