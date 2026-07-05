@@ -597,15 +597,18 @@ function ReportsBody({ data }: { data: ReportsData }) {
       <KpiGrid data={data} />
 
       <Tabs defaultValue="revenue" className="w-full">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-muted/60 p-1.5">
-          <Trigger value="revenue" label="Revenue" icon={TrendingUp} />
-          <Trigger value="orders" label="Orders" icon={ShoppingBag} />
-          <Trigger value="products" label="Products" icon={Receipt} />
-          <Trigger value="customers" label="Customers" icon={Users} />
-          <Trigger value="coupons" label="Coupons" icon={Tag} />
-          <Trigger value="peak" label="Peak Hours" icon={Flame} />
-          <Trigger value="branches" label="Branches" icon={MapPin} />
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto pb-1 print:hidden">
+          <TabsList className="inline-flex h-auto w-max min-w-full items-center justify-start gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex sm:w-full sm:flex-wrap">
+            <Trigger value="revenue" label="Revenue" icon={TrendingUp} />
+            <Trigger value="orders" label="Orders" icon={ShoppingBag} />
+            <Trigger value="products" label="Products" icon={Receipt} />
+            <Trigger value="customers" label="Customers" icon={Users} />
+            <Trigger value="coupons" label="Coupons" icon={Tag} />
+            <Trigger value="peak" label="Peak Hours" icon={Flame} />
+            <Trigger value="branches" label="Branches" icon={MapPin} />
+          </TabsList>
+        </div>
+
 
         <div className="mt-6">
           <TabsContent value="revenue" className="m-0"><RevenueTab data={data} /></TabsContent>
