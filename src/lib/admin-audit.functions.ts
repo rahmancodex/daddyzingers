@@ -10,12 +10,12 @@ export type AuditLogRow = {
   actor_email: string | null;
   actor_role: AppRole | null;
   action: string;
-  module: string;
   entity_type: string | null;
   entity_id: string | null;
   summary: string | null;
-  old_value: any;
-  new_value: any;
+  before_state: any;
+  after_state: any;
+  metadata: Record<string, any> | null;
   ip_address: string | null;
   user_agent: string | null;
 };
@@ -47,12 +47,12 @@ export const adminListAuditLogs = createServerFn({ method: "GET" })
   .handler(async ({ data, context }): Promise<AuditLogRow[]> => {
     await assertCanReadAudit(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    let q = supabaseAdmin
+    let q = (supabaseAdmin as any)
       .from("audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(data?.limit ?? 200);
-    if (data?.module && data.module !== "all") q = q.eq("module", data.module);
+    if (data?.module && data.module !== "all") q = q.eq("metadata->>module", data.module);
     if (data?.actor_id) q = q.eq("actor_id", data.actor_id);
     if (data?.search) {
       const s = data.search;
@@ -62,7 +62,7 @@ export const adminListAuditLogs = createServerFn({ method: "GET" })
     }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []) as AuditLogRow[];
+    return (rows ?? []) as unknown as AuditLogRow[];
   });
 
 export const adminLogClientEvent = createServerFn({ method: "POST" })
@@ -84,14 +84,15 @@ export const adminLogClientEvent = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", context.userId)
       .limit(1);
-    await supabaseAdmin.from("audit_logs").insert({
+    const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: context.userId,
       actor_email: u?.user?.email ?? null,
       actor_role: (roleRows?.[0] as any)?.role ?? null,
       action: data.action,
-      module: data.module,
       summary: data.summary ?? null,
+      metadata: { module: data.module },
     });
+    if (error) throw new Error(`Audit log insert failed: ${error.message}`);
 
     // Mirror last_login_at when action is login
     if (data.action === "login") {

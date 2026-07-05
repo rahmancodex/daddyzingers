@@ -93,23 +93,24 @@ async function writeAudit(params: {
   entity_type?: string;
   entity_id?: string;
   summary?: string;
-  old_value?: any;
-  new_value?: any;
+  before_state?: any;
+  after_state?: any;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: u } = await supabaseAdmin.auth.admin.getUserById(params.userId);
-  await (supabaseAdmin as any).from("audit_logs").insert({
+  const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
     actor_id: params.userId,
     actor_email: u?.user?.email ?? null,
     actor_role: "owner",
     action: params.action,
-    module: "production",
     entity_type: params.entity_type ?? null,
     entity_id: params.entity_id ?? null,
     summary: params.summary ?? null,
-    old_value: params.old_value ?? null,
-    new_value: params.new_value ?? null,
+    before_state: params.before_state ?? null,
+    after_state: params.after_state ?? null,
+    metadata: { module: "production" },
   });
+  if (error) throw new Error(`Audit log insert failed: ${error.message}`);
 }
 
 // =========================================================================
@@ -190,8 +191,8 @@ export const upsertIntegration = createServerFn({ method: "POST" })
       entity_type: "integration",
       entity_id: data.key,
       summary: `${data.key} updated`,
-      old_value: existing?.config ?? null,
-      new_value: row.config,
+      before_state: existing?.config ?? null,
+      after_state: row.config,
     });
     return row as IntegrationConfig;
   });

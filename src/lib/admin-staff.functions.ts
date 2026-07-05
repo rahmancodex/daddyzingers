@@ -51,24 +51,25 @@ async function logAudit(params: {
   entity_type?: string;
   entity_id?: string;
   summary?: string;
-  old_value?: any;
-  new_value?: any;
+  before_state?: any;
+  after_state?: any;
 }) {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(params.actorId);
-    await supabaseAdmin.from("audit_logs").insert({
+    const { error } = await (supabaseAdmin as any).from("audit_logs").insert({
       actor_id: params.actorId,
       actor_email: userRes?.user?.email ?? null,
       actor_role: params.actorRole,
       action: params.action,
-      module: params.module,
       entity_type: params.entity_type ?? null,
       entity_id: params.entity_id ?? null,
       summary: params.summary ?? null,
-      old_value: params.old_value ?? null,
-      new_value: params.new_value ?? null,
+      before_state: params.before_state ?? null,
+      after_state: params.after_state ?? null,
+      metadata: { module: params.module },
     });
+    if (error) throw new Error(error.message);
   } catch (e) {
     console.error("[audit] failed to log", e);
   }
@@ -232,7 +233,7 @@ export const adminInviteStaff = createServerFn({ method: "POST" })
       entity_type: "invitation",
       entity_id: data.email,
       summary: `Invited ${data.email} as ${data.role}`,
-      new_value: data,
+      after_state: data,
     });
 
     return { ok: true };
@@ -296,7 +297,7 @@ export const adminCreateStaff = createServerFn({ method: "POST" })
       entity_type: "user",
       entity_id: uid,
       summary: `Created ${data.email} as ${data.role}`,
-      new_value: { email: data.email, role: data.role, branch_id: data.branch_id ?? null },
+      after_state: { email: data.email, role: data.role, branch_id: data.branch_id ?? null },
     });
 
     return { ok: true, user_id: uid };
@@ -390,7 +391,7 @@ export const adminUpdateStaff = createServerFn({ method: "POST" })
       entity_type: "user",
       entity_id: data.user_id,
       summary: `Updated staff ${data.user_id}`,
-      new_value: data,
+      after_state: data,
     });
 
     return { ok: true };
@@ -479,7 +480,7 @@ export const adminDeleteStaff = createServerFn({ method: "POST" })
       entity_type: "user",
       entity_id: data.user_id,
       summary: "Deleted staff account",
-      old_value: { user_id: data.user_id, roles: rolesArr },
+      before_state: { user_id: data.user_id, roles: rolesArr },
     });
     return { ok: true };
   });

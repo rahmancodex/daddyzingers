@@ -47,6 +47,11 @@ const MODULES = [
   "roles",
 ];
 
+function moduleOf(row: AuditLogRow) {
+  const value = row.metadata?.module;
+  return typeof value === "string" && value.trim() ? value : "—";
+}
+
 function fmt(v: string | null) {
   if (!v) return "—";
   return new Date(v).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
@@ -74,12 +79,12 @@ function ActionBadge({ action }: { action: string }) {
 export function AuditLogsContent() {
   const listFn = useServerFn(adminListAuditLogs);
   const [q, setQ] = React.useState("");
-  const [module, setModule] = React.useState("all");
+  const [moduleFilter, setModuleFilter] = React.useState("all");
   const [detail, setDetail] = React.useState<AuditLogRow | null>(null);
 
   const query = useQuery({
-    queryKey: ["admin", "audit", q, module],
-    queryFn: () => listFn({ data: { search: q || undefined, module } }),
+    queryKey: ["admin", "audit", q, moduleFilter],
+    queryFn: () => listFn({ data: { search: q || undefined, module: moduleFilter } }),
   });
 
   return (
@@ -107,7 +112,7 @@ export function AuditLogsContent() {
             className="pl-9"
           />
         </div>
-        <Select value={module} onValueChange={setModule}>
+        <Select value={moduleFilter} onValueChange={setModuleFilter}>
           <SelectTrigger className="w-full md:w-48">
             <SelectValue />
           </SelectTrigger>
@@ -168,7 +173,7 @@ export function AuditLogsContent() {
                     <TableCell>
                       <ActionBadge action={r.action} />
                     </TableCell>
-                    <TableCell className="text-sm capitalize">{r.module}</TableCell>
+                    <TableCell className="text-sm capitalize">{moduleOf(r)}</TableCell>
                     <TableCell className="max-w-[420px] truncate text-sm text-muted-foreground">
                       {r.summary ?? r.entity_id ?? "—"}
                     </TableCell>
@@ -201,7 +206,7 @@ export function AuditLogsContent() {
               <dt className="text-muted-foreground">Action</dt>
               <dd className="font-mono">{detail.action}</dd>
               <dt className="text-muted-foreground">Module</dt>
-              <dd className="capitalize">{detail.module}</dd>
+              <dd className="capitalize">{moduleOf(detail)}</dd>
               <dt className="text-muted-foreground">Entity</dt>
               <dd className="font-mono text-xs">
                 {detail.entity_type ?? "—"} {detail.entity_id ? `· ${detail.entity_id}` : ""}
@@ -209,21 +214,21 @@ export function AuditLogsContent() {
               <dt className="text-muted-foreground">Summary</dt>
               <dd className="col-span-1">{detail.summary ?? "—"}</dd>
             </dl>
-            {(detail.old_value || detail.new_value) && (
+            {(detail.before_state || detail.after_state) && (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {detail.old_value && (
+                {detail.before_state && (
                   <div>
-                    <div className="mb-1 text-xs font-semibold text-muted-foreground">Old</div>
+                    <div className="mb-1 text-xs font-semibold text-muted-foreground">Before</div>
                     <pre className="overflow-auto rounded-lg border border-border/60 bg-muted/40 p-3 text-xs">
-                      {JSON.stringify(detail.old_value, null, 2)}
+                      {JSON.stringify(detail.before_state, null, 2)}
                     </pre>
                   </div>
                 )}
-                {detail.new_value && (
+                {detail.after_state && (
                   <div>
-                    <div className="mb-1 text-xs font-semibold text-muted-foreground">New</div>
+                    <div className="mb-1 text-xs font-semibold text-muted-foreground">After</div>
                     <pre className="overflow-auto rounded-lg border border-border/60 bg-muted/40 p-3 text-xs">
-                      {JSON.stringify(detail.new_value, null, 2)}
+                      {JSON.stringify(detail.after_state, null, 2)}
                     </pre>
                   </div>
                 )}
