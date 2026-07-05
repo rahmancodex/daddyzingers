@@ -71,7 +71,15 @@ const CHART_COLORS = ["hsl(var(--primary))", "#f59e0b", "#10b981", "#3b82f6", "#
 // Date range helpers
 // -----------------------------
 
-type PresetKey = "today" | "yesterday" | "7d" | "30d" | "month" | "year" | "custom";
+type PresetKey =
+  | "today"
+  | "yesterday"
+  | "7d"
+  | "30d"
+  | "month"
+  | "lastMonth"
+  | "year"
+  | "custom";
 
 const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "today", label: "Today" },
@@ -79,6 +87,7 @@ const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "7d", label: "Last 7 Days" },
   { key: "30d", label: "Last 30 Days" },
   { key: "month", label: "This Month" },
+  { key: "lastMonth", label: "Last Month" },
   { key: "year", label: "This Year" },
   { key: "custom", label: "Custom" },
 ];
@@ -113,6 +122,11 @@ function presetRange(key: PresetKey): { from: Date; to: Date } {
       const f = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
       return { from: f, to };
     }
+    case "lastMonth": {
+      const f = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      const t = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { from: f, to: t };
+    }
     case "year": {
       const f = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
       return { from: f, to };
@@ -121,6 +135,7 @@ function presetRange(key: PresetKey): { from: Date; to: Date } {
       return { from, to };
   }
 }
+
 
 const fmtDate = (d: Date) =>
   d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -161,15 +176,18 @@ export function ReportsContent() {
   const reportsFn = useServerFn(adminReports);
   const qc = useQueryClient();
 
-  const filters = {
-    from: range.from.toISOString(),
-    to: range.to.toISOString(),
-    branchId,
-    status,
-    categoryId,
-    userId: null,
-    couponCode,
-  };
+  const filters = React.useMemo(
+    () => ({
+      from: range.from.toISOString(),
+      to: range.to.toISOString(),
+      branchId,
+      status,
+      categoryId,
+      userId: null,
+      couponCode,
+    }),
+    [range.from, range.to, branchId, status, categoryId, couponCode],
+  );
 
   const queryKey = ["admin", "reports", filters];
   const { data, isLoading, isFetching, error, refetch } = useQuery({
@@ -194,56 +212,91 @@ export function ReportsContent() {
   }, [qc]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-      <ReportsHeader
-        preset={preset}
-        onPreset={setPresetAndRange}
-        range={range}
-        onRange={(r) => {
-          setPreset("custom");
-          setRange(r);
-        }}
-        branchId={branchId}
-        setBranchId={setBranchId}
-        status={status}
-        setStatus={setStatus}
-        categoryId={categoryId}
-        setCategoryId={setCategoryId}
-        couponCode={couponCode}
-        setCouponCode={setCouponCode}
-        data={data}
-        isFetching={isFetching}
-        onRefresh={() => refetch()}
-      />
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 print:max-w-none">
+      <div className="sticky top-0 z-30 -mx-4 border-b border-border/60 bg-background/85 px-4 pb-4 pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/70 print:static print:border-0 print:bg-transparent print:p-0 sm:-mx-6 sm:px-6">
+        <ReportsHeader
+          preset={preset}
+          onPreset={setPresetAndRange}
+          range={range}
+          onRange={(r) => {
+            setPreset("custom");
+            setRange(r);
+          }}
+          branchId={branchId}
+          setBranchId={setBranchId}
+          status={status}
+          setStatus={setStatus}
+          categoryId={categoryId}
+          setCategoryId={setCategoryId}
+          couponCode={couponCode}
+          setCouponCode={setCouponCode}
+          data={data}
+          isFetching={isFetching}
+          onRefresh={() => refetch()}
+        />
+      </div>
 
       {isLoading ? (
         <ReportsSkeleton />
       ) : error ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-destructive">
-            Failed to load report: {(error as Error).message}
-          </CardContent>
-        </Card>
+        <ReportsError onRetry={() => refetch()} />
       ) : data ? (
         <ReportsBody data={data} />
-      ) : null}
+      ) : (
+        <ReportsEmpty />
+      )}
     </div>
   );
 }
 
 function ReportsSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy="true" aria-live="polite">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-32 rounded-2xl" />
         ))}
       </div>
       <Skeleton className="h-72 rounded-2xl" />
-      <Skeleton className="h-72 rounded-2xl" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
     </div>
   );
 }
+
+function ReportsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Card className="rounded-2xl border-destructive/40">
+      <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
+        <div className="grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
+          <BarChart3 className="h-5 w-5" />
+        </div>
+        <div>
+          <div className="font-display text-base font-bold">Report unavailable</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            We couldn&apos;t load analytics right now. Please try again in a moment.
+          </p>
+        </div>
+        <Button size="sm" onClick={onRetry} className="mt-1">
+          <RefreshCw className="mr-1 h-3.5 w-3.5" /> Retry
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ReportsEmpty() {
+  return (
+    <Card className="rounded-2xl border-dashed">
+      <CardContent className="p-8 text-center text-sm text-muted-foreground">
+        No data for the selected filters.
+      </CardContent>
+    </Card>
+  );
+}
+
 
 // -----------------------------
 // Header (filters + exports)
@@ -544,15 +597,18 @@ function ReportsBody({ data }: { data: ReportsData }) {
       <KpiGrid data={data} />
 
       <Tabs defaultValue="revenue" className="w-full">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-2xl bg-muted/60 p-1.5">
-          <Trigger value="revenue" label="Revenue" icon={TrendingUp} />
-          <Trigger value="orders" label="Orders" icon={ShoppingBag} />
-          <Trigger value="products" label="Products" icon={Receipt} />
-          <Trigger value="customers" label="Customers" icon={Users} />
-          <Trigger value="coupons" label="Coupons" icon={Tag} />
-          <Trigger value="peak" label="Peak Hours" icon={Flame} />
-          <Trigger value="branches" label="Branches" icon={MapPin} />
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto pb-1 print:hidden">
+          <TabsList className="inline-flex h-auto w-max min-w-full items-center justify-start gap-1 rounded-2xl bg-muted/60 p-1.5 sm:flex sm:w-full sm:flex-wrap">
+            <Trigger value="revenue" label="Revenue" icon={TrendingUp} />
+            <Trigger value="orders" label="Orders" icon={ShoppingBag} />
+            <Trigger value="products" label="Products" icon={Receipt} />
+            <Trigger value="customers" label="Customers" icon={Users} />
+            <Trigger value="coupons" label="Coupons" icon={Tag} />
+            <Trigger value="peak" label="Peak Hours" icon={Flame} />
+            <Trigger value="branches" label="Branches" icon={MapPin} />
+          </TabsList>
+        </div>
+
 
         <div className="mt-6">
           <TabsContent value="revenue" className="m-0"><RevenueTab data={data} /></TabsContent>
@@ -649,7 +705,7 @@ function KpiCard({
             {icon}
           </span>
         </div>
-        <div className="font-display text-3xl font-black leading-none animate-in fade-in slide-in-from-bottom-1">
+        <div className="font-display text-3xl font-black leading-none tabular-nums animate-in fade-in slide-in-from-bottom-1">
           {value}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -825,34 +881,60 @@ function MiniStat({
 // -----------------------------
 
 function OrdersTab({ data }: { data: ReportsData }) {
-  const statusData = ORDER_STATUSES.map((s) => ({
-    status: s.replace(/_/g, " "),
-    count: data.orders.byStatus[s] ?? 0,
-  }));
+  const statusData = React.useMemo(
+    () =>
+      ORDER_STATUSES.map((s) => ({
+        status: s.replace(/_/g, " "),
+        count: data.orders.byStatus[s] ?? 0,
+      })),
+    [data.orders.byStatus],
+  );
 
-  const fulfilData = [
-    { name: "Delivery", value: data.orders.deliveryCount },
-    { name: "Pickup", value: data.orders.pickupCount },
-  ];
+  const fulfilData = React.useMemo(
+    () => [
+      { name: "Delivery", value: data.orders.deliveryCount },
+      { name: "Pickup", value: data.orders.pickupCount },
+    ],
+    [data.orders.deliveryCount, data.orders.pickupCount],
+  );
+
+  const branchOrders = React.useMemo(
+    () =>
+      [...data.branches]
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 8)
+        .map((b) => ({ name: b.name, orders: b.orders })),
+    [data.branches],
+  );
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <MiniStat label="Completed" value={String(data.orders.completed)} accent="emerald" />
         <MiniStat label="Cancelled" value={String(data.orders.cancelled)} accent="rose" />
         <MiniStat label="Avg Processing" value={`${data.orders.avgProcessingMin}m`} />
       </div>
 
       <Section title="Orders by Status">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={statusData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-            <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis dataKey="status" type="category" tick={{ fontSize: 11 }} width={110} className="capitalize" />
-            <Tooltip />
-            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {statusData.every((s) => s.count === 0) ? (
+          <EmptyChart />
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={statusData} layout="vertical" margin={{ left: 8, right: 16 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+              <YAxis
+                dataKey="status"
+                type="category"
+                tick={{ fontSize: 11 }}
+                width={100}
+                className="capitalize"
+              />
+              <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+              <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -885,16 +967,33 @@ function OrdersTab({ data }: { data: ReportsData }) {
           description={`${data.orders.cancelled} of ${data.orders.total} orders cancelled.`}
         >
           <div className="flex h-[220px] flex-col items-center justify-center gap-2">
-            <div className="font-display text-5xl font-black">
+            <div className="font-display text-5xl font-black tabular-nums">
               {data.orders.cancellationRate.toFixed(1)}%
             </div>
             <div className="text-xs text-muted-foreground">of total orders</div>
           </div>
         </Section>
       </div>
+
+      <Section title="Orders by Branch" description="Distribution of orders across branches.">
+        {branchOrders.length === 0 ? (
+          <EmptyChart label="No branch orders in this range" />
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={branchOrders} margin={{ left: 0, right: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+              <Bar dataKey="orders" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Section>
     </div>
   );
 }
+
 
 // -----------------------------
 // Products Tab
@@ -1337,31 +1436,134 @@ function PeakTab({ data }: { data: ReportsData }) {
 // -----------------------------
 
 function BranchesTab({ data }: { data: ReportsData }) {
-  const top = data.branches[0];
+  const ranked = React.useMemo(
+    () =>
+      [...data.branches]
+        .map((b) => ({
+          ...b,
+          aov: b.orders > 0 ? b.revenue / b.orders : 0,
+        }))
+        .sort((a, b) => b.revenue - a.revenue),
+    [data.branches],
+  );
+  const top = ranked[0];
+  const totalRev = ranked.reduce((s, b) => s + b.revenue, 0);
+  const totalOrders = ranked.reduce((s, b) => s + b.orders, 0);
+  const overallAov = totalOrders > 0 ? totalRev / totalOrders : 0;
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <MiniStat label="Branches" value={String(data.branches.length)} />
-        <MiniStat
-          label="Top Performing"
-          value={top?.name ?? "—"}
-        />
-        <MiniStat
-          label="Top Revenue"
-          value={top ? fmtPKR(top.revenue) : "—"}
-        />
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <MiniStat label="Branches" value={String(ranked.length)} />
+        <MiniStat label="Top Performing" value={top?.name ?? "—"} />
+        <MiniStat label="Top Revenue" value={top ? fmtPKR(top.revenue) : "—"} accent="emerald" />
+        <MiniStat label="Blended AOV" value={fmtPKR(overallAov)} />
       </div>
 
+      {ranked.length > 0 && (
+        <Section title="Performance Ranking" description="Branches ordered by revenue share.">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {ranked.map((b, i) => {
+              const share = totalRev > 0 ? Math.round((b.revenue / totalRev) * 100) : 0;
+              return (
+                <div
+                  key={b.id}
+                  className="group rounded-xl border border-border/70 bg-card p-4 transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cn(
+                          "grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-black",
+                          i === 0
+                            ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                            : i === 1
+                              ? "bg-slate-400/15 text-slate-600 dark:text-slate-300"
+                              : i === 2
+                                ? "bg-orange-600/15 text-orange-700 dark:text-orange-400"
+                                : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{b.name}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {b.city ?? "—"}
+                        </div>
+                      </div>
+                    </div>
+                    {b.is_active ? (
+                      <Badge className="bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Disabled
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Revenue
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{fmtPKR(b.revenue)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Orders
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{b.orders}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        AOV
+                      </div>
+                      <div className="text-sm font-bold tabular-nums">{fmtPKR(b.aov)}</div>
+                    </div>
+                  </div>
+                  <div
+                    className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuenow={share}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${b.name} revenue share`}
+                  >
+                    <div
+                      className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all"
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{share}% of total revenue</span>
+                    <span>{b.avg_delivery_min}m avg delivery</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
       <Section title="Revenue per Branch">
-        {data.branches.length === 0 ? (
+        {ranked.length === 0 ? (
           <EmptyChart label="No branch data — add branches in Settings" />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.branches}>
+            <BarChart data={ranked} margin={{ left: 0, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                interval={0}
+                angle={-15}
+                textAnchor="end"
+                height={50}
+              />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => fmtPKR(v)} />
+              <Tooltip formatter={(v: number) => fmtPKR(v)} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
               <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -1369,7 +1571,7 @@ function BranchesTab({ data }: { data: ReportsData }) {
       </Section>
 
       <Section title="Branch Breakdown">
-        {data.branches.length === 0 ? (
+        {ranked.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
             Add branches from Settings → Branches
           </div>
@@ -1382,18 +1584,20 @@ function BranchesTab({ data }: { data: ReportsData }) {
                   <th className="py-2 pr-3">City</th>
                   <th className="py-2 pr-3 text-right">Orders</th>
                   <th className="py-2 pr-3 text-right">Revenue</th>
+                  <th className="py-2 pr-3 text-right">AOV</th>
                   <th className="py-2 pr-3 text-right">Avg Delivery</th>
                   <th className="py-2">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {data.branches.map((b) => (
+                {ranked.map((b) => (
                   <tr key={b.id} className="border-b border-border/50">
                     <td className="py-2.5 pr-3 font-medium">{b.name}</td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{b.city ?? "—"}</td>
-                    <td className="py-2.5 pr-3 text-right">{b.orders}</td>
-                    <td className="py-2.5 pr-3 text-right font-bold">{fmtPKR(b.revenue)}</td>
-                    <td className="py-2.5 pr-3 text-right">{b.avg_delivery_min}m</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{b.orders}</td>
+                    <td className="py-2.5 pr-3 text-right font-bold tabular-nums">{fmtPKR(b.revenue)}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{fmtPKR(b.aov)}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{b.avg_delivery_min}m</td>
                     <td className="py-2.5">
                       {b.is_active ? (
                         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
@@ -1418,3 +1622,4 @@ function BranchesTab({ data }: { data: ReportsData }) {
     </div>
   );
 }
+
