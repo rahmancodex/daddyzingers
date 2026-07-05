@@ -116,7 +116,7 @@ function CheckoutPage() {
   // Auth gate — render inline sign-in prompt
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <OrderHeader />
         <main className="pt-8 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
@@ -141,7 +141,7 @@ function CheckoutPage() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         <OrderHeader />
         <main className="pt-8 pb-24">
           <div className="container-dz max-w-md mx-auto text-center">
@@ -232,7 +232,7 @@ function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <OrderHeader />
       <main className="pt-6 md:pt-10 pb-32 lg:pb-16">
         <div className="container-dz">

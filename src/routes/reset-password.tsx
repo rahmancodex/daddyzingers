@@ -24,7 +24,7 @@ function ResetPassword() {
   const [submitting, setSubmitting] = useState(false);
 
   return (
-    <div className="min-h-screen grid place-items-center bg-background p-6">
+    <div className="min-h-dvh grid place-items-center bg-background p-6">
       <div className="w-full max-w-md">
         <Link
           to="/auth"
