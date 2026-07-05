@@ -350,10 +350,12 @@ export function MenuContent() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="display_order">Display order</SelectItem>
               <SelectItem value="name">Name A→Z</SelectItem>
               <SelectItem value="price_asc">Price low→high</SelectItem>
               <SelectItem value="price_desc">Price high→low</SelectItem>
             </SelectContent>
+
           </Select>
 
           <Button
