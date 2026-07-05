@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Briefcase,
@@ -66,20 +67,30 @@ function iconForLabel(label: string) {
 
 function AddressesPage() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Address[] | null>(null);
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<Address | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const load = () => {
-    if (!user) return;
-    supabase
-      .from("user_addresses")
-      .select("*")
-      .order("is_default", { ascending: false })
-      .order("created_at", { ascending: true })
-      .then(({ data }) => setRows((data as Address[]) ?? []));
+  const { data: rows = null } = useQuery<Address[]>({
+    queryKey: ["customer-addresses", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_addresses")
+        .select("*")
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true });
+      return (data as Address[]) ?? [];
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["customer-addresses", user?.id] });
+    // The overview card shows the address count.
+    qc.invalidateQueries({ queryKey: ["customer-overview", user?.id] });
   };
-  useEffect(load, [user]);
+
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -182,7 +193,7 @@ function AddressesPage() {
                           .eq("id", a.id);
                         if (error) return toast.error(error.message);
                         toast.success("Default address updated");
-                        load();
+                        invalidate();
                       }}
                     >
                       <Star className="h-3.5 w-3.5" /> Set default
@@ -209,7 +220,7 @@ function AddressesPage() {
                         .eq("id", a.id);
                       if (error) return toast.error(error.message);
                       toast.success("Address deleted");
-                      load();
+                      invalidate();
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -245,7 +256,7 @@ function AddressesPage() {
         editing={editing}
         onSaved={() => {
           setDialogOpen(false);
-          load();
+          invalidate();
         }}
       />
     </div>

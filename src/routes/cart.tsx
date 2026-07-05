@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { OrderHeader } from "@/components/order/OrderHeader";
 import { MobileBottomNav } from "@/components/order/MobileBottomNav";
+import { MobileCheckoutBar } from "@/components/order/MobileCheckoutBar";
 import { Footer } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +76,8 @@ function CartPage() {
   return (
     <div className="min-h-dvh bg-background">
       <OrderHeader />
-      <main className="pt-6 md:pt-10 pb-28 md:pb-16">
+      <main className="pt-6 md:pt-10 pb-44 lg:pb-16">
+
         <div className="container-dz">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -273,6 +275,14 @@ function CartPage() {
         </div>
       </main>
       <Footer />
+      {cart.length > 0 && (
+        <MobileCheckoutBar
+          total={totals.total}
+          to="/checkout"
+          itemCount={cart.length}
+          ariaLabel={`Continue to checkout, total ${formatPKR(totals.total)}`}
+        />
+      )}
       <MobileBottomNav />
     </div>
   );
