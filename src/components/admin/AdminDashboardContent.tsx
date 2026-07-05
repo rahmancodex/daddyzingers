@@ -1,15 +1,15 @@
 import * as React from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
 import {
-  ArrowDownRight,
+  AlertTriangle,
   ArrowUpRight,
   ChefHat,
   CheckCircle2,
   Clock,
   DollarSign,
   Flame,
-  MoreHorizontal,
   Package,
   PackageCheck,
   Plus,
@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { adminPromoStats } from "@/lib/admin-promos.functions";
 import { adminListCustomers, type AdminCustomerRow } from "@/lib/admin-customers.functions";
+import { adminReports } from "@/lib/admin-reports.functions";
+import { adminListOrders, adminOrderStats, type AdminOrderRow } from "@/lib/admin-orders.functions";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -32,18 +34,15 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { adminOrderStats } from "@/lib/admin-orders.functions";
 import { formatPKR } from "@/lib/admin-orders";
 
 // -----------------------------------------------------------------------------
-// Stat cards
+// Shared UI
 // -----------------------------------------------------------------------------
 
 type Stat = {
   label: string;
   value: string;
-  delta?: string;
-  trend?: "up" | "down";
   icon: LucideIcon;
   tone: "primary" | "success" | "warning" | "info" | "destructive" | "neutral";
 };
@@ -65,23 +64,6 @@ function StatCard({ stat }: { stat: Stat }) {
         <div className={cn("grid h-10 w-10 place-items-center rounded-xl", TONE[stat.tone])}>
           <Icon className="h-5 w-5" />
         </div>
-        {stat.delta && (
-          <div
-            className={cn(
-              "flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              stat.trend === "down"
-                ? "bg-destructive/10 text-destructive"
-                : "bg-success/15 text-success-foreground",
-            )}
-          >
-            {stat.trend === "down" ? (
-              <ArrowDownRight className="h-3 w-3" />
-            ) : (
-              <ArrowUpRight className="h-3 w-3" />
-            )}
-            {stat.delta}
-          </div>
-        )}
       </div>
       <div className="mt-4">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -103,14 +85,65 @@ function StatCardSkeleton() {
   );
 }
 
-function LiveStatsGrid() {
-  const qc = useQueryClient();
+function ErrorCard({
+  title = "Couldn't load",
+  message,
+  onRetry,
+  className,
+}: {
+  title?: string;
+  message?: string;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm",
+        className,
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-destructive/15 text-destructive">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-foreground">{title}</div>
+          <div className="mt-0.5 line-clamp-2 text-muted-foreground">
+            {message ?? "Something went wrong. Please try again."}
+          </div>
+        </div>
+        {onRetry && (
+          <Button size="sm" variant="outline" onClick={onRetry} className="rounded-lg">
+            Retry
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : "Unknown error";
+}
+
+// -----------------------------------------------------------------------------
+// Live stats (orders)
+// -----------------------------------------------------------------------------
+
+function useOrderStatsQuery() {
   const fetchStats = useServerFn(adminOrderStats);
-  const q = useQuery({
+  return useQuery({
     queryKey: ["admin", "order-stats"],
     queryFn: () => fetchStats({ data: undefined }),
     refetchInterval: 30_000,
+    retry: 1,
   });
+}
+
+function LiveStatsGrid() {
+  const qc = useQueryClient();
+  const q = useOrderStatsQuery();
 
   React.useEffect(() => {
     const channel = supabase
@@ -126,6 +159,9 @@ function LiveStatsGrid() {
     };
   }, [qc]);
 
+  if (q.isError) {
+    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+  }
   if (q.isLoading || !q.data) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -155,7 +191,6 @@ function LiveStatsGrid() {
   );
 }
 
-
 function PromoStatsGrid() {
   const qc = useQueryClient();
   const fetchStats = useServerFn(adminPromoStats);
@@ -163,6 +198,7 @@ function PromoStatsGrid() {
     queryKey: ["admin", "promo-stats"],
     queryFn: () => fetchStats({ data: undefined }),
     refetchInterval: 60_000,
+    retry: 1,
   });
 
   React.useEffect(() => {
@@ -184,6 +220,9 @@ function PromoStatsGrid() {
     };
   }, [qc]);
 
+  if (q.isError) {
+    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+  }
   if (q.isLoading || !q.data) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -215,87 +254,163 @@ function PromoStatsGrid() {
   );
 }
 
-
 // -----------------------------------------------------------------------------
-// Revenue chart placeholder
+// Weekly report (revenue chart + top items)
 // -----------------------------------------------------------------------------
 
-function RevenueChart() {
-  const points = [22, 34, 28, 46, 40, 58, 52, 66, 60, 78, 72, 88];
-  const max = Math.max(...points);
+function useWeeklyReport() {
+  const fetchReport = useServerFn(adminReports);
+  const range = React.useMemo(() => {
+    const to = new Date();
+    const from = new Date(to.getTime() - 6 * 24 * 60 * 60 * 1000);
+    from.setHours(0, 0, 0, 0);
+    return { from: from.toISOString(), to: to.toISOString() };
+  }, []);
+  return useQuery({
+    queryKey: ["admin", "dashboard-weekly", range.from, range.to],
+    queryFn: () =>
+      fetchReport({
+        data: {
+          from: range.from,
+          to: range.to,
+          branchId: null,
+          status: null,
+          categoryId: null,
+          userId: null,
+          couponCode: null,
+        },
+      }),
+    staleTime: 60_000,
+    retry: 1,
+  });
+}
+
+function RevenueChart({
+  data,
+  loading,
+  error,
+  onRetry,
+}: {
+  data?: { trend: Array<{ date: string; revenue: number }>; totalRevenue: number; revenueGrowth: number | null };
+  loading: boolean;
+  error?: unknown;
+  onRetry: () => void;
+}) {
+  if (error) return <ErrorCard message={errMsg(error)} onRetry={onRetry} />;
+
+  const trend = data?.trend ?? [];
+  const points = trend.length ? trend.map((t) => t.revenue) : [];
+  const hasData = points.some((p) => p > 0);
+  const max = hasData ? Math.max(...points, 1) : 1;
   const w = 560;
   const h = 180;
-  const step = w / (points.length - 1);
+  const step = points.length > 1 ? w / (points.length - 1) : w;
   const line = points
     .map((p, i) => `${i === 0 ? "M" : "L"} ${i * step} ${h - (p / max) * (h - 20) - 10}`)
     .join(" ");
-  const area = `${line} L ${w} ${h} L 0 ${h} Z`;
+  const area = points.length ? `${line} L ${w} ${h} L 0 ${h} Z` : "";
+  const growth = data?.revenueGrowth;
 
   return (
     <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Revenue this week
+            Revenue last 7 days
           </div>
           <div className="mt-1 flex items-baseline gap-3">
-            <span className="font-display text-3xl font-black">PKR 1.24M</span>
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success-foreground">
-              <ArrowUpRight className="h-3 w-3" /> 14.6%
-            </span>
+            {loading ? (
+              <Skeleton className="h-8 w-40 rounded" />
+            ) : (
+              <span className="font-display text-3xl font-black">
+                {formatPKR(data?.totalRevenue ?? 0)}
+              </span>
+            )}
+            {growth != null && Number.isFinite(growth) && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+                  growth >= 0
+                    ? "bg-success/15 text-success-foreground"
+                    : "bg-destructive/10 text-destructive",
+                )}
+              >
+                <ArrowUpRight className="h-3 w-3" />
+                {growth >= 0 ? "+" : ""}
+                {growth.toFixed(1)}%
+              </span>
+            )}
           </div>
-        </div>
-        <div className="hidden gap-2 sm:flex">
-          {["7D", "30D", "90D"].map((r, i) => (
-            <button
-              key={r}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
-                i === 0
-                  ? "bg-foreground text-background"
-                  : "bg-muted text-muted-foreground hover:bg-accent",
-              )}
-            >
-              {r}
-            </button>
-          ))}
         </div>
       </div>
       <div className="mt-6 h-[200px] w-full overflow-hidden">
-        <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path d={area} fill="url(#rev)" />
-          <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
+        {loading ? (
+          <Skeleton className="h-full w-full rounded-xl" />
+        ) : hasData ? (
+          <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="rev" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={area} fill="url(#rev)" />
+            <path d={line} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+        ) : (
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
+            No revenue in the last 7 days yet.
+          </div>
+        )}
       </div>
-      <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-          <span key={d}>{d}</span>
-        ))}
-      </div>
+      {trend.length > 0 && (
+        <div className="mt-2 flex justify-between text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {trend.map((t) => (
+            <span key={t.date}>
+              {new Date(t.date).toLocaleDateString("en-GB", { weekday: "short" })}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Order status overview
+// Order status overview (from live stats)
 // -----------------------------------------------------------------------------
 
-const STATUS = [
-  { label: "Pending", value: 14, color: "bg-warning" },
-  { label: "Preparing", value: 22, color: "bg-info" },
-  { label: "Out for delivery", value: 18, color: "bg-primary" },
-  { label: "Delivered", value: 86, color: "bg-success" },
-  { label: "Cancelled", value: 6, color: "bg-destructive" },
-];
-
 function OrderStatusOverview() {
-  const total = STATUS.reduce((a, s) => a + s.value, 0);
+  const q = useOrderStatsQuery();
+
+  if (q.isError) {
+    return <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />;
+  }
+  if (q.isLoading || !q.data) {
+    return (
+      <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
+        <Skeleton className="h-4 w-32 rounded" />
+        <Skeleton className="mt-2 h-7 w-24 rounded" />
+        <Skeleton className="mt-5 h-2.5 w-full rounded-full" />
+        <div className="mt-5 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const d = q.data;
+  const items = [
+    { label: "Pending", value: d.pending, color: "bg-warning" },
+    { label: "Preparing", value: d.preparing + d.confirmed, color: "bg-info" },
+    { label: "Out for delivery", value: d.out_for_delivery, color: "bg-primary" },
+    { label: "Delivered", value: d.delivered, color: "bg-success" },
+    { label: "Cancelled", value: d.cancelled, color: "bg-destructive" },
+  ];
+  const total = items.reduce((a, s) => a + s.value, 0);
+
   return (
     <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-1)]">
       <div className="flex items-start justify-between">
@@ -307,13 +422,21 @@ function OrderStatusOverview() {
         </div>
         <Package className="h-5 w-5 text-muted-foreground" />
       </div>
-      <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-muted">
-        {STATUS.map((s) => (
-          <div key={s.label} className={cn("h-full", s.color)} style={{ width: `${(s.value / total) * 100}%` }} />
-        ))}
-      </div>
+      {total > 0 ? (
+        <div className="mt-5 flex h-2.5 overflow-hidden rounded-full bg-muted">
+          {items.map((s) => (
+            <div
+              key={s.label}
+              className={cn("h-full", s.color)}
+              style={{ width: `${(s.value / total) * 100}%` }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-5 h-2.5 rounded-full bg-muted" />
+      )}
       <ul className="mt-5 space-y-3">
-        {STATUS.map((s) => (
+        {items.map((s) => (
           <li key={s.label} className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
               <span className={cn("h-2.5 w-2.5 rounded-full", s.color)} />
@@ -328,83 +451,135 @@ function OrderStatusOverview() {
 }
 
 // -----------------------------------------------------------------------------
-// Recent orders table
+// Recent orders (real data)
 // -----------------------------------------------------------------------------
 
-type OrderRow = {
-  id: string;
-  customer: string;
-  items: number;
-  total: string;
-  status: "Pending" | "Preparing" | "Out for delivery" | "Delivered" | "Cancelled";
-  time: string;
+const STATUS_STYLE: Record<string, string> = {
+  pending: "bg-warning/20 text-warning-foreground",
+  confirmed: "bg-info/15 text-info",
+  preparing: "bg-info/15 text-info",
+  ready: "bg-primary/20 text-foreground",
+  out_for_delivery: "bg-primary/20 text-foreground",
+  delivered: "bg-success/15 text-success-foreground",
+  cancelled: "bg-destructive/15 text-destructive",
 };
 
-const ORDERS: OrderRow[] = [
-  { id: "#DZ-10428", customer: "Ahmed Raza", items: 3, total: "PKR 2,140", status: "Preparing", time: "2m ago" },
-  { id: "#DZ-10427", customer: "Sara Khan", items: 5, total: "PKR 3,890", status: "Pending", time: "6m ago" },
-  { id: "#DZ-10426", customer: "Bilal Ahmed", items: 2, total: "PKR 1,260", status: "Out for delivery", time: "12m ago" },
-  { id: "#DZ-10425", customer: "Hina Malik", items: 4, total: "PKR 2,720", status: "Delivered", time: "24m ago" },
-  { id: "#DZ-10424", customer: "Usman Tariq", items: 1, total: "PKR 780", status: "Cancelled", time: "31m ago" },
-  { id: "#DZ-10423", customer: "Ayesha Iqbal", items: 6, total: "PKR 4,510", status: "Delivered", time: "42m ago" },
-];
-
-const STATUS_STYLE: Record<OrderRow["status"], string> = {
-  Pending: "bg-warning/20 text-warning-foreground",
-  Preparing: "bg-info/15 text-info",
-  "Out for delivery": "bg-primary/20 text-foreground",
-  Delivered: "bg-success/15 text-success-foreground",
-  Cancelled: "bg-destructive/15 text-destructive",
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  preparing: "Preparing",
+  ready: "Ready",
+  out_for_delivery: "Out for delivery",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
+
+function relTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.round(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return `${d}d ago`;
+}
 
 function RecentOrders() {
+  const qc = useQueryClient();
+  const fetchList = useServerFn(adminListOrders);
+  const q = useQuery({
+    queryKey: ["admin", "dashboard-recent-orders"],
+    queryFn: () => fetchList({ data: { limit: 6 } }) as Promise<AdminOrderRow[]>,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+
+  React.useEffect(() => {
+    const channel = supabase
+      .channel("admin-dashboard-recent-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => qc.invalidateQueries({ queryKey: ["admin", "dashboard-recent-orders"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   return (
     <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
       <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
         <div>
           <div className="font-display text-lg font-black">Recent Orders</div>
-          <div className="text-xs text-muted-foreground">Live feed from the last hour</div>
+          <div className="text-xs text-muted-foreground">Latest activity across the kitchen</div>
         </div>
-        <Button variant="ghost" size="sm" className="rounded-lg">
-          View all
+        <Button asChild variant="ghost" size="sm" className="rounded-lg">
+          <Link to="/admin/orders">View all</Link>
         </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="px-6 py-3 font-semibold">Order</th>
-              <th className="px-2 py-3 font-semibold">Customer</th>
-              <th className="px-2 py-3 font-semibold">Items</th>
-              <th className="px-2 py-3 font-semibold">Total</th>
-              <th className="px-2 py-3 font-semibold">Status</th>
-              <th className="px-6 py-3 text-right font-semibold">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ORDERS.map((o) => (
-              <tr key={o.id} className="border-t border-border/50 transition-colors hover:bg-muted/40">
-                <td className="px-6 py-3 font-mono text-xs font-semibold">{o.id}</td>
-                <td className="px-2 py-3">{o.customer}</td>
-                <td className="px-2 py-3 tabular-nums text-muted-foreground">{o.items}</td>
-                <td className="px-2 py-3 font-semibold tabular-nums">{o.total}</td>
-                <td className="px-2 py-3">
-                  <Badge className={cn("rounded-full font-semibold", STATUS_STYLE[o.status])} variant="secondary">
-                    {o.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-3 text-right text-xs text-muted-foreground">{o.time}</td>
+      {q.isError ? (
+        <div className="p-6">
+          <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />
+        </div>
+      ) : q.isLoading ? (
+        <div className="space-y-3 p-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded" />
+          ))}
+        </div>
+      ) : (q.data ?? []).length === 0 ? (
+        <div className="p-10 text-center text-sm text-muted-foreground">
+          No orders yet. New orders will appear here in real time.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                <th className="px-6 py-3 font-semibold">Order</th>
+                <th className="px-2 py-3 font-semibold">Customer</th>
+                <th className="px-2 py-3 font-semibold">Items</th>
+                <th className="px-2 py-3 font-semibold">Total</th>
+                <th className="px-2 py-3 font-semibold">Status</th>
+                <th className="px-6 py-3 text-right font-semibold">Time</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {(q.data ?? []).map((o) => (
+                <tr key={o.id} className="border-t border-border/50 transition-colors hover:bg-muted/40">
+                  <td className="px-6 py-3 font-mono text-xs font-semibold">{o.order_number}</td>
+                  <td className="px-2 py-3">{o.customer_name ?? "—"}</td>
+                  <td className="px-2 py-3 tabular-nums text-muted-foreground">{o.items_count}</td>
+                  <td className="px-2 py-3 font-semibold tabular-nums">{formatPKR(o.total_pkr)}</td>
+                  <td className="px-2 py-3">
+                    <Badge
+                      className={cn(
+                        "rounded-full font-semibold",
+                        STATUS_STYLE[o.status] ?? "bg-muted text-foreground",
+                      )}
+                      variant="secondary"
+                    >
+                      {STATUS_LABEL[o.status] ?? o.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-3 text-right text-xs text-muted-foreground">
+                    {relTime(o.created_at)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Latest customers
+// Latest customers (real data)
 // -----------------------------------------------------------------------------
 
 function LatestCustomers() {
@@ -413,6 +588,7 @@ function LatestCustomers() {
   const q = useQuery({
     queryKey: ["admin", "customers"],
     queryFn: () => fetchList({ data: undefined }) as Promise<AdminCustomerRow[]>,
+    retry: 1,
   });
 
   React.useEffect(() => {
@@ -431,9 +607,7 @@ function LatestCustomers() {
 
   const rows = (q.data ?? [])
     .slice()
-    .sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
 
   return (
@@ -445,16 +619,18 @@ function LatestCustomers() {
         </div>
         <Users className="h-4 w-4 text-muted-foreground" />
       </div>
-      {q.isLoading ? (
+      {q.isError ? (
+        <div className="p-6">
+          <ErrorCard message={errMsg(q.error)} onRetry={() => q.refetch()} />
+        </div>
+      ) : q.isLoading ? (
         <div className="space-y-3 p-6">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full rounded" />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          No customers yet
-        </div>
+        <div className="p-8 text-center text-sm text-muted-foreground">No customers yet</div>
       ) : (
         <ul className="divide-y divide-border/60">
           {rows.map((c) => {
@@ -497,63 +673,82 @@ function LatestCustomers() {
   );
 }
 
-
 // -----------------------------------------------------------------------------
-// Top selling items
+// Top selling items (real data from weekly report)
 // -----------------------------------------------------------------------------
 
-const TOP_ITEMS = [
-  { name: "Zinger Burger", sold: 148, revenue: "PKR 88,800" },
-  { name: "Crispy Wings (12 pc)", sold: 96, revenue: "PKR 62,400" },
-  { name: "Loaded Fries", sold: 84, revenue: "PKR 33,600" },
-  { name: "Peri Peri Rice Bowl", sold: 72, revenue: "PKR 50,400" },
-  { name: "Family Feast", sold: 41, revenue: "PKR 102,500" },
-];
-
-function TopSellingItems() {
-  const max = Math.max(...TOP_ITEMS.map((i) => i.sold));
+function TopSellingItems({
+  items,
+  loading,
+  error,
+  onRetry,
+}: {
+  items?: Array<{ name: string; qty: number; revenue: number }>;
+  loading: boolean;
+  error?: unknown;
+  onRetry: () => void;
+}) {
+  const list = (items ?? []).slice(0, 5);
+  const max = list.length ? Math.max(...list.map((i) => i.qty), 1) : 1;
   return (
     <div className="rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-1)]">
       <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
         <div>
           <div className="font-display text-lg font-black">Top Selling Items</div>
-          <div className="text-xs text-muted-foreground">This week</div>
+          <div className="text-xs text-muted-foreground">Last 7 days</div>
         </div>
         <Flame className="h-4 w-4 text-primary" />
       </div>
-      <ul className="space-y-4 p-6">
-        {TOP_ITEMS.map((item) => (
-          <li key={item.name}>
-            <div className="mb-1.5 flex items-center justify-between text-sm">
-              <span className="font-semibold">{item.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {item.sold} sold · <span className="font-semibold text-foreground">{item.revenue}</span>
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
-                style={{ width: `${(item.sold / max) * 100}%` }}
-              />
-            </div>
-          </li>
-        ))}
-      </ul>
+      {error ? (
+        <div className="p-6">
+          <ErrorCard message={errMsg(error)} onRetry={onRetry} />
+        </div>
+      ) : loading ? (
+        <div className="space-y-4 p-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-full rounded" />
+          ))}
+        </div>
+      ) : list.length === 0 ? (
+        <div className="p-10 text-center text-sm text-muted-foreground">
+          No item sales in the last 7 days.
+        </div>
+      ) : (
+        <ul className="space-y-4 p-6">
+          {list.map((item) => (
+            <li key={item.name}>
+              <div className="mb-1.5 flex items-center justify-between text-sm">
+                <span className="font-semibold">{item.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {item.qty} sold ·{" "}
+                  <span className="font-semibold text-foreground">{formatPKR(item.revenue)}</span>
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                  style={{ width: `${(item.qty / max) * 100}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Quick actions
+// Quick actions (real navigation)
 // -----------------------------------------------------------------------------
 
-const ACTIONS = [
-  { label: "Add menu item", icon: Plus, tone: "bg-primary/15 text-foreground" },
-  { label: "Create coupon", icon: Ticket, tone: "bg-info/15 text-info" },
-  { label: "New promo banner", icon: Sparkles, tone: "bg-warning/20 text-warning-foreground" },
-  { label: "Dispatch order", icon: Truck, tone: "bg-success/15 text-success-foreground" },
-  { label: "Mark order ready", icon: CheckCircle2, tone: "bg-primary/15 text-foreground" },
-  { label: "Manage staff", icon: Users, tone: "bg-muted text-foreground" },
+const ACTIONS: Array<{ label: string; icon: LucideIcon; tone: string; to: string }> = [
+  { label: "Add menu item", icon: Plus, tone: "bg-primary/15 text-foreground", to: "/admin/menu" },
+  { label: "Create coupon", icon: Ticket, tone: "bg-info/15 text-info", to: "/admin/coupons" },
+  { label: "New promo banner", icon: Sparkles, tone: "bg-warning/20 text-warning-foreground", to: "/admin/promo-banners" },
+  { label: "Dispatch order", icon: Truck, tone: "bg-success/15 text-success-foreground", to: "/admin/orders" },
+  { label: "Mark order ready", icon: CheckCircle2, tone: "bg-primary/15 text-foreground", to: "/admin/orders" },
+  { label: "Manage staff", icon: Users, tone: "bg-muted text-foreground", to: "/admin/staff" },
 ];
 
 function QuickActions() {
@@ -564,21 +759,21 @@ function QuickActions() {
           <div className="font-display text-lg font-black">Quick Actions</div>
           <div className="text-xs text-muted-foreground">Shortcuts to common tasks</div>
         </div>
-        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {ACTIONS.map((a) => {
           const Icon = a.icon;
           return (
-            <button
+            <Link
               key={a.label}
+              to={a.to}
               className="group flex flex-col items-start gap-2 rounded-xl border border-border/60 bg-background p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-2)]"
             >
               <span className={cn("grid h-9 w-9 place-items-center rounded-lg", a.tone)}>
                 <Icon className="h-4 w-4" />
               </span>
               <span className="text-sm font-semibold leading-tight">{a.label}</span>
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -591,6 +786,25 @@ function QuickActions() {
 // -----------------------------------------------------------------------------
 
 export function AdminDashboardContent() {
+  const weekly = useWeeklyReport();
+
+  const chartData = weekly.data
+    ? {
+        trend: (weekly.data.trend ?? []).map((t) => ({
+          date: t.date,
+          revenue: t.revenue,
+        })),
+        totalRevenue: weekly.data.totalRevenue ?? 0,
+        revenueGrowth:
+          typeof weekly.data.revenueGrowth === "number" ? weekly.data.revenueGrowth : null,
+      }
+    : undefined;
+  const topItems = weekly.data?.bestProducts?.map((p) => ({
+    name: p.name,
+    qty: p.qty,
+    revenue: p.revenue,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -600,24 +814,20 @@ export function AdminDashboardContent() {
             Overview of today's kitchen performance.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="rounded-xl">
-            Export
-          </Button>
-          <Button className="rounded-xl">
-            <Plus className="h-4 w-4" /> New order
-          </Button>
-        </div>
       </div>
 
       <LiveStatsGrid />
 
       <PromoStatsGrid />
 
-
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RevenueChart />
+          <RevenueChart
+            data={chartData}
+            loading={weekly.isLoading}
+            error={weekly.isError ? weekly.error : undefined}
+            onRetry={() => weekly.refetch()}
+          />
         </div>
         <OrderStatusOverview />
       </div>
@@ -631,7 +841,12 @@ export function AdminDashboardContent() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <TopSellingItems />
+          <TopSellingItems
+            items={topItems}
+            loading={weekly.isLoading}
+            error={weekly.isError ? weekly.error : undefined}
+            onRetry={() => weekly.refetch()}
+          />
         </div>
         <QuickActions />
       </div>
