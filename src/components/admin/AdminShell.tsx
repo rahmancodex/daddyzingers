@@ -288,18 +288,6 @@ function Topbar({
           <Search className="h-5 w-5" />
         </Button>
 
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search orders, customers, items…"
-          className="h-10 rounded-lg border-border/50 bg-muted/50 pl-9 pr-16 text-sm focus-visible:border-input focus-visible:bg-background"
-        />
-        <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-border/60 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
-          <span className="text-[11px]">⌘</span>K
-        </kbd>
-      </div>
-
-      <div className="ml-auto flex items-center gap-1.5">
         <Button
           variant="ghost"
           size="icon"
