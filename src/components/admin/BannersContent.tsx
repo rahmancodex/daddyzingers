@@ -551,3 +551,55 @@ export function BannersContent() {
     </div>
   );
 }
+
+function BannerKpi({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "default" | "success" | "info" | "muted";
+}) {
+  const tones: Record<string, string> = {
+    default: "bg-primary/10 text-primary",
+    success: "bg-success/15 text-success-foreground",
+    info: "bg-info/15 text-info",
+    muted: "bg-muted text-muted-foreground",
+  };
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-1)]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span
+          className={cn("grid h-8 w-8 place-items-center rounded-lg", tones[tone])}
+          aria-hidden
+        >
+          <ImageIcon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="mt-1 font-display text-2xl font-black leading-none tabular-nums">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BannerError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-2xl border border-destructive/40 bg-card p-8 text-center shadow-[var(--shadow-1)]">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-destructive/10 text-destructive">
+        <AlertCircle className="h-5 w-5" />
+      </div>
+      <div className="mt-3 font-display text-base font-bold">Couldn&apos;t load banners</div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Something went wrong on our side. Please try again in a moment.
+      </p>
+      <Button size="sm" className="mt-4 rounded-xl" onClick={onRetry}>
+        Retry
+      </Button>
+    </div>
+  );
+}
