@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Bike,
+  Building2,
   Check,
   ChefHat,
   Clock,
@@ -16,6 +17,7 @@ import {
   UtensilsCrossed,
   XCircle,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
