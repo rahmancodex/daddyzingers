@@ -253,8 +253,8 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
               className="overflow-hidden border-t border-border bg-background"
             >
               <div className="container-dz py-5">
-                <div className="relative group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white group-hover:text-black group-focus-within:text-black transition-colors z-10 pointer-events-none" />
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                   <input
                     autoFocus
                     value={search}
@@ -263,13 +263,14 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
                       if (e.key === "Enter") commitSearch(search);
                     }}
                     placeholder="Search zinger, fries, shawarma…"
-                    className="w-full h-14 pl-11 pr-11 rounded-2xl bg-[hsl(0_0%_10%)] hover:bg-primary focus:bg-primary border-2 border-transparent focus:border-primary text-base font-medium text-white placeholder:text-white/70 hover:text-black hover:placeholder:text-black/70 focus:text-black focus:placeholder:text-black/60 focus:outline-none focus:ring-4 focus:ring-primary/25 transition-all duration-200"
+                    aria-label="Search menu items"
+                    className="w-full h-14 pl-11 pr-11 rounded-2xl bg-secondary/60 border-2 border-border focus:border-primary text-base font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-primary/20 transition-colors duration-200"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full grid place-items-center bg-white/10 hover:bg-black/20 text-white group-hover:text-black group-focus-within:text-black transition-colors z-10"
-                      aria-label="Clear"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full grid place-items-center bg-background/80 hover:bg-primary hover:text-primary-foreground text-muted-foreground border border-border transition-colors z-10"
+                      aria-label="Clear search"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
