@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         router.invalidate();
       }
+      // Honor the "Remember me" preference set at sign-in time. When the user
+      // opted out we clear the persisted session on next boot instead of
+      // stacking a beforeunload listener on every sign-in.
+      if (event === "INITIAL_SESSION" && s) {
+        try {
+          if (localStorage.getItem("dz_session_ephemeral") === "1") {
+            localStorage.removeItem("dz_session_ephemeral");
+            void supabase.auth.signOut({ scope: "local" });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
     });
     // 2) Then hydrate current session.
     supabase.auth.getSession().then(({ data }) => {
@@ -38,14 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [router]);
 
-  const value: AuthCtx = {
-    session,
-    user: session?.user ?? null,
-    loading,
-    async signOut() {
-      await supabase.auth.signOut();
-    },
-  };
+  // Memoized so consumers of useAuth() don't re-render on every
+  // AuthProvider render — only when session/loading actually change.
+  const value = useMemo<AuthCtx>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      loading,
+      async signOut() {
+        await supabase.auth.signOut();
+      },
+    }),
+    [session, loading],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -53,3 +71,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+

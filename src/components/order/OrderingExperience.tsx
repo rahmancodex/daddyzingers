@@ -139,20 +139,25 @@ export function OrderingExperience({ hideHeader = false }: { hideHeader?: boolea
     }
   };
 
+  const activeCatRef = useRef(activeCat);
+  activeCatRef.current = activeCat;
+  const categoriesRef = useRef(CATEGORIES);
+  categoriesRef.current = CATEGORIES;
+
   useEffect(() => {
     const onScroll = () => {
       if (isScrollingByClick.current) return;
       const scrollY = window.scrollY + 200;
       let current: MenuCategory | null = null;
-      for (const cat of CATEGORIES) {
+      for (const cat of categoriesRef.current) {
         const el = sectionRefs.current[cat.id];
         if (el && el.offsetTop <= scrollY) current = cat.id;
       }
-      if (current && current !== activeCat) setActiveCat(current);
+      if (current && current !== activeCatRef.current) setActiveCat(current);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [activeCat]);
+  }, []);
 
   const commitSearch = (q: string) => {
     setSearch(q);
