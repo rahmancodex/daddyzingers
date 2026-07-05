@@ -448,6 +448,7 @@ export function MenuItemDrawer({ mode, itemId, categories, open, onOpenChange }:
                         type="button"
                         variant="ghost"
                         size="icon"
+                        aria-label="Remove size"
                         className="h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive"
                         onClick={() =>
                           setDraft((d) => ({
