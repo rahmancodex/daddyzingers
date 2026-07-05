@@ -566,11 +566,20 @@ function MethodStep() {
 
         {METHODS.map((m) => {
           const active = checkout.method === m.id;
+          const unsupported =
+            !!selectedBranch &&
+            ((m.id === "delivery" && !selectedBranch.delivery_available) ||
+              (m.id === "pickup" && !selectedBranch.pickup_available));
+          const disabled = m.soon || unsupported;
           return (
             <button
               key={m.id}
-              disabled={m.soon}
-              onClick={() => { if (!m.soon) checkoutActions.setMethod(m.id); else toast("Dine-in coming soon"); }}
+              disabled={disabled}
+              onClick={() => {
+                if (m.soon) return toast("Dine-in coming soon");
+                if (unsupported) return toast(`${m.label} is not available at ${selectedBranch?.name}`);
+                checkoutActions.setMethod(m.id);
+              }}
               className={`p-4 rounded-2xl border transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed ${
                 active
                   ? "border-primary bg-primary/10 shadow-[var(--shadow-glow)]"
@@ -579,10 +588,11 @@ function MethodStep() {
             >
               <m.icon className={`h-5 w-5 mb-2 ${active ? "text-primary" : "text-foreground/70"}`} />
               <div className="font-display font-bold">{m.label}</div>
-              <div className="text-xs text-muted-foreground">{m.desc}</div>
+              <div className="text-xs text-muted-foreground">{unsupported ? "Not at this branch" : m.desc}</div>
             </button>
           );
         })}
+
       </div>
 
       <div className="mt-6 rounded-2xl border border-border p-4">
