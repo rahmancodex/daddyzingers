@@ -209,7 +209,7 @@ const ListItemsInput = z.object({
   category_id: z.string().optional(),
   featured: z.boolean().optional(),
   available: z.boolean().optional(),
-  sort: z.enum(["newest", "name", "price_asc", "price_desc"]).optional(),
+  sort: z.enum(["newest", "name", "price_asc", "price_desc", "display_order"]).optional(),
 });
 
 export const adminListMenuItems = createServerFn({ method: "POST" })
@@ -241,9 +241,16 @@ export const adminListMenuItems = createServerFn({ method: "POST" })
       case "price_desc":
         query = query.order("price_pkr", { ascending: false });
         break;
+      case "display_order":
+        query = query
+          .order("category_id", { ascending: true })
+          .order("sort_order", { ascending: true })
+          .order("name", { ascending: true });
+        break;
       default:
         query = query.order("created_at", { ascending: false });
     }
+
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
