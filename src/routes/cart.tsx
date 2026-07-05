@@ -275,6 +275,14 @@ function CartPage() {
         </div>
       </main>
       <Footer />
+      {cart.length > 0 && (
+        <MobileCheckoutBar
+          total={totals.total}
+          to="/checkout"
+          itemCount={cart.length}
+          ariaLabel={`Continue to checkout, total ${formatPKR(totals.total)}`}
+        />
+      )}
       <MobileBottomNav />
     </div>
   );
