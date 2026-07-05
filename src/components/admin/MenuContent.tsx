@@ -180,6 +180,23 @@ export function MenuContent() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (v: { a: AdminMenuItem; b: AdminMenuItem }) => {
+      // Swap sort_order between two items in the same category.
+      // If both currently hold the same value, bump one to keep them distinct.
+      const aOrder = v.a.sort_order;
+      const bOrder = v.b.sort_order === aOrder ? aOrder + 1 : v.b.sort_order;
+      await setSortOrder({ data: { id: v.a.id, sort_order: bOrder } });
+      await setSortOrder({ data: { id: v.b.id, sort_order: aOrder } });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "menu-items"] });
+      qc.invalidateQueries({ queryKey: ["menu"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const allRows = items.data ?? [];
 
   // Client-side price range refinement (backend has no price range filter)
