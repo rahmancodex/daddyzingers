@@ -502,9 +502,16 @@ const METHODS: { id: DeliveryMethod; label: string; desc: string; icon: React.Co
 function MethodStep() {
   const checkout = useCheckout();
   const [scheduleOpen, setScheduleOpen] = useState(!!checkout.scheduleAt);
+  const branchesQ = useActiveBranches();
+  const branches = branchesQ.data ?? [];
+
+  // Filter methods per selected branch capability so users can't pick a mode
+  // the branch doesn't offer.
+  const selectedBranch = branches.find((b) => b.id === checkout.branchId) ?? null;
 
   return (
     <Section title="How would you like your order?">
+
       <div className="grid sm:grid-cols-3 gap-3">
         {METHODS.map((m) => {
           const active = checkout.method === m.id;
