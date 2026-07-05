@@ -317,11 +317,18 @@ function CheckoutPage() {
         </div>
       </main>
 
-      {/* Mobile summary sheet */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border">
+      {/* Mobile summary sheet + primary CTA — hidden while the on-screen keyboard is open */}
+      <div
+        className={`lg:hidden fixed inset-x-0 bottom-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border transition-transform duration-300 pb-[env(safe-area-inset-bottom)] ${
+          keyboardOpen ? "translate-y-full" : "translate-y-0"
+        }`}
+        aria-hidden={keyboardOpen}
+      >
         <button
           onClick={() => setSummaryOpen((v) => !v)}
-          className="w-full px-5 py-3 flex items-center justify-between"
+          className="w-full px-5 py-3 flex items-center justify-between min-h-11"
+          aria-expanded={summaryOpen}
+          aria-controls="mobile-checkout-summary"
         >
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Order total</span>
@@ -332,6 +339,7 @@ function CheckoutPage() {
         <AnimatePresence>
           {summaryOpen && (
             <motion.div
+              id="mobile-checkout-summary"
               initial={{ height: 0 }}
               animate={{ height: "auto" }}
               exit={{ height: 0 }}
@@ -343,6 +351,40 @@ function CheckoutPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        <div className="px-4 pt-2 pb-3 border-t border-border/70 flex items-center gap-2">
+          {step > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setStep((s) => (Math.max(0, s - 1) as StepIdx))}
+              className="h-12 px-3 shrink-0"
+              aria-label="Previous step"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          {step < 3 ? (
+            <Button
+              onClick={goNext}
+              className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold"
+            >
+              Continue <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handlePlace}
+              disabled={!canPlace || placing}
+              className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-[var(--color-primary-hover)] shadow-[var(--shadow-glow)] font-semibold"
+            >
+              {placing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Placing…
+                </>
+              ) : (
+                <>Place order · {formatPKR(totals.total)}</>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
       <Footer />
     </div>
