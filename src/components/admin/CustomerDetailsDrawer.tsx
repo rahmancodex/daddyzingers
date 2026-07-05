@@ -20,7 +20,7 @@ import {
   ShoppingBag,
   Ticket,
   UserPlus,
-  Wallet,
+  
   X,
 } from "lucide-react";
 import { toast } from "sonner";
