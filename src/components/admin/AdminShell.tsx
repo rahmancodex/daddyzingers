@@ -64,13 +64,16 @@ function NavList({
   collapsed,
   onNavigate,
   roles,
+  failOpen,
 }: {
   collapsed?: boolean;
   onNavigate?: () => void;
   roles?: AppRole[];
+  failOpen?: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = ADMIN_NAV.filter((item) => {
+    if (failOpen) return true;
     const perm = ROUTE_PERMISSION[item.to];
     return !perm || hasPermission(roles, perm);
   });
@@ -117,6 +120,7 @@ function useAdminAuth() {
     email?: string;
     roles?: AppRole[];
     topRole?: AppRole | null;
+    rolesFailed?: boolean;
   }>({ status: "loading" });
 
   const loadRoles = React.useCallback(
@@ -128,9 +132,11 @@ function useAdminAuth() {
           email,
           roles: me.roles as AppRole[],
           topRole: (me.topRole ?? null) as AppRole | null,
+          rolesFailed: false,
         });
-      } catch {
-        setState({ status: "ok", email, roles: [], topRole: null });
+      } catch (err) {
+        console.warn("[admin] failed to load roles, failing open:", err);
+        setState({ status: "ok", email, roles: [], topRole: null, rolesFailed: true });
       }
     },
     [meFn],
@@ -283,7 +289,9 @@ export function AdminShell({
   }
 
   const roles = auth.roles ?? [];
-  const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
+  const failOpen = !!auth.rolesFailed;
+  const permitted =
+    !requiredPermission || failOpen || hasPermission(roles, requiredPermission);
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
@@ -308,7 +316,7 @@ export function AdminShell({
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          <NavList collapsed={collapsed} roles={roles} />
+          <NavList collapsed={collapsed} roles={roles} failOpen={failOpen} />
         </div>
 
         <div className="border-t border-border/70 p-2">
@@ -346,7 +354,7 @@ export function AdminShell({
             <BrandMark />
           </div>
           <div className="py-3">
-            <NavList roles={roles} onNavigate={() => setMobileOpen(false)} />
+            <NavList roles={roles} failOpen={failOpen} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
