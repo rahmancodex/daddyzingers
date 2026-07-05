@@ -219,6 +219,7 @@ function ProfilePage() {
             .eq("id", user.id);
           setSaving(false);
           if (error) return toast.error(error.message);
+          invalidateProfile();
           toast.success("Profile updated");
         }}
       >
