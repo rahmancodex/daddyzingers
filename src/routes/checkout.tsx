@@ -325,16 +325,18 @@ function CheckoutPage() {
       >
         <button
           onClick={() => setSummaryOpen((v) => !v)}
-          className="w-full px-5 py-3 flex items-center justify-between min-h-11"
+          className="w-full px-4 sm:px-5 py-3 flex items-center justify-between gap-3 min-h-11"
           aria-expanded={summaryOpen}
           aria-controls="mobile-checkout-summary"
+          aria-label={summaryOpen ? "Hide order summary" : "Show order summary"}
         >
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">Order total</span>
-            <span className="font-display font-extrabold text-lg tabular-nums">{formatPKR(totals.total)}</span>
+          <div className="flex items-baseline gap-2 text-sm min-w-0">
+            <span className="text-muted-foreground shrink-0">Order total</span>
+            <span className="font-display font-extrabold text-lg tabular-nums truncate">{formatPKR(totals.total)}</span>
           </div>
-          <ChevronDown className={`h-4 w-4 transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
         </button>
+
         <AnimatePresence>
           {summaryOpen && (
             <motion.div
