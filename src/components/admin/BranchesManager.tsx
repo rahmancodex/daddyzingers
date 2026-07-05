@@ -512,8 +512,21 @@ function BranchDrawer({
             </FormField>
             <div className="grid gap-3 md:grid-cols-2">
               <FormField label="City">
-                <Input value={form.city} onChange={(e) => setField("city", e.target.value)} />
+                <Select
+                  value={form.city || undefined}
+                  onValueChange={(v) => setField("city", v)}
+                >
+                  <SelectTrigger aria-label="City">
+                    <SelectValue placeholder="Select city" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALLOWED_CITIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
+
               <FormField label="Branch Manager">
                 <Input
                   value={form.manager_name}
