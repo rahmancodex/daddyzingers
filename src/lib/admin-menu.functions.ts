@@ -602,6 +602,27 @@ export const adminSetItemFlags = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const adminSetItemSortOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().min(1),
+        sort_order: z.number().int().min(0).max(9999),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("menu_items")
+      .update({ sort_order: data.sort_order })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 export const adminDeleteMenuItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("menu.manage")])
   .inputValidator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
