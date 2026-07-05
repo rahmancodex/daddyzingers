@@ -41,3 +41,21 @@ export async function assertAnyPermission(
   }
   return roles;
 }
+
+// Middleware factory: pair with requireSupabaseAuth in .middleware([...])
+// e.g. .middleware([requireSupabaseAuth, requirePerm("orders.view")])
+export const requirePerm = (perm: Permission) =>
+  createMiddleware({ type: "function" })
+    .middleware([requireSupabaseAuth])
+    .server(async ({ next, context }) => {
+      await assertPermission(context as any, perm);
+      return next();
+    });
+
+export const requireAnyPerm = (perms: Permission[]) =>
+  createMiddleware({ type: "function" })
+    .middleware([requireSupabaseAuth])
+    .server(async ({ next, context }) => {
+      await assertAnyPermission(context as any, perms);
+      return next();
+    });
