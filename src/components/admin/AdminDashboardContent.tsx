@@ -447,19 +447,16 @@ function PromoKpiGrid() {
 
 function useWeeklyReport() {
   const fetchReport = useServerFn(adminReports);
-  const range = React.useMemo(() => {
-    const to = new Date();
-    const from = new Date(to.getTime() - 6 * 24 * 60 * 60 * 1000);
-    from.setHours(0, 0, 0, 0);
-    return { from: from.toISOString(), to: to.toISOString() };
-  }, []);
+  const { range } = useDateRange();
+  const from = range.from.toISOString();
+  const to = range.to.toISOString();
   return useQuery({
-    queryKey: ["admin", "dashboard-weekly", range.from, range.to],
+    queryKey: ["admin", "dashboard-report", from, to],
     queryFn: () =>
       fetchReport({
         data: {
-          from: range.from,
-          to: range.to,
+          from,
+          to,
           branchId: null,
           status: null,
           categoryId: null,
