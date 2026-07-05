@@ -81,8 +81,11 @@ type Order = {
   special_instructions: string | null;
   created_at: string;
   schedule_at: string | null;
+  branch_id: string | null;
+  branch?: { id: string; name: string; city: string | null; address: string | null; phone: string | null } | null;
   order_items: OrderItem[];
 };
+
 
 const DELIVERY_TIMELINE = [
   { key: "pending", label: "Placed", icon: ReceiptText },
