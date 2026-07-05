@@ -4,7 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   Award,
   BadgeCheck,
+  Ban,
   Calendar,
+  CheckCircle2,
+  Clock,
   ExternalLink,
   Gift,
   Heart,
@@ -14,10 +17,14 @@ import {
   Package,
   Pencil,
   Phone,
+  ShoppingBag,
   Ticket,
+  UserPlus,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
