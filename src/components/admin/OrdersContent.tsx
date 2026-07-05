@@ -1,19 +1,13 @@
 import * as React from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Link, useSearch, useNavigate } from "@tanstack/react-router";
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Bike,
-  ChefHat,
   Download,
   RefreshCw,
   ShoppingBag,
   Ticket,
-  Trash2,
-  Undo2,
-  User,
-  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,7 +26,6 @@ import {
   adminListOrders,
   adminBranchesForOrders,
   adminUpdateOrderStatus,
-  adminRestoreOrder,
   type AdminOrderRow,
   type AdminOrderStatus,
 } from "@/lib/admin-orders.functions";
@@ -59,7 +52,6 @@ import { OrderDetailsDrawer } from "./OrderDetailsDrawer";
 
 type StatusFilter = "all" | AdminOrderStatus;
 type CouponFilter = "any" | "yes" | "no";
-type ViewTab = "active" | "cancelled" | "trash";
 
 const STATUS_OPTIONS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All statuses" },
@@ -111,49 +103,34 @@ function initials(name: string | null | undefined, fallback = "?") {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || fallback;
 }
 
-function EmptyOrders({ filtered, tab }: { filtered: boolean; tab: ViewTab }) {
-  const icon = tab === "trash" ? Trash2 : tab === "cancelled" ? XCircle : ShoppingBag;
-  const Icon = icon;
-  const title =
-    tab === "trash"
-      ? "Trash is empty"
-      : tab === "cancelled"
-        ? "No cancelled orders"
-        : "No orders yet";
-  const body =
-    tab === "trash"
-      ? "Soft-deleted orders will appear here for restore or permanent deletion."
-      : tab === "cancelled"
-        ? "Cancelled orders will collect here so they stay out of the active kitchen queue."
-        : filtered
-          ? "No orders match the current filters. Try widening the date range or clearing filters."
-          : "New orders will appear here in real time as customers check out.";
+function EmptyOrders({ filtered }: { filtered: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-muted">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+    <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
       </div>
       <div>
-        <div className="font-semibold">{title}</div>
-        <p className="mt-1 max-w-sm text-xs text-muted-foreground">{body}</p>
+        <div className="text-base font-semibold">No orders {filtered ? "match these filters" : "yet"}</div>
+        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+          {filtered
+            ? "Try widening the date range or clearing filters."
+            : "New orders will appear here in real time as customers check out."}
+        </p>
       </div>
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// URL search-param shape
+// URL search-param shape (kept compatible with dashboard KPI deep-links)
 // -----------------------------------------------------------------------------
 export type OrdersSearch = {
-  tab?: ViewTab;
   status?: StatusFilter;
   range?: DateRangePreset;
   q?: string;
 };
 
-// Coerce/validate incoming search params for the route.
 export function validateOrdersSearch(input: Record<string, unknown>): OrdersSearch {
-  const tab = (["active", "cancelled", "trash"] as const).find((t) => t === input.tab);
   const status = (STATUS_OPTIONS.map((s) => s.key) as StatusFilter[]).find(
     (s) => s === input.status,
   );
@@ -162,7 +139,6 @@ export function validateOrdersSearch(input: Record<string, unknown>): OrdersSear
   ).find((r) => r === input.range);
   const q = typeof input.q === "string" ? input.q : undefined;
   const out: OrdersSearch = {};
-  if (tab) out.tab = tab;
   if (status) out.status = status;
   if (range) out.range = range;
   if (q) out.q = q;
@@ -184,7 +160,6 @@ function exportCSV(rows: AdminOrderRow[]) {
     "payment_method",
     "coupon_code",
     "branch_id",
-    "assigned_staff",
     "items",
     "subtotal_pkr",
     "delivery_fee_pkr",
@@ -207,7 +182,6 @@ function exportCSV(rows: AdminOrderRow[]) {
       r.payment_method,
       r.coupon_code,
       r.branch_id,
-      r.assigned_staff_name,
       r.items_count,
       r.subtotal_pkr,
       r.delivery_fee_pkr,
@@ -251,7 +225,7 @@ function QuickAdvance({
             type="button"
             size="icon"
             variant="ghost"
-            className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+            className="h-8 w-8 rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
             disabled={pending}
             onClick={(e) => {
               e.stopPropagation();
@@ -259,11 +233,11 @@ function QuickAdvance({
             }}
             aria-label={`Advance to ${STATUS_LABEL[upcoming]}`}
           >
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="left" className="text-xs">
-          Advance to {STATUS_LABEL[upcoming]}
+          Mark as {STATUS_LABEL[upcoming]}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -278,18 +252,14 @@ function OrdersContentInner() {
   const listOrders = useServerFn(adminListOrders);
   const listBranches = useServerFn(adminBranchesForOrders);
   const updateStatus = useServerFn(adminUpdateOrderStatus);
-  const restoreOrder = useServerFn(adminRestoreOrder);
 
-  // URL-driven filters (tab, status, range, q)
   const search = useSearch({ from: "/admin/orders" });
   const navigate = useNavigate({ from: "/admin/orders" });
-  const tab: ViewTab = search.tab ?? "active";
   const urlStatus: StatusFilter = search.status ?? "all";
   const urlQ = search.q ?? "";
 
   const { range, setRange } = useDateRange();
 
-  // Sync ?range=… (from dashboard cards) into the DateRangeProvider once.
   const initialisedRange = React.useRef(false);
   React.useEffect(() => {
     if (initialisedRange.current) return;
@@ -311,11 +281,9 @@ function OrdersContentInner() {
 
   React.useEffect(
     () => setPage(1),
-    [urlStatus, branchId, payment, fulfillment, coupon, debouncedSearch, range, tab],
+    [urlStatus, branchId, payment, fulfillment, coupon, debouncedSearch, range],
   );
 
-  const setTab = (v: ViewTab) =>
-    navigate({ search: (prev: OrdersSearch) => ({ ...prev, tab: v === "active" ? undefined : v }) });
   const setStatus = (v: StatusFilter) =>
     navigate({ search: (prev: OrdersSearch) => ({ ...prev, status: v === "all" ? undefined : v }) });
 
@@ -330,7 +298,6 @@ function OrdersContentInner() {
       "admin",
       "orders",
       {
-        view: tab,
         status: urlStatus,
         branchId,
         payment,
@@ -345,7 +312,6 @@ function OrdersContentInner() {
       listOrders({
         data: {
           status: urlStatus,
-          view: tab,
           search: debouncedSearch.trim() || undefined,
           branch_id: branchId === "all" ? null : branchId,
           payment_method: payment === "all" ? null : payment,
@@ -398,7 +364,6 @@ function OrdersContentInner() {
     setRawSearch("");
   };
 
-  // Row-level quick actions
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const advanceMut = useMutation({
     mutationFn: (input: { id: string; status: AdminOrderStatus }) =>
@@ -411,15 +376,6 @@ function OrdersContentInner() {
       qc.invalidateQueries({ queryKey: ["admin", "order-stats"] });
     },
     onError: (err: Error) => toast.error("Failed to advance", { description: err.message }),
-  });
-
-  const restoreMut = useMutation({
-    mutationFn: (id: string) => restoreOrder({ data: { id } }),
-    onSuccess: () => {
-      toast.success("Order restored");
-      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
-    },
-    onError: (err: Error) => toast.error("Failed to restore", { description: err.message }),
   });
 
   const columns: DataColumn<AdminOrderRow>[] = [
@@ -441,7 +397,7 @@ function OrdersContentInner() {
       header: "Customer",
       cell: (r) => (
         <div className="flex min-w-0 items-center gap-2.5">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-[10.5px] font-bold text-foreground">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-muted to-muted/60 text-[11px] font-bold text-foreground ring-1 ring-border/60">
             {initials(r.customer_name ?? r.customer_email)}
           </div>
           <div className="min-w-0">
@@ -469,30 +425,6 @@ function OrdersContentInner() {
       header: "Payment",
       defaultVisible: false,
       cell: (r) => <span className="text-xs uppercase text-muted-foreground">{r.payment_method}</span>,
-    },
-    {
-      id: "assigned",
-      header: "Assigned",
-      className: "hidden lg:table-cell",
-      headerClassName: "hidden lg:table-cell",
-      defaultVisible: false,
-      cell: (r) =>
-        r.assigned_staff_name || r.assigned_rider_name ? (
-          <div className="flex flex-col gap-0.5 text-xs">
-            {r.assigned_staff_name && (
-              <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <ChefHat className="h-3 w-3" /> {r.assigned_staff_name}
-              </span>
-            )}
-            {r.assigned_rider_name && (
-              <span className="inline-flex items-center gap-1 text-muted-foreground">
-                <Bike className="h-3 w-3" /> {r.assigned_rider_name}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        ),
     },
     {
       id: "items",
@@ -532,43 +464,18 @@ function OrdersContentInner() {
       className: "w-16",
       cell: (r) => (
         <div className="flex items-center justify-end gap-0.5">
-          {tab === "trash" ? (
-            <TooltipProvider delayDuration={200}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      restoreMut.mutate(r.id);
-                    }}
-                    aria-label="Restore order"
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="text-xs">
-                  Restore
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <QuickAdvance
-              order={r}
-              onAdvance={(id, next) => advanceMut.mutate({ id, status: next })}
-              pending={pendingId === r.id}
-            />
-          )}
+          <QuickAdvance
+            order={r}
+            onAdvance={(id, next) => advanceMut.mutate({ id, status: next })}
+            pending={pendingId === r.id}
+          />
         </div>
       ),
     },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="Orders"
         description="Live feed of every order, with advanced filtering, quick actions and inline editing."
@@ -597,36 +504,6 @@ function OrdersContentInner() {
           </>
         }
       />
-
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-1 rounded-xl border border-border/70 bg-card p-1">
-        {(
-          [
-            { key: "active", label: "Active", icon: ShoppingBag },
-            { key: "cancelled", label: "Cancelled", icon: XCircle },
-            { key: "trash", label: "Trash", icon: Trash2 },
-          ] as const
-        ).map((t) => {
-          const active = tab === t.key;
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setTab(t.key)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors",
-                active
-                  ? "bg-foreground text-background shadow-sm"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
 
       <FilterBar>
         <SearchInput
@@ -710,7 +587,7 @@ function OrdersContentInner() {
         loading={q.isLoading}
         getRowKey={(r) => r.id}
         onRowClick={(r) => setSelectedId(r.id)}
-        emptyState={<EmptyOrders filtered={anyFilterActive} tab={tab} />}
+        emptyState={<EmptyOrders filtered={anyFilterActive} />}
         toolbar={
           <div className="text-xs text-muted-foreground">
             {q.isError ? (
@@ -752,7 +629,3 @@ export function OrdersContent() {
     </DateRangeProvider>
   );
 }
-
-// Referenced only to keep the Link import "used" for tree-shakers that assume side-effects.
-void Link;
-void User;

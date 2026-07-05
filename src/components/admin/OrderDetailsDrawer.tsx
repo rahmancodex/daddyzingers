@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChefHat,
   ClipboardList,
-  Clock,
   Copy,
   History,
   Loader2,
@@ -28,7 +27,6 @@ import {
   Trash2,
   Truck,
   User,
-  UserCog,
   X,
   XCircle,
 } from "lucide-react";
@@ -44,7 +42,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -60,8 +57,6 @@ import {
   adminUpdateOrderItemQty,
   adminOrderAuditLog,
   adminCancelOrder,
-  adminSoftDeleteOrder,
-  adminListAssignableStaff,
   adminBranchesForOrders,
   CANCEL_REASONS,
   type AdminOrderDetail,
@@ -109,20 +104,19 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-      <header className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-2.5">
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+      <header className="flex items-center justify-between gap-2 border-b border-border/70 bg-muted/30 px-4 py-2.5">
         <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           <Icon className="h-3.5 w-3.5" /> {title}
         </div>
         {action}
       </header>
-      <div className="px-4 py-3.5">{children}</div>
+      <div className="px-4 py-4">{children}</div>
     </section>
   );
 }
 
 // ============ Simplified restaurant timeline ============
-// preparing → ready → delivered, with a red Cancelled branch when applicable.
 type SimpleStep = "preparing" | "ready" | "delivered";
 
 const SIMPLE_ICON: Record<SimpleStep, React.ComponentType<{ className?: string }>> = {
@@ -137,9 +131,7 @@ const SIMPLE_LABEL: Record<SimpleStep, string> = {
   delivered: "Delivered",
 };
 
-// Map internal enum to the coarse restaurant step reached.
 function reachedStep(status: AdminOrderStatus): number {
-  // -1 means "before preparing" (pending / confirmed).
   switch (status) {
     case "pending":
     case "confirmed":
@@ -149,7 +141,7 @@ function reachedStep(status: AdminOrderStatus): number {
     case "ready":
       return 1;
     case "out_for_delivery":
-      return 1; // still en route → past "ready"
+      return 1;
     case "delivered":
       return 2;
     case "cancelled":
@@ -157,12 +149,21 @@ function reachedStep(status: AdminOrderStatus): number {
   }
 }
 
+function findCancelAudit(audit: AdminOrderAuditEntry[]): AdminOrderAuditEntry | null {
+  for (let i = audit.length - 1; i >= 0; i--) {
+    if (audit[i].action === "order_cancelled") return audit[i];
+  }
+  return null;
+}
+
 function RestaurantTimeline({
   detail,
+  audit,
   onSet,
   pending,
 }: {
   detail: AdminOrderDetail;
+  audit: AdminOrderAuditEntry[];
   onSet: (status: AdminOrderStatus) => void;
   pending: boolean;
 }) {
@@ -175,6 +176,7 @@ function RestaurantTimeline({
   ];
 
   if (cancelled) {
+    const entry = findCancelAudit(audit);
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-destructive text-destructive-foreground">
@@ -182,12 +184,12 @@ function RestaurantTimeline({
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-black text-destructive">Cancelled</div>
-          {detail.cancellation_reason && (
-            <div className="mt-0.5 text-xs text-foreground">{detail.cancellation_reason}</div>
+          {entry?.summary && (
+            <div className="mt-0.5 text-xs text-foreground">{entry.summary}</div>
           )}
           <div className="mt-1 text-[11px] text-muted-foreground">
-            {detail.cancelled_at ? formatDateTime(detail.cancelled_at) : formatDateTime(detail.updated_at)}
-            {detail.cancelled_by_email ? ` · by ${detail.cancelled_by_email}` : ""}
+            {formatDateTime(entry?.created_at ?? detail.updated_at)}
+            {entry?.actor_email ? ` · by ${entry.actor_email}` : ""}
           </div>
         </div>
       </div>
@@ -285,9 +287,6 @@ type EditableFields = {
   delivery_instructions: string;
   payment_method: string;
   branch_id: string;
-  assigned_staff_id: string;
-  assigned_rider_id: string;
-  internal_notes: string;
   special_instructions: string;
   delivery_fee_pkr: number;
   coupon_code: string;
@@ -304,9 +303,6 @@ function fromDetail(d: AdminOrderDetail): EditableFields {
     delivery_instructions: getAddressField(d.address_snapshot, "notes") ?? "",
     payment_method: d.payment_method ?? "",
     branch_id: d.branch_id ?? "",
-    assigned_staff_id: d.assigned_staff_id ?? "",
-    assigned_rider_id: d.assigned_rider_id ?? "",
-    internal_notes: d.internal_notes ?? "",
     special_instructions: d.special_instructions ?? "",
     delivery_fee_pkr: d.delivery_fee_pkr ?? 0,
     coupon_code: d.coupon_code ?? "",
@@ -323,9 +319,6 @@ const FIELD_LABEL: Record<keyof EditableFields, string> = {
   delivery_instructions: "Delivery instructions",
   payment_method: "Payment method",
   branch_id: "Branch",
-  assigned_staff_id: "Assigned staff",
-  assigned_rider_id: "Assigned rider",
-  internal_notes: "Internal notes",
   special_instructions: "Kitchen notes",
   delivery_fee_pkr: "Delivery fee",
   coupon_code: "Coupon code",
@@ -343,7 +336,7 @@ function diffFields(a: EditableFields, b: EditableFields) {
 
 function toPatch(a: EditableFields, b: EditableFields) {
   const patch: Record<string, unknown> = {};
-  const NULLABLE_UUIDS: Array<keyof EditableFields> = ["branch_id", "assigned_staff_id", "assigned_rider_id"];
+  const NULLABLE_UUIDS: Array<keyof EditableFields> = ["branch_id"];
   (Object.keys(a) as (keyof EditableFields)[]).forEach((k) => {
     if (String(a[k] ?? "") === String(b[k] ?? "")) return;
     const v = b[k];
@@ -361,13 +354,7 @@ function toPatch(a: EditableFields, b: EditableFields) {
 }
 
 // ============ Field editor row ============
-function FieldRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1.5">
       <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -457,6 +444,12 @@ function ItemsEditor({
 }
 
 // ============ Print helpers ============
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;",
+  );
+}
+
 function printReceipt(kind: "invoice" | "kitchen", detail: AdminOrderDetail) {
   const win = window.open("", "_blank", "width=420,height=640");
   if (!win) {
@@ -524,12 +517,6 @@ function printReceipt(kind: "invoice" | "kitchen", detail: AdminOrderDetail) {
   win.document.close();
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;",
-  );
-}
-
 // ============ Skeleton ============
 function DetailSkeleton() {
   return (
@@ -562,14 +549,11 @@ export function OrderDetailsDrawer({
   const updateItemQty = useServerFn(adminUpdateOrderItemQty);
   const getAudit = useServerFn(adminOrderAuditLog);
   const cancelOrder = useServerFn(adminCancelOrder);
-  const softDelete = useServerFn(adminSoftDeleteOrder);
-  const listStaff = useServerFn(adminListAssignableStaff);
   const listBranches = useServerFn(adminBranchesForOrders);
 
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState<OrderCancelReason>("customer_cancelled");
   const [cancelDetails, setCancelDetails] = React.useState("");
-  const [confirmTrash, setConfirmTrash] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
   const [form, setForm] = React.useState<EditableFields | null>(null);
   const [confirmSave, setConfirmSave] = React.useState(false);
@@ -587,13 +571,6 @@ export function OrderDetailsDrawer({
     enabled: !!orderId && open,
   });
 
-  const staffQ = useQuery({
-    queryKey: ["admin", "assignable-staff"],
-    queryFn: () => listStaff(),
-    enabled: open,
-    staleTime: 5 * 60_000,
-  });
-
   const branchesQ = useQuery({
     queryKey: ["admin", "orders", "branches"],
     queryFn: () => listBranches(),
@@ -603,12 +580,8 @@ export function OrderDetailsDrawer({
 
   const detail = orderQ.data ?? null;
   const audit = auditQ.data ?? [];
-  const staff = staffQ.data ?? [];
   const branches = branchesQ.data ?? [];
-  const riders = staff.filter((s) => s.role === "rider");
-  const kitchenStaff = staff.filter((s) => s.role !== "rider");
 
-  // Sync form when order loads / edit begins.
   React.useEffect(() => {
     if (!detail) return;
     if (editing && form === null) setForm(fromDetail(detail));
@@ -641,17 +614,6 @@ export function OrderDetailsDrawer({
       invalidate();
     },
     onError: (err: Error) => toast.error("Failed to cancel", { description: err.message }),
-  });
-
-  const trashMut = useMutation({
-    mutationFn: () => softDelete({ data: { id: orderId! } }),
-    onSuccess: () => {
-      toast.success("Order moved to Trash");
-      setConfirmTrash(false);
-      onOpenChange(false);
-      invalidate();
-    },
-    onError: (err: Error) => toast.error("Failed to trash", { description: err.message }),
   });
 
   const saveMut = useMutation({
@@ -696,7 +658,6 @@ export function OrderDetailsDrawer({
   }, [detail, form]);
 
   const isPickup = detail?.fulfillment_method !== "delivery";
-  const isTrashed = !!detail?.deleted_at;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -732,17 +693,11 @@ export function OrderDetailsDrawer({
                     <span>Placed {formatDateTime(detail.created_at)}</span>
                     <span className="opacity-40">·</span>
                     <span className="capitalize">{detail.fulfillment_method.replace(/_/g, " ")}</span>
-                    {isTrashed && (
-                      <>
-                        <span className="opacity-40">·</span>
-                        <span className="font-semibold text-destructive">Trashed</span>
-                      </>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusPill tone={STATUS_TONE[detail.status]}>{STATUS_LABEL[detail.status]}</StatusPill>
-                  {!editing && detail.status !== "cancelled" && !isTrashed && (
+                  {!editing && detail.status !== "cancelled" && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -766,17 +721,16 @@ export function OrderDetailsDrawer({
 
             {/* Body */}
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-              {/* Restaurant timeline (simplified) */}
               <Section icon={Sparkles} title="Restaurant timeline">
                 <RestaurantTimeline
                   detail={detail}
+                  audit={audit}
                   onSet={(s) => statusMut.mutate(s)}
                   pending={statusMut.isPending}
                 />
               </Section>
 
-              {/* Kitchen ops (large touch-friendly buttons) */}
-              {detail.status !== "cancelled" && !isTrashed && (
+              {detail.status !== "cancelled" && (
                 <Section icon={ChefHat} title="Kitchen operations">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(
@@ -811,7 +765,6 @@ export function OrderDetailsDrawer({
                 </Section>
               )}
 
-              {/* Customer */}
               <Section icon={User} title="Customer">
                 {!editing ? (
                   <div className="space-y-1">
@@ -852,7 +805,6 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              {/* Delivery */}
               <Section icon={MapPin} title="Delivery">
                 {isPickup ? (
                   <div className="text-sm capitalize text-muted-foreground">
@@ -927,99 +879,34 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              {/* Assignment */}
-              <Section icon={UserCog} title="Assignment">
+              {/* Branch */}
+              <Section icon={Building2} title="Branch">
                 {!editing ? (
-                  <div className="grid gap-3 text-sm sm:grid-cols-3">
-                    <div>
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Branch
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        {branches.find((b) => b.id === detail.branch_id)?.name ?? "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Kitchen / Staff
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold">
-                        <ChefHat className="h-3.5 w-3.5 text-muted-foreground" />
-                        {detail.assigned_staff_name ?? "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Rider
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold">
-                        <Bike className="h-3.5 w-3.5 text-muted-foreground" />
-                        {detail.assigned_rider_name ?? "—"}
-                      </div>
-                    </div>
+                  <div className="text-sm font-semibold">
+                    {branches.find((b) => b.id === detail.branch_id)?.name ?? "—"}
                   </div>
                 ) : (
                   form && (
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <FieldRow label="Branch">
-                        <Select
-                          value={form.branch_id || "none"}
-                          onValueChange={(v) => setForm({ ...form, branch_id: v === "none" ? "" : v })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Unassigned —</SelectItem>
-                            {branches.map((b) => (
-                              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FieldRow>
-                      <FieldRow label="Kitchen / staff">
-                        <Select
-                          value={form.assigned_staff_id || "none"}
-                          onValueChange={(v) => setForm({ ...form, assigned_staff_id: v === "none" ? "" : v })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Unassigned —</SelectItem>
-                            {kitchenStaff.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>
-                                {s.name ?? s.email ?? s.id.slice(0, 6)} · {s.role}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FieldRow>
-                      <FieldRow label="Rider">
-                        <Select
-                          value={form.assigned_rider_id || "none"}
-                          onValueChange={(v) => setForm({ ...form, assigned_rider_id: v === "none" ? "" : v })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">— Unassigned —</SelectItem>
-                            {riders.map((s) => (
-                              <SelectItem key={s.id} value={s.id}>
-                                {s.name ?? s.email ?? s.id.slice(0, 6)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FieldRow>
-                    </div>
+                    <FieldRow label="Branch">
+                      <Select
+                        value={form.branch_id || "none"}
+                        onValueChange={(v) => setForm({ ...form, branch_id: v === "none" ? "" : v })}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">— Unassigned —</SelectItem>
+                          {branches.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
                   )
                 )}
               </Section>
 
-              {/* Items */}
               <Section
                 icon={ShoppingBag}
                 title={`Items · ${detail.items.length}`}
@@ -1061,7 +948,6 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              {/* Payment / Bill */}
               <Section icon={Receipt} title="Payment">
                 <dl className="space-y-1.5 text-sm">
                   <div className="flex justify-between">
@@ -1144,29 +1030,18 @@ export function OrderDetailsDrawer({
                 </dl>
               </Section>
 
-              {/* Notes: internal + kitchen */}
               <Section icon={StickyNote} title="Notes">
                 {!editing ? (
                   <div className="space-y-3 text-sm">
-                    <div>
-                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Internal (staff only)
-                      </div>
-                      <div className="mt-0.5 whitespace-pre-line">
-                        {detail.internal_notes ? (
-                          detail.internal_notes
-                        ) : (
-                          <span className="text-muted-foreground">No internal notes.</span>
-                        )}
-                      </div>
-                    </div>
-                    {detail.notes && (
+                    {detail.notes ? (
                       <div>
                         <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Customer notes
                         </div>
                         <div className="mt-0.5 whitespace-pre-line">{detail.notes}</div>
                       </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">No customer notes.</div>
                     )}
                     {detail.special_instructions && (
                       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
@@ -1181,29 +1056,18 @@ export function OrderDetailsDrawer({
                   </div>
                 ) : (
                   form && (
-                    <div className="grid gap-3">
-                      <FieldRow label="Internal (staff only, never shown to customer)">
-                        <Textarea
-                          value={form.internal_notes}
-                          onChange={(e) => setForm({ ...form, internal_notes: e.target.value })}
-                          rows={3}
-                          placeholder="Only visible to staff…"
-                        />
-                      </FieldRow>
-                      <FieldRow label="Kitchen notes">
-                        <Textarea
-                          value={form.special_instructions}
-                          onChange={(e) => setForm({ ...form, special_instructions: e.target.value })}
-                          rows={2}
-                          placeholder="e.g. no onions, extra sauce"
-                        />
-                      </FieldRow>
-                    </div>
+                    <FieldRow label="Kitchen notes">
+                      <Textarea
+                        value={form.special_instructions}
+                        onChange={(e) => setForm({ ...form, special_instructions: e.target.value })}
+                        rows={3}
+                        placeholder="e.g. no onions, extra sauce"
+                      />
+                    </FieldRow>
                   )
                 )}
               </Section>
 
-              {/* Audit history */}
               <Section
                 icon={History}
                 title="Audit history"
@@ -1243,7 +1107,7 @@ export function OrderDetailsDrawer({
                 </>
               ) : (
                 <>
-                  {!isTrashed && detail.status !== "cancelled" && detail.status !== "delivered" && (
+                  {detail.status !== "cancelled" && detail.status !== "delivered" && (
                     <Button
                       variant="outline"
                       onClick={() => setConfirmCancel(true)}
@@ -1251,15 +1115,6 @@ export function OrderDetailsDrawer({
                       disabled={cancelMut.isPending}
                     >
                       <XCircle className="h-4 w-4" /> Cancel order
-                    </Button>
-                  )}
-                  {!isTrashed && (
-                    <Button
-                      variant="ghost"
-                      onClick={() => setConfirmTrash(true)}
-                      className="rounded-lg text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" /> Trash
                     </Button>
                   )}
                   <Button
@@ -1277,7 +1132,7 @@ export function OrderDetailsDrawer({
                     <ClipboardList className="h-4 w-4" /> Kitchen
                   </Button>
                   <div className="flex-1" />
-                  {upcoming && !isTrashed && (
+                  {upcoming && (
                     <Button
                       onClick={() => statusMut.mutate(upcoming)}
                       disabled={statusMut.isPending}
@@ -1299,13 +1154,13 @@ export function OrderDetailsDrawer({
         )}
       </SheetContent>
 
-      {/* Cancel with reason */}
+      {/* Cancel with reason (stored in audit trail) */}
       <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
             <AlertDialogDescription>
-              Choose a reason. The customer will see the order as cancelled and this action is logged in the audit trail.
+              Choose a reason. The customer will see the order as cancelled and this action is recorded in the audit trail.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="grid gap-3">
@@ -1349,31 +1204,6 @@ export function OrderDetailsDrawer({
               {cancelMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Yes, cancel
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Trash confirmation (owner/admin gate is enforced server-side) */}
-      <AlertDialog open={confirmTrash} onOpenChange={setConfirmTrash}>
-        <AlertDialogContent className="rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Move to Trash?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The order will be hidden from active views. Owners can restore or permanently delete it from Trash.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg" disabled={trashMut.isPending}>
-              Keep here
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={trashMut.isPending}
-              onClick={() => trashMut.mutate()}
-            >
-              {trashMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Move to Trash
-            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1438,6 +1268,3 @@ export function OrderDetailsDrawer({
     </Sheet>
   );
 }
-
-// Keep Clock reference used somewhere (unused-import guard)
-void Clock;
