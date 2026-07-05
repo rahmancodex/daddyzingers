@@ -289,7 +289,9 @@ export function AdminShell({
   }
 
   const roles = auth.roles ?? [];
-  const permitted = !requiredPermission || hasPermission(roles, requiredPermission);
+  const failOpen = !!auth.rolesFailed;
+  const permitted =
+    !requiredPermission || failOpen || hasPermission(roles, requiredPermission);
 
   return (
     <div className="min-h-screen bg-muted/40 text-foreground">
