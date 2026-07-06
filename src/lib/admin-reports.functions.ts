@@ -530,6 +530,8 @@ export const adminReports = createServerFn({ method: "POST" })
         categories: categoryBreakdown,
         sizes: topSizes,
         addons: topAddons,
+        neverOrdered,
+        mostCancelled: mostCancelledProducts,
       },
       customers: {
         unique: uniqueCustomers,
