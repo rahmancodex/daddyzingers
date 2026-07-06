@@ -449,16 +449,21 @@ export const adminReports = createServerFn({ method: "POST" })
     const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     // Branch analytics
-    const branchMap = new Map<string, { revenue: number; orders: number }>();
+    const branchMap = new Map<
+      string,
+      { revenue: number; orders: number; delivery: number; pickup: number }
+    >();
     for (const o of orderList) {
       const k = o.branch_id ?? "unassigned";
-      const cur = branchMap.get(k) ?? { revenue: 0, orders: 0 };
+      const cur = branchMap.get(k) ?? { revenue: 0, orders: 0, delivery: 0, pickup: 0 };
       cur.revenue += o.total_pkr ?? 0;
       cur.orders += 1;
+      if ((o.fulfillment_method ?? "").toLowerCase() === "pickup") cur.pickup += 1;
+      else cur.delivery += 1;
       branchMap.set(k, cur);
     }
     const branchStats = (branches ?? []).map((b) => {
-      const s = branchMap.get(b.id) ?? { revenue: 0, orders: 0 };
+      const s = branchMap.get(b.id) ?? { revenue: 0, orders: 0, delivery: 0, pickup: 0 };
       return {
         id: b.id,
         name: b.name,
@@ -467,6 +472,9 @@ export const adminReports = createServerFn({ method: "POST" })
         orders: s.orders,
         avg_delivery_min: b.estimated_delivery_minutes ?? 0,
         is_active: b.is_active,
+        aov: s.orders ? Math.round(s.revenue / s.orders) : 0,
+        deliveryPct: s.orders ? (s.delivery / s.orders) * 100 : 0,
+        pickupPct: s.orders ? (s.pickup / s.orders) * 100 : 0,
       };
     });
     const unassigned = branchMap.get("unassigned");
@@ -479,6 +487,9 @@ export const adminReports = createServerFn({ method: "POST" })
         orders: unassigned.orders,
         avg_delivery_min: 0,
         is_active: true,
+        aov: Math.round(unassigned.revenue / unassigned.orders),
+        deliveryPct: (unassigned.delivery / unassigned.orders) * 100,
+        pickupPct: (unassigned.pickup / unassigned.orders) * 100,
       });
     }
     branchStats.sort((a, b) => b.revenue - a.revenue);
