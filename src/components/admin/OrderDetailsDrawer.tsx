@@ -1149,9 +1149,12 @@ export function OrderDetailsDrawer({
   const updateStatus = useServerFn(adminUpdateOrderStatus);
   const updateOrder = useServerFn(adminUpdateOrder);
   const updateItemQty = useServerFn(adminUpdateOrderItemQty);
+  const addItem = useServerFn(adminAddOrderItem);
+  const updateItemOptions = useServerFn(adminUpdateOrderItemOptions);
   const getAudit = useServerFn(adminOrderAuditLog);
   const cancelOrder = useServerFn(adminCancelOrder);
   const listBranches = useServerFn(adminBranchesForOrders);
+  const pricingQ = useDeliveryPricing();
 
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState<OrderCancelReason>("customer_cancelled");
@@ -1162,6 +1165,16 @@ export function OrderDetailsDrawer({
   const [pendingItemId, setPendingItemId] = React.useState<string | null>(null);
   const [internalNote, setInternalNote] = React.useState("");
   const [noteDirty, setNoteDirty] = React.useState(false);
+  const [composer, setComposer] = React.useState<
+    { mode: "add" } | { mode: "edit"; item: AdminOrderItem } | null
+  >(null);
+  const drawerOpenedAtRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (open && orderId && drawerOpenedAtRef.current === null) {
+      drawerOpenedAtRef.current = new Date().toISOString();
+    }
+    if (!open) drawerOpenedAtRef.current = null;
+  }, [open, orderId]);
 
   const orderQ = useQuery({
     queryKey: ["admin", "order", orderId],
