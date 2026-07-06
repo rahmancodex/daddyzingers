@@ -1397,24 +1397,38 @@ export function OrderDetailsDrawer({
                     <dt className="text-muted-foreground">Subtotal</dt>
                     <dd className="tabular-nums">{formatPKR(detail.subtotal_pkr)}</dd>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-muted-foreground">Delivery fee</dt>
-                    <dd className="tabular-nums">
-                      {editing && form ? (
-                        <Input
-                          type="number"
-                          min={0}
-                          value={form.delivery_fee_pkr}
-                          onChange={(e) =>
-                            setForm({ ...form, delivery_fee_pkr: Number(e.target.value) || 0 })
-                          }
-                          className="h-8 w-28 text-right tabular-nums"
-                        />
-                      ) : (
-                        formatPKR(detail.delivery_fee_pkr)
-                      )}
-                    </dd>
-                  </div>
+                  {(isDelivery || detail.delivery_fee_pkr > 0) && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted-foreground">
+                        Delivery fee
+                        {editing && isPickup && (
+                          <span className="ml-1 text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            (removed on save)
+                          </span>
+                        )}
+                      </dt>
+                      <dd className="tabular-nums">
+                        {editing && form && isDelivery ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            value={form.delivery_fee_pkr}
+                            onChange={(e) =>
+                              setForm({ ...form, delivery_fee_pkr: Number(e.target.value) || 0 })
+                            }
+                            className="h-8 w-28 text-right tabular-nums"
+                            aria-label="Delivery fee"
+                          />
+                        ) : editing && isPickup ? (
+                          <span className="text-muted-foreground line-through">
+                            {formatPKR(detail.delivery_fee_pkr)}
+                          </span>
+                        ) : (
+                          formatPKR(detail.delivery_fee_pkr)
+                        )}
+                      </dd>
+                    </div>
+                  )}
                   {detail.tax_pkr > 0 && (
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Tax</dt>
