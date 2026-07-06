@@ -43,6 +43,7 @@ export const ADMIN_NAV_GROUPS: Array<{ id: AdminNavGroup; label: string }> = [
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, group: "overview" },
   { label: "Orders", to: "/admin/orders", icon: ShoppingBag, group: "operations" },
+  { label: "POS", to: "/admin/pos", icon: Store, group: "operations" },
   { label: "Kitchen Display", to: "/admin/kitchen", icon: ChefHat, group: "operations" },
   { label: "Preparing", to: "/admin/orders", icon: ChefHat, group: "operations", search: { status: "preparing" } },
   { label: "Ready", to: "/admin/orders", icon: CheckCircle2, group: "operations", search: { status: "ready" } },
