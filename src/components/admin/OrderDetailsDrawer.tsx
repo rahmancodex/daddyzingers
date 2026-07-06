@@ -1324,7 +1324,35 @@ export function OrderDetailsDrawer({
     onError: (err: Error) => toast.error("Failed to update item", { description: err.message }),
   });
 
-  const upcoming = detail ? nextStatus(detail.status) : null;
+  const addItemMut = useMutation({
+    mutationFn: (r: ComposerResult) =>
+      addItem({ data: { order_id: orderId!, ...r } }),
+    onSuccess: () => {
+      toast.success("Item added");
+      setComposer(null);
+      invalidate();
+    },
+    onError: (err: Error) => toast.error("Failed to add item", { description: err.message }),
+  });
+
+  const editItemMut = useMutation({
+    mutationFn: (input: { itemId: string; r: ComposerResult }) =>
+      updateItemOptions({
+        data: {
+          order_id: orderId!,
+          item_id: input.itemId,
+          qty: input.r.qty,
+          unit_price_pkr: input.r.unit_price_pkr,
+          options: input.r.options,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Item updated");
+      setComposer(null);
+      invalidate();
+    },
+    onError: (err: Error) => toast.error("Failed to update item", { description: err.message }),
+  });
 
   const diff = React.useMemo(() => {
     if (!detail || !form) return [];
