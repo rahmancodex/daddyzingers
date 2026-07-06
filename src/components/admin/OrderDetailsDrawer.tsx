@@ -2032,6 +2032,44 @@ export function OrderDetailsDrawer({
                 </div>
               </Section>
 
+              {/* Notification preview (session-level changes) */}
+              {(() => {
+                const since = drawerOpenedAtRef.current;
+                if (!since) return null;
+                const recent = audit.filter((a) => a.created_at > since);
+                if (recent.length === 0) return null;
+                const bullets: string[] = [];
+                for (const a of recent) {
+                  if (a.action === "status_changed") bullets.push(`Status: ${a.summary ?? "changed"}`);
+                  else if (a.action === "order_cancelled") bullets.push("Order cancelled");
+                  else if (a.action === "item_added") bullets.push(a.summary ?? "Item added");
+                  else if (a.action === "item_removed") bullets.push(a.summary ?? "Item removed");
+                  else if (a.action === "item_qty_changed") bullets.push(a.summary ?? "Quantity changed");
+                  else if (a.action === "item_edited") bullets.push(a.summary ?? "Item modified");
+                  else if (a.action === "order_edited") bullets.push(a.summary ?? "Order edited");
+                }
+                const unique = Array.from(new Set(bullets));
+                return (
+                  <Section icon={Bell} title="Customer notification preview">
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                        Preview only — no notification sent
+                      </div>
+                      <div className="font-semibold">Your order has been updated</div>
+                      <ul className="ml-4 list-disc space-y-0.5 text-xs text-muted-foreground">
+                        {unique.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </Section>
+                );
+              })()}
+
               {/* Audit history */}
               <Section
                 icon={History}
@@ -2044,6 +2082,7 @@ export function OrderDetailsDrawer({
               >
                 <AuditHistory audit={audit} />
               </Section>
+
             </div>
 
             {/* ============ Sticky footer ============ */}
