@@ -435,6 +435,8 @@ export const adminReports = createServerFn({ method: "POST" })
     // Peak hours + best day heatmap
     const hourAgg = new Array(24).fill(0);
     const dowAgg = new Array(7).fill(0);
+    const hourRevenue = new Array(24).fill(0);
+    const dowRevenue = new Array(7).fill(0);
     const heatmap: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
     for (const o of orderList) {
       const d = new Date(o.created_at);
@@ -442,10 +444,13 @@ export const adminReports = createServerFn({ method: "POST" })
       const w = bucketByDow(d);
       hourAgg[h] += 1;
       dowAgg[w] += 1;
+      hourRevenue[h] += o.total_pkr ?? 0;
+      dowRevenue[w] += o.total_pkr ?? 0;
       heatmap[w][h] += 1;
     }
     const bestHour = hourAgg.indexOf(Math.max(...hourAgg));
     const bestDayIdx = dowAgg.indexOf(Math.max(...dowAgg));
+    const bestRevenueHour = hourRevenue.indexOf(Math.max(...hourRevenue));
     const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     // Branch analytics
