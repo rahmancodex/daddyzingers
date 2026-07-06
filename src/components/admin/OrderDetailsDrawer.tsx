@@ -1524,7 +1524,54 @@ export function OrderDetailsDrawer({
 
             {/* ============ Body ============ */}
             <div className="flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4 sm:px-5 sm:py-5">
+              {/* Order at a glance — live summary */}
+              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/70 bg-card p-3 text-xs sm:grid-cols-4">
+                {(() => {
+                  const eta =
+                    effectiveMethod === "pickup"
+                      ? pricingQ.data?.etaPickupMinutes
+                      : pricingQ.data?.etaDeliveryMinutes;
+                  const tiles: Array<{ label: string; value: React.ReactNode }> = [
+                    {
+                      label: "Fulfillment",
+                      value: (
+                        <span className="capitalize">
+                          {effectiveMethod.replace(/_/g, " ")}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: "Branch",
+                      value: (editing && form ? branches.find((b) => b.id === form.branch_id)?.name : branchName) ?? "—",
+                    },
+                    {
+                      label: "ETA",
+                      value: eta != null ? `${eta} min` : "—",
+                    },
+                    {
+                      label: "Grand total",
+                      value: (
+                        <span className="font-black tabular-nums">
+                          {formatPKR(detail.total_pkr)}
+                        </span>
+                      ),
+                    },
+                  ];
+                  return tiles.map((t) => (
+                    <div key={t.label} className="min-w-0">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.label}
+                      </div>
+                      <div className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                        {t.value}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
               {/* Kitchen ops — big touch targets */}
+
               {detail.status !== "cancelled" && (
                 <Section icon={ChefHat} title="Kitchen operations">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
