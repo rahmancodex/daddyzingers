@@ -707,6 +707,175 @@ export const adminUpdateOrderItemQty = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/* ============================================================
+ * Add / edit line items (used by Admin order editor).
+ * Reuses recompute logic — server is authoritative on subtotal/total.
+ * ============================================================ */
+
+const OptionEntrySchema = z.object({
+  id: z.string().min(1).max(80),
+  label: z.string().min(1).max(200),
+  price: z.number().min(-1_000_000).max(1_000_000),
+});
+
+const OrderItemOptionsSchema = z
+  .object({
+    size: z.string().max(80).optional(),
+    customizations: z.array(OptionEntrySchema).max(30).optional(),
+    upgrades: z.array(OptionEntrySchema).max(30).optional(),
+    notes: z.string().max(500).optional(),
+  })
+  .optional();
+
+async function recomputeOrderTotals(
+  supabaseAdmin: import("@supabase/supabase-js").SupabaseClient,
+  orderId: string,
+): Promise<{ subtotal: number; total: number }> {
+  const { data: remaining } = await supabaseAdmin
+    .from("order_items")
+    .select("qty, unit_price_pkr")
+    .eq("order_id", orderId);
+  const subtotal = (remaining ?? []).reduce(
+    (acc, r) => acc + (r.qty ?? 0) * (r.unit_price_pkr ?? 0),
+    0,
+  );
+  const { data: order } = await supabaseAdmin
+    .from("orders")
+    .select("delivery_fee_pkr, tax_pkr, discount_pkr")
+    .eq("id", orderId)
+    .maybeSingle();
+  const o = (order ?? {}) as { delivery_fee_pkr?: number; tax_pkr?: number; discount_pkr?: number };
+  const total = subtotal + (o.delivery_fee_pkr ?? 0) + (o.tax_pkr ?? 0) - (o.discount_pkr ?? 0);
+  await supabaseAdmin
+    .from("orders")
+    .update({ subtotal_pkr: subtotal, total_pkr: total })
+    .eq("id", orderId);
+  return { subtotal, total };
+}
+
+const AddOrderItemInput = z.object({
+  order_id: z.string().uuid(),
+  product_id: z.string().min(1),
+  qty: z.number().int().min(1).max(999),
+  unit_price_pkr: z.number().int().min(0).max(10_000_000),
+  options: OrderItemOptionsSchema,
+});
+
+export const adminAddOrderItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => AddOrderItemInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Validate menu item is real, available, and not hidden.
+    const { data: mi, error: miErr } = await supabaseAdmin
+      .from("menu_items")
+      .select("id, name, is_available, is_hidden, image_url")
+      .eq("id", data.product_id)
+      .maybeSingle();
+    if (miErr) throw new Error(miErr.message);
+    if (!mi) throw new Error("Menu item not found");
+    if (mi.is_hidden) throw new Error("Menu item is deleted / hidden");
+    if (!mi.is_available) throw new Error("Menu item is currently unavailable");
+
+    const opts = { ...(data.options ?? {}) } as Record<string, unknown>;
+    if (mi.image_url) opts.image = mi.image_url;
+
+    const { error: insErr } = await supabaseAdmin.from("order_items").insert({
+      order_id: data.order_id,
+      product_id: data.product_id,
+      name: mi.name,
+      qty: data.qty,
+      unit_price_pkr: data.unit_price_pkr,
+      options: opts as Json,
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    await recomputeOrderTotals(supabaseAdmin, data.order_id);
+
+    await writeAudit(context, {
+      action: "item_added",
+      entity_id: data.order_id,
+      summary: `Added ${data.qty}× "${mi.name}"`,
+      after_state: {
+        product_id: data.product_id,
+        name: mi.name,
+        qty: data.qty,
+        unit_price_pkr: data.unit_price_pkr,
+      },
+    });
+    return { ok: true };
+  });
+
+const UpdateOrderItemOptionsInput = z.object({
+  order_id: z.string().uuid(),
+  item_id: z.string().uuid(),
+  qty: z.number().int().min(1).max(999).optional(),
+  unit_price_pkr: z.number().int().min(0).max(10_000_000),
+  options: OrderItemOptionsSchema,
+});
+
+export const adminUpdateOrderItemOptions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth, requirePerm("orders.update")])
+  .inputValidator((data: unknown) => UpdateOrderItemOptionsInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: prev, error: getErr } = await supabaseAdmin
+      .from("order_items")
+      .select("id, product_id, name, qty, unit_price_pkr, options")
+      .eq("id", data.item_id)
+      .eq("order_id", data.order_id)
+      .maybeSingle();
+    if (getErr) throw new Error(getErr.message);
+    if (!prev) throw new Error("Item not found");
+
+    // Validate underlying menu item still active
+    if (prev.product_id) {
+      const { data: mi } = await supabaseAdmin
+        .from("menu_items")
+        .select("id, is_available, is_hidden, image_url")
+        .eq("id", prev.product_id)
+        .maybeSingle();
+      if (!mi) throw new Error("Menu item no longer exists");
+      if (mi.is_hidden) throw new Error("Menu item is deleted / hidden");
+      if (!mi.is_available) throw new Error("Menu item is currently unavailable");
+    }
+
+    const prevOpts = (prev.options && typeof prev.options === "object" && !Array.isArray(prev.options)
+      ? (prev.options as Record<string, unknown>)
+      : {}) as Record<string, unknown>;
+    const nextOpts: Record<string, unknown> = { ...(data.options ?? {}) };
+    if (prevOpts.image && !nextOpts.image) nextOpts.image = prevOpts.image;
+
+    const update: Record<string, unknown> = {
+      unit_price_pkr: data.unit_price_pkr,
+      options: nextOpts,
+    };
+    if (data.qty !== undefined) update.qty = data.qty;
+
+    const { error: upErr } = await supabaseAdmin
+      .from("order_items")
+      .update(update as never)
+      .eq("id", data.item_id);
+    if (upErr) throw new Error(upErr.message);
+
+    await recomputeOrderTotals(supabaseAdmin, data.order_id);
+
+    await writeAudit(context, {
+      action: "item_edited",
+      entity_id: data.order_id,
+      summary: `Edited "${prev.name}"`,
+      before_state: { qty: prev.qty, unit_price_pkr: prev.unit_price_pkr, options: prevOpts as Json },
+      after_state: {
+        qty: data.qty ?? prev.qty,
+        unit_price_pkr: data.unit_price_pkr,
+        options: nextOpts as Json,
+      },
+    });
+    return { ok: true };
+  });
+
 export const adminOrderAuditLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
   .inputValidator((data: unknown) =>
