@@ -91,7 +91,7 @@ function usePeriods(): {
     const lmStart = startOfMonth(subMonths(now, 1));
     const lmEnd = endOfMonth(subMonths(now, 1));
     const lastMonth = { key: "lastMonth", label: "Last month", from: lmStart, to: lmEnd };
-    return { today, yesterday, thisWeek, lastWeek, thisMonth, lastMonth };
+    return { today, yesterday, thisWeek: tw, lastWeek, thisMonth: tm, lastMonth };
   }, []);
 }
 
