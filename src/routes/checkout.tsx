@@ -37,9 +37,11 @@ import { cartActions, useCart, useCartTotal } from "@/lib/store";
 import {
   checkoutActions,
   computeTotals,
+  resolveDeliveryFee,
   useCheckout,
   type DeliveryMethod,
 } from "@/lib/checkout-store";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 import { formatPKR } from "@/lib/menu";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,10 +114,6 @@ function CheckoutPage() {
   const cart = useCart();
   const subtotal = useCartTotal();
   const checkout = useCheckout();
-  const totals = useMemo(
-    () => computeTotals({ subtotal, method: checkout.method, coupon: checkout.coupon, tip: checkout.tip }),
-    [subtotal, checkout.method, checkout.coupon, checkout.tip],
-  );
 
   const [step, setStep] = useState<StepIdx>(0);
   const [placing, setPlacing] = useState(false);
@@ -125,6 +123,40 @@ function CheckoutPage() {
 
   const branchesQ = useActiveBranches();
   const activeBranches = branchesQ.data ?? [];
+  const pricingQ = useDeliveryPricing();
+  const pricing = pricingQ.data;
+
+  const selectedBranch = useMemo(
+    () => activeBranches.find((b) => b.id === checkout.branchId) ?? null,
+    [activeBranches, checkout.branchId],
+  );
+
+  // Global availability from admin settings (defaults to true while loading
+  // so we don't flash "unavailable" on first paint).
+  const deliveryEnabledGlobal = pricing?.deliveryEnabled ?? true;
+  const pickupEnabledGlobal = pricing?.pickupEnabled ?? true;
+  const deliveryAvailable =
+    deliveryEnabledGlobal && (selectedBranch?.delivery_available ?? true);
+  const pickupAvailable =
+    pickupEnabledGlobal && (selectedBranch?.pickup_available ?? true);
+
+  const deliveryFee = useMemo(
+    () =>
+      pricing
+        ? resolveDeliveryFee({
+            method: checkout.method,
+            subtotal,
+            pricing,
+            branchFee: selectedBranch?.delivery_charges ?? null,
+          })
+        : 0,
+    [pricing, checkout.method, subtotal, selectedBranch],
+  );
+
+  const totals = useMemo(
+    () => computeTotals({ subtotal, coupon: checkout.coupon, tip: checkout.tip, deliveryFee }),
+    [subtotal, checkout.coupon, checkout.tip, deliveryFee],
+  );
 
   // Auto-select branch: if only one active branch, pin it. Otherwise keep the
   // customer's choice, or default to the top of the sort order.
@@ -134,6 +166,17 @@ function CheckoutPage() {
     if (stillValid) return;
     checkoutActions.setBranch(activeBranches[0].id);
   }, [activeBranches, checkout.branchId]);
+
+  // If the currently selected method becomes unavailable (branch change or
+  // admin toggle), fall back to the first supported method.
+  useEffect(() => {
+    if (!pricing) return;
+    if (checkout.method === "delivery" && !deliveryAvailable) {
+      if (pickupAvailable) checkoutActions.setMethod("pickup");
+    } else if (checkout.method === "pickup" && !pickupAvailable) {
+      if (deliveryAvailable) checkoutActions.setMethod("delivery");
+    }
+  }, [pricing, checkout.method, deliveryAvailable, pickupAvailable]);
 
   const placeOrderFn = useServerFn(placeOrder);
 
@@ -504,10 +547,16 @@ function MethodStep() {
   const [scheduleOpen, setScheduleOpen] = useState(!!checkout.scheduleAt);
   const branchesQ = useActiveBranches();
   const branches = branchesQ.data ?? [];
+  const pricingQ = useDeliveryPricing();
+  const pricing = pricingQ.data;
 
-  // Filter methods per selected branch capability so users can't pick a mode
-  // the branch doesn't offer.
   const selectedBranch = branches.find((b) => b.id === checkout.branchId) ?? null;
+  const deliveryEnabledGlobal = pricing?.deliveryEnabled ?? true;
+  const pickupEnabledGlobal = pricing?.pickupEnabled ?? true;
+  const branchDelivery = selectedBranch?.delivery_available ?? true;
+  const branchPickup = selectedBranch?.pickup_available ?? true;
+  const bothDisabled =
+    !!pricing && !(deliveryEnabledGlobal && branchDelivery) && !(pickupEnabledGlobal && branchPickup);
 
   return (
     <Section title="How would you like your order?">
@@ -539,8 +588,8 @@ function MethodStep() {
                     <div className="font-display font-semibold text-sm truncate">{b.name}</div>
                     {b.city && <div className="text-xs text-muted-foreground truncate">{b.city}</div>}
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {b.delivery_available && <Badge variant="outline" className="text-[10px]">Delivery</Badge>}
-                      {b.pickup_available && <Badge variant="outline" className="text-[10px]">Pickup</Badge>}
+                      {b.delivery_available && deliveryEnabledGlobal && <Badge variant="outline" className="text-[10px]">Delivery</Badge>}
+                      {b.pickup_available && pickupEnabledGlobal && <Badge variant="outline" className="text-[10px]">Pickup</Badge>}
                     </div>
                   </div>
                 </label>
@@ -561,23 +610,44 @@ function MethodStep() {
           No branches are currently accepting orders. Please try again later.
         </div>
       )}
+      {bothDisabled && (
+        <div className="mb-4 rounded-2xl border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          Ordering is temporarily paused. Both delivery and pickup are unavailable right now — please check back soon.
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-3 gap-3">
 
         {METHODS.map((m) => {
           const active = checkout.method === m.id;
-          const unsupported =
+          const globallyOff =
+            (m.id === "delivery" && !deliveryEnabledGlobal) ||
+            (m.id === "pickup" && !pickupEnabledGlobal);
+          const branchOff =
             !!selectedBranch &&
             ((m.id === "delivery" && !selectedBranch.delivery_available) ||
               (m.id === "pickup" && !selectedBranch.pickup_available));
+          const unsupported = globallyOff || branchOff;
           const disabled = m.soon || unsupported;
+          const desc = m.soon
+            ? m.desc
+            : globallyOff
+              ? "Currently unavailable"
+              : branchOff
+                ? "Not at this branch"
+                : m.id === "delivery" && pricing
+                  ? `~${pricing.etaDeliveryMinutes} min to your door`
+                  : m.id === "pickup" && pricing
+                    ? `Ready in ~${pricing.etaPickupMinutes} min`
+                    : m.desc;
           return (
             <button
               key={m.id}
               disabled={disabled}
               onClick={() => {
                 if (m.soon) return toast("Dine-in coming soon");
-                if (unsupported) return toast(`${m.label} is not available at ${selectedBranch?.name}`);
+                if (globallyOff) return toast(`${m.label} is currently unavailable`);
+                if (branchOff) return toast(`${m.label} is not available at ${selectedBranch?.name}`);
                 checkoutActions.setMethod(m.id);
               }}
               className={`p-4 rounded-2xl border transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -588,12 +658,13 @@ function MethodStep() {
             >
               <m.icon className={`h-5 w-5 mb-2 ${active ? "text-primary" : "text-foreground/70"}`} />
               <div className="font-display font-bold">{m.label}</div>
-              <div className="text-xs text-muted-foreground">{unsupported ? "Not at this branch" : m.desc}</div>
+              <div className="text-xs text-muted-foreground">{desc}</div>
             </button>
           );
         })}
 
       </div>
+
 
       <div className="mt-6 rounded-2xl border border-border p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

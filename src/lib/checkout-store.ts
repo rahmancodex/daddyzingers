@@ -156,26 +156,62 @@ export const checkoutActions = {
 
 /* -------------- Fees & totals -------------- */
 
+/**
+ * Non-delivery fees. Delivery pricing is NOT hardcoded — it is resolved from
+ * admin settings and the selected branch via {@link resolveDeliveryFee}.
+ */
 export const FEES = {
-  deliveryFee: 150,
-  pickupFee: 0,
-  dineinFee: 0,
   serviceFee: 30,
   taxRate: 0, // future-ready
 } as const;
 
+export type DeliveryPricing = {
+  defaultFee: number;
+  freeThreshold: number; // 0 = disabled
+  minOrder: number;      // 0 = disabled
+  deliveryEnabled: boolean;
+  pickupEnabled: boolean;
+  etaDeliveryMinutes: number;
+  etaPickupMinutes: number;
+};
+
+export const DEFAULT_DELIVERY_PRICING: DeliveryPricing = {
+  defaultFee: 0,
+  freeThreshold: 0,
+  minOrder: 0,
+  deliveryEnabled: true,
+  pickupEnabled: true,
+  etaDeliveryMinutes: 45,
+  etaPickupMinutes: 15,
+};
+
+/**
+ * Resolve the delivery fee for a checkout attempt.
+ * Branch-level `delivery_charges` (when set) override the global default.
+ * Free-delivery threshold zeroes the fee once subtotal is at or above it.
+ */
+export function resolveDeliveryFee(args: {
+  method: DeliveryMethod;
+  subtotal: number;
+  pricing: DeliveryPricing;
+  branchFee?: number | null;
+}): number {
+  if (args.method !== "delivery") return 0;
+  const base =
+    typeof args.branchFee === "number" && Number.isFinite(args.branchFee)
+      ? Math.max(0, Math.round(args.branchFee))
+      : Math.max(0, Math.round(args.pricing.defaultFee));
+  if (args.pricing.freeThreshold > 0 && args.subtotal >= args.pricing.freeThreshold) return 0;
+  return base;
+}
+
 export function computeTotals(args: {
   subtotal: number;
-  method: DeliveryMethod;
   coupon: AppliedCoupon | null;
   tip: number;
+  deliveryFee: number;
 }) {
-  const deliveryFee =
-    args.method === "delivery"
-      ? FEES.deliveryFee
-      : args.method === "pickup"
-        ? FEES.pickupFee
-        : FEES.dineinFee;
+  const deliveryFee = Math.max(0, Math.round(args.deliveryFee));
   const serviceFee = FEES.serviceFee;
 
   let discount = 0;
@@ -191,3 +227,4 @@ export function computeTotals(args: {
 
   return { deliveryFee, serviceFee, discount, tax, total };
 }
+

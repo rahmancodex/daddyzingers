@@ -22,7 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cartActions, useCart, useCartTotal, drawerActions } from "@/lib/store";
-import { checkoutActions, computeTotals, useCheckout, type DeliveryMethod } from "@/lib/checkout-store";
+import { checkoutActions, computeTotals, resolveDeliveryFee, useCheckout, type DeliveryMethod } from "@/lib/checkout-store";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 import { validateCoupon } from "@/lib/coupons";
 import { formatPKR } from "@/lib/menu";
 import { useState } from "react";
@@ -49,9 +50,15 @@ function CartPage() {
   const cart = useCart();
   const subtotal = useCartTotal();
   const checkout = useCheckout();
+  const pricingQ = useDeliveryPricing();
+  const pricing = pricingQ.data;
+  const deliveryFee = useMemo(
+    () => (pricing ? resolveDeliveryFee({ method: checkout.method, subtotal, pricing, branchFee: null }) : 0),
+    [pricing, checkout.method, subtotal],
+  );
   const totals = useMemo(
-    () => computeTotals({ subtotal, method: checkout.method, coupon: checkout.coupon, tip: checkout.tip }),
-    [subtotal, checkout.method, checkout.coupon, checkout.tip],
+    () => computeTotals({ subtotal, coupon: checkout.coupon, tip: checkout.tip, deliveryFee }),
+    [subtotal, checkout.coupon, checkout.tip, deliveryFee],
   );
   const [couponInput, setCouponInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);

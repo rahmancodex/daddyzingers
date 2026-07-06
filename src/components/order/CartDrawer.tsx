@@ -18,9 +18,11 @@ import {
 import {
   checkoutActions,
   computeTotals,
+  resolveDeliveryFee,
   useCheckout,
   type DeliveryMethod,
 } from "@/lib/checkout-store";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 import { validateCoupon } from "@/lib/coupons";
 import { formatPKR, useMenuItems } from "@/lib/menu";
 import { useBranch } from "@/lib/location-store";
@@ -38,10 +40,16 @@ export function CartDrawer() {
   const checkout = useCheckout();
   const branch = useBranch();
   const menu = useMenuItems();
+  const pricingQ = useDeliveryPricing();
+  const pricing = pricingQ.data;
 
+  const deliveryFee = useMemo(
+    () => (pricing ? resolveDeliveryFee({ method: checkout.method, subtotal, pricing, branchFee: null }) : 0),
+    [pricing, checkout.method, subtotal],
+  );
   const totals = useMemo(
-    () => computeTotals({ subtotal, method: checkout.method, coupon: checkout.coupon, tip: checkout.tip }),
-    [subtotal, checkout.method, checkout.coupon, checkout.tip],
+    () => computeTotals({ subtotal, coupon: checkout.coupon, tip: checkout.tip, deliveryFee }),
+    [subtotal, checkout.coupon, checkout.tip, deliveryFee],
   );
 
   const inCartIds = useMemo(() => new Set(cart.map((l) => l.itemId)), [cart]);
