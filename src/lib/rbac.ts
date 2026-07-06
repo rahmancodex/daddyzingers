@@ -146,6 +146,7 @@ export const ROLE_BADGE_CLASS: Record<AppRole, string> = {
 export const ROUTE_PERMISSION: Record<string, Permission> = {
   "/admin": "dashboard.view",
   "/admin/orders": "orders.view",
+  "/admin/kitchen": "orders.view",
   "/admin/menu": "menu.view",
   "/admin/categories": "categories.manage",
   "/admin/customers": "customers.view",
