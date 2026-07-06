@@ -16,6 +16,7 @@ import {
   ChefHat,
   PackageCheck,
   CheckCircle2,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 
