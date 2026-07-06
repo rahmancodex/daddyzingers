@@ -579,11 +579,13 @@ function ItemsList({
   editable,
   onChangeQty,
   pendingItemId,
+  onModify,
 }: {
   detail: AdminOrderDetail;
   editable: boolean;
   onChangeQty?: (itemId: string, qty: number) => void;
   pendingItemId?: string | null;
+  onModify?: (item: AdminOrderItem) => void;
 }) {
   return (
     <ul className="divide-y divide-border/60">
