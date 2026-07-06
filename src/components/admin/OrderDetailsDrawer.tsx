@@ -63,8 +63,11 @@ import {
   adminOrderAuditLog,
   adminCancelOrder,
   adminBranchesForOrders,
+  adminAddOrderItem,
+  adminUpdateOrderItemOptions,
   CANCEL_REASONS,
   type AdminOrderDetail,
+  type AdminOrderItem,
   type AdminOrderStatus,
   type AdminOrderAuditEntry,
   type OrderCancelReason,
@@ -83,9 +86,19 @@ import {
   formatEta,
   orderPriority,
 } from "@/lib/admin-orders-derived";
+import {
+  useMenuData,
+  resolveItemOptions,
+  type MenuItem,
+  type OptionGroup,
+} from "@/lib/menu";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 
 import type { Json } from "@/integrations/supabase/types";
 import { StatusPill, STATUS_TONE_CLASS } from "./ui/status-pill";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Bell } from "lucide-react";
 
 // ============ Snapshot helpers ============
 function snapField(snap: Json | null, key: string): string | null {
