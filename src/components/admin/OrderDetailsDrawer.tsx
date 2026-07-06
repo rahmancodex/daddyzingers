@@ -1170,10 +1170,10 @@ export function OrderDetailsDrawer({
                 )}
               </Section>
 
-              {/* Delivery */}
+              {/* Fulfillment (delivery vs pickup) */}
               <Section
-                icon={MapPin}
-                title={isDelivery ? "Delivery" : "Fulfillment"}
+                icon={isDelivery ? MapPin : Building2}
+                title={isDelivery ? "Delivery" : isPickup ? "Pickup" : "Fulfillment"}
                 action={
                   !editing && isDelivery && mapsHref ? (
                     <a
@@ -1181,82 +1181,160 @@ export function OrderDetailsDrawer({
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[11px] font-semibold text-foreground hover:bg-accent"
+                      aria-label="Open delivery location in Google Maps"
                     >
                       <Navigation className="h-3 w-3" /> Maps
                     </a>
                   ) : undefined
                 }
               >
-                {!isDelivery ? (
-                  <div className="text-sm capitalize text-muted-foreground">
-                    {detail.fulfillment_method.replace(/_/g, " ")} — no delivery address
-                  </div>
-                ) : !editing ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="font-semibold">{addrLine ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {[addrArea, addrCity].filter(Boolean).join(", ") || "—"}
-                    </div>
-                    {addrLandmark && (
-                      <div className="text-xs text-muted-foreground">Landmark: {addrLandmark}</div>
-                    )}
-                    {addrNotes && (
-                      <div className="rounded-lg border border-border/60 bg-muted/60 px-3 py-2 text-xs">
-                        <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delivery notes
-                        </div>
-                        {addrNotes}
+                {!editing ? (
+                  isDelivery ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="font-semibold">{addrLine ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {[addrArea, addrCity].filter(Boolean).join(", ") || "—"}
                       </div>
-                    )}
-                  </div>
+                      {addrLandmark && (
+                        <div className="text-xs text-muted-foreground">Landmark: {addrLandmark}</div>
+                      )}
+                      {addrNotes && (
+                        <div className="rounded-lg border border-border/60 bg-muted/60 px-3 py-2 text-xs">
+                          <div className="mb-0.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Delivery notes
+                          </div>
+                          {addrNotes}
+                        </div>
+                      )}
+                    </div>
+                  ) : isPickup ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+                        <Building2 className="h-3 w-3" /> Pickup at branch
+                      </div>
+                      <div className="font-semibold">{pickupBranch?.name ?? branchName ?? "—"}</div>
+                      {pickupBranch?.address && (
+                        <div className="text-xs text-muted-foreground">{pickupBranch.address}</div>
+                      )}
+                      {pickupBranch?.phone && (
+                        <a
+                          href={`tel:${pickupBranch.phone}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-muted px-2 py-1 text-xs font-semibold hover:bg-accent"
+                        >
+                          <Phone className="h-3 w-3" /> {pickupBranch.phone}
+                        </a>
+                      )}
+                      {detail.schedule_at && (
+                        <div className="text-xs text-muted-foreground">
+                          Pickup at {formatDateTime(detail.schedule_at)}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm capitalize text-muted-foreground">
+                      {detail.fulfillment_method.replace(/_/g, " ")}
+                    </div>
+                  )
                 ) : (
                   form && (
                     <div className="grid gap-3">
-                      <FieldRow label="Address">
-                        <Input
-                          value={form.address_line}
-                          onChange={(e) => setForm({ ...form, address_line: e.target.value })}
-                          className="h-9"
-                        />
-                      </FieldRow>
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <FieldRow label="Area">
-                          <Input
-                            value={form.address_area}
-                            onChange={(e) => setForm({ ...form, address_area: e.target.value })}
-                            className="h-9"
-                          />
+                        <FieldRow label="Fulfillment method">
+                          <Select
+                            value={form.fulfillment_method}
+                            onValueChange={(v) =>
+                              setForm({
+                                ...form,
+                                fulfillment_method: v as EditableFields["fulfillment_method"],
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-9" aria-label="Fulfillment method">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="delivery">Delivery</SelectItem>
+                              <SelectItem value="pickup">Pickup</SelectItem>
+                              <SelectItem value="dinein">Dine-in</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </FieldRow>
-                        <FieldRow label="City">
+                        <FieldRow label="Scheduled time (optional)">
                           <Input
-                            value={form.address_city}
-                            onChange={(e) => setForm({ ...form, address_city: e.target.value })}
+                            type="datetime-local"
+                            aria-label="Scheduled time"
+                            value={
+                              form.schedule_at
+                                ? (() => {
+                                    const d = new Date(form.schedule_at);
+                                    if (Number.isNaN(d.getTime())) return "";
+                                    const pad = (n: number) => String(n).padStart(2, "0");
+                                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                                  })()
+                                : ""
+                            }
+                            onChange={(e) => setForm({ ...form, schedule_at: e.target.value })}
                             className="h-9"
                           />
                         </FieldRow>
                       </div>
-                      <FieldRow label="Landmark">
-                        <Input
-                          value={form.landmark}
-                          onChange={(e) => setForm({ ...form, landmark: e.target.value })}
-                          className="h-9"
-                        />
-                      </FieldRow>
-                      <FieldRow label="Delivery instructions">
-                        <Textarea
-                          value={form.delivery_instructions}
-                          onChange={(e) =>
-                            setForm({ ...form, delivery_instructions: e.target.value })
-                          }
-                          rows={2}
-                        />
-                      </FieldRow>
+                      {isDelivery && (
+                        <>
+                          <FieldRow label="Address">
+                            <Input
+                              value={form.address_line}
+                              onChange={(e) => setForm({ ...form, address_line: e.target.value })}
+                              className="h-9"
+                              aria-required
+                            />
+                          </FieldRow>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <FieldRow label="Area">
+                              <Input
+                                value={form.address_area}
+                                onChange={(e) => setForm({ ...form, address_area: e.target.value })}
+                                className="h-9"
+                              />
+                            </FieldRow>
+                            <FieldRow label="City">
+                              <Input
+                                value={form.address_city}
+                                onChange={(e) => setForm({ ...form, address_city: e.target.value })}
+                                className="h-9"
+                                aria-required
+                              />
+                            </FieldRow>
+                          </div>
+                          <FieldRow label="Landmark">
+                            <Input
+                              value={form.landmark}
+                              onChange={(e) => setForm({ ...form, landmark: e.target.value })}
+                              className="h-9"
+                            />
+                          </FieldRow>
+                          <FieldRow label="Delivery instructions">
+                            <Textarea
+                              value={form.delivery_instructions}
+                              onChange={(e) =>
+                                setForm({ ...form, delivery_instructions: e.target.value })
+                              }
+                              rows={2}
+                            />
+                          </FieldRow>
+                        </>
+                      )}
+                      {isPickup && (
+                        <div className="rounded-lg border border-dashed border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                          Pickup orders don’t use a delivery address. Delivery fee will be removed
+                          automatically on save.
+                        </div>
+                      )}
                     </div>
                   )
                 )}
               </Section>
 
-              {/* Branch (edit only) */}
+              {/* Branch selector (edit only) */}
               {editing && form && (
                 <Section icon={Building2} title="Branch">
                   <FieldRow label="Branch">
@@ -1264,19 +1342,31 @@ export function OrderDetailsDrawer({
                       value={form.branch_id || "none"}
                       onValueChange={(v) => setForm({ ...form, branch_id: v === "none" ? "" : v })}
                     >
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-9" aria-label="Branch">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">— Unassigned —</SelectItem>
-                        {branches.map((b) => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.name}
-                          </SelectItem>
-                        ))}
+                        {branches
+                          .filter((b) => {
+                            if (!b.is_active) return b.id === form.branch_id;
+                            if (isDelivery && !b.delivery_available) return false;
+                            if (isPickup && !b.pickup_available) return false;
+                            return true;
+                          })
+                          .map((b) => (
+                            <SelectItem key={b.id} value={b.id}>
+                              {b.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </FieldRow>
+                  {isDelivery && !form.branch_id && (
+                    <p className="mt-1.5 text-[11px] text-destructive">
+                      Delivery orders require a branch.
+                    </p>
+                  )}
                 </Section>
               )}
 
