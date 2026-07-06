@@ -625,7 +625,6 @@ export function KitchenContent() {
   return (
     <div className="space-y-4">
       <PageHeader
-        icon={<ChefHat className="h-5 w-5" />}
         title="Kitchen Display"
         description="Live production board — accept, prep and complete orders in one click."
         actions={
