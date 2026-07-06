@@ -107,41 +107,63 @@ export const placeOrder = createServerFn({ method: "POST" })
       .filter(Boolean)
       .join("\n");
 
-    // Resolve branch: if given, validate it exists and is active. Otherwise
-    // fall back to the first active branch by sort_order so every order still
-    // gets attributed to a location.
+    // Resolve branch + authoritative delivery fee server-side. The client
+    // computed value is never trusted for pricing; we recompute from
+    // restaurant_settings.delivery_settings and the branch record.
     let resolvedBranchId: string | null = null;
+    let branchFee: number | null = null;
+    let serverDeliveryFee = 0;
+    const serviceFee = 30; // must match FEES.serviceFee on the client
     {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       if (data.branch_id) {
         const { data: b } = await supabaseAdmin
           .from("branches")
-          .select("id, is_active")
+          .select("id, is_active, delivery_charges, delivery_available, pickup_available")
           .eq("id", data.branch_id)
           .maybeSingle();
-        if (b && b.is_active) resolvedBranchId = b.id;
+        if (b && b.is_active) {
+          resolvedBranchId = b.id;
+          branchFee = typeof b.delivery_charges === "number" ? b.delivery_charges : null;
+        }
       }
       if (!resolvedBranchId) {
         const { data: fallback } = await supabaseAdmin
           .from("branches")
-          .select("id")
+          .select("id, delivery_charges")
           .eq("is_active", true)
           .order("sort_order", { ascending: true })
           .limit(1)
           .maybeSingle();
         resolvedBranchId = fallback?.id ?? null;
+        branchFee = typeof fallback?.delivery_charges === "number" ? fallback.delivery_charges : null;
+      }
+
+      if (data.fulfillment_method === "delivery") {
+        const { data: settings } = await supabaseAdmin
+          .from("restaurant_settings")
+          .select("delivery_settings")
+          .eq("singleton", true)
+          .maybeSingle();
+        const ds = (settings?.delivery_settings ?? {}) as Record<string, unknown>;
+        const defaultFee = typeof ds.default_fee === "number" ? ds.default_fee : 0;
+        const freeThreshold = typeof ds.free_delivery_threshold === "number" ? ds.free_delivery_threshold : 0;
+        const base = branchFee != null ? branchFee : defaultFee;
+        serverDeliveryFee = freeThreshold > 0 && data.subtotal_pkr >= freeThreshold ? 0 : Math.max(0, Math.round(base));
       }
     }
+
+    const serverTotal = Math.max(0, data.subtotal_pkr - discount) + serverDeliveryFee + serviceFee + (data.tax_pkr ?? 0);
 
     const { data: order, error } = await supabase
       .from("orders")
       .insert({
         user_id: userId,
         subtotal_pkr: data.subtotal_pkr,
-        delivery_fee_pkr: data.delivery_fee_pkr,
+        delivery_fee_pkr: serverDeliveryFee,
         tax_pkr: data.tax_pkr ?? 0,
         discount_pkr: discount,
-        total_pkr: data.total_pkr,
+        total_pkr: serverTotal,
         payment_method: data.payment_method,
         fulfillment_method: data.fulfillment_method,
         schedule_at: data.schedule_at || null,
@@ -154,6 +176,7 @@ export const placeOrder = createServerFn({ method: "POST" })
       })
       .select("id, order_number, status, total_pkr, created_at")
       .single();
+
 
 
     if (error || !order) {
