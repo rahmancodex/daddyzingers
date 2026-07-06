@@ -1073,32 +1073,35 @@ export function OrderDetailsDrawer({
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(
                       [
-                        { s: "preparing" as AdminOrderStatus, label: "Preparing", icon: ChefHat },
-                        { s: "ready" as AdminOrderStatus, label: "Ready", icon: Package },
-                        { s: "out_for_delivery" as AdminOrderStatus, label: "To rider", icon: Bike },
-                        { s: "delivered" as AdminOrderStatus, label: "Delivered", icon: CheckCircle2 },
+                        { s: "preparing" as AdminOrderStatus, label: "Preparing", icon: ChefHat, forMethods: ["delivery", "pickup", "dinein"] },
+                        { s: "ready" as AdminOrderStatus, label: "Ready", icon: Package, forMethods: ["delivery", "pickup", "dinein"] },
+                        { s: "out_for_delivery" as AdminOrderStatus, label: "To rider", icon: Bike, forMethods: ["delivery"] },
+                        { s: "delivered" as AdminOrderStatus, label: isPickup ? "Picked up" : "Delivered", icon: CheckCircle2, forMethods: ["delivery", "pickup", "dinein"] },
                       ] as const
-                    ).map((b) => {
-                      const Icon = b.icon;
-                      const active = detail.status === b.s;
-                      return (
-                        <Button
-                          key={b.s}
-                          type="button"
-                          size="lg"
-                          variant={active ? "default" : "outline"}
-                          className={cn(
-                            "h-16 flex-col gap-1 rounded-xl px-2 text-xs font-semibold sm:text-sm",
-                            active && "pointer-events-none",
-                          )}
-                          disabled={statusMut.isPending}
-                          onClick={() => statusMut.mutate(b.s)}
-                        >
-                          <Icon className="h-5 w-5" />
-                          {b.label}
-                        </Button>
-                      );
-                    })}
+                    )
+                      .filter((b) => b.forMethods.includes(effectiveMethod))
+                      .map((b) => {
+                        const Icon = b.icon;
+                        const active = detail.status === b.s;
+                        return (
+                          <Button
+                            key={b.s}
+                            type="button"
+                            size="lg"
+                            variant={active ? "default" : "outline"}
+                            className={cn(
+                              "h-16 flex-col gap-1 rounded-xl px-2 text-xs font-semibold sm:text-sm",
+                              active && "pointer-events-none",
+                            )}
+                            disabled={statusMut.isPending}
+                            onClick={() => statusMut.mutate(b.s)}
+                            aria-label={`Mark as ${b.label}`}
+                          >
+                            <Icon className="h-5 w-5" />
+                            {b.label}
+                          </Button>
+                        );
+                      })}
                   </div>
                 </Section>
               )}
