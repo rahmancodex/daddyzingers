@@ -110,12 +110,14 @@ export const adminReports = createServerFn({ method: "POST" })
       new Set(items.map((i) => i.product_id).filter((x): x is string => !!x)),
     );
     let productMap = new Map<string, { name: string; category_id: string | null }>();
-    if (productIds.length) {
-      const { data: menu } = await supabaseAdmin
-        .from("menu_items")
-        .select("id,name,category_id")
-        .in("id", productIds);
-      for (const m of menu ?? []) productMap.set(m.id, { name: m.name, category_id: m.category_id });
+    // Fetch all active menu items so we can compute "never ordered" in the current range.
+    const { data: allMenu } = await supabaseAdmin
+      .from("menu_items")
+      .select("id,name,category_id,is_active")
+      .eq("is_active", true)
+      .limit(2000);
+    for (const m of allMenu ?? []) {
+      productMap.set(m.id, { name: m.name, category_id: m.category_id });
     }
     const { data: categories } = await supabaseAdmin
       .from("menu_categories")
