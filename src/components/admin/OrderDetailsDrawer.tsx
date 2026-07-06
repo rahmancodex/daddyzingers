@@ -295,6 +295,8 @@ const AUDIT_ICON: Record<string, React.ComponentType<{ className?: string }>> = 
   order_edited: Pencil,
   item_qty_changed: ShoppingBag,
   item_removed: Trash2,
+  item_added: Plus,
+  item_edited: Pencil,
 };
 
 function AuditDiff({ entry }: { entry: AdminOrderAuditEntry }) {
