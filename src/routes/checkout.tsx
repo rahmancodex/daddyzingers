@@ -114,10 +114,6 @@ function CheckoutPage() {
   const cart = useCart();
   const subtotal = useCartTotal();
   const checkout = useCheckout();
-  const totals = useMemo(
-    () => computeTotals({ subtotal, method: checkout.method, coupon: checkout.coupon, tip: checkout.tip }),
-    [subtotal, checkout.method, checkout.coupon, checkout.tip],
-  );
 
   const [step, setStep] = useState<StepIdx>(0);
   const [placing, setPlacing] = useState(false);
@@ -127,6 +123,40 @@ function CheckoutPage() {
 
   const branchesQ = useActiveBranches();
   const activeBranches = branchesQ.data ?? [];
+  const pricingQ = useDeliveryPricing();
+  const pricing = pricingQ.data;
+
+  const selectedBranch = useMemo(
+    () => activeBranches.find((b) => b.id === checkout.branchId) ?? null,
+    [activeBranches, checkout.branchId],
+  );
+
+  // Global availability from admin settings (defaults to true while loading
+  // so we don't flash "unavailable" on first paint).
+  const deliveryEnabledGlobal = pricing?.deliveryEnabled ?? true;
+  const pickupEnabledGlobal = pricing?.pickupEnabled ?? true;
+  const deliveryAvailable =
+    deliveryEnabledGlobal && (selectedBranch?.delivery_available ?? true);
+  const pickupAvailable =
+    pickupEnabledGlobal && (selectedBranch?.pickup_available ?? true);
+
+  const deliveryFee = useMemo(
+    () =>
+      pricing
+        ? resolveDeliveryFee({
+            method: checkout.method,
+            subtotal,
+            pricing,
+            branchFee: selectedBranch?.delivery_charges ?? null,
+          })
+        : 0,
+    [pricing, checkout.method, subtotal, selectedBranch],
+  );
+
+  const totals = useMemo(
+    () => computeTotals({ subtotal, coupon: checkout.coupon, tip: checkout.tip, deliveryFee }),
+    [subtotal, checkout.coupon, checkout.tip, deliveryFee],
+  );
 
   // Auto-select branch: if only one active branch, pin it. Otherwise keep the
   // customer's choice, or default to the top of the sort order.
@@ -136,6 +166,17 @@ function CheckoutPage() {
     if (stillValid) return;
     checkoutActions.setBranch(activeBranches[0].id);
   }, [activeBranches, checkout.branchId]);
+
+  // If the currently selected method becomes unavailable (branch change or
+  // admin toggle), fall back to the first supported method.
+  useEffect(() => {
+    if (!pricing) return;
+    if (checkout.method === "delivery" && !deliveryAvailable) {
+      if (pickupAvailable) checkoutActions.setMethod("pickup");
+    } else if (checkout.method === "pickup" && !pickupAvailable) {
+      if (deliveryAvailable) checkoutActions.setMethod("delivery");
+    }
+  }, [pricing, checkout.method, deliveryAvailable, pickupAvailable]);
 
   const placeOrderFn = useServerFn(placeOrder);
 
