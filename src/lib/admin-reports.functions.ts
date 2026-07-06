@@ -279,6 +279,31 @@ export const adminReports = createServerFn({ method: "POST" })
     const topRevenueProducts = [...productArr].sort((a, b) => b.revenue - a.revenue).slice(0, 10);
     const lowRevenueProducts = [...productArr].sort((a, b) => a.revenue - b.revenue).slice(0, 5);
 
+    // Items never ordered in this range (from the active menu)
+    const seenProductIds = new Set(productArr.map((_p, _i) => "").filter(Boolean));
+    for (const it of filteredItems) if (it.product_id) seenProductIds.add(it.product_id);
+    const neverOrdered = (allMenu ?? [])
+      .filter((m) => !seenProductIds.has(m.id))
+      .slice(0, 20)
+      .map((m) => ({ id: m.id, name: m.name }));
+
+    // Most cancelled items — items from orders whose status is 'cancelled' in range
+    const cancelledOrderIds = new Set(
+      orderList.filter((o) => o.status === TERMINAL_CANCELLED).map((o) => o.id),
+    );
+    const cancelledAgg = new Map<string, { name: string; qty: number }>();
+    for (const it of items) {
+      if (!cancelledOrderIds.has(it.order_id)) continue;
+      const id = it.product_id ?? it.name ?? "unknown";
+      const p = productMap.get(it.product_id ?? "");
+      const cur = cancelledAgg.get(id) ?? { name: it.name ?? p?.name ?? id, qty: 0 };
+      cur.qty += it.qty ?? 0;
+      cancelledAgg.set(id, cur);
+    }
+    const mostCancelledProducts = [...cancelledAgg.values()]
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 10);
+
     // Category breakdown
     const categoryAgg = new Map<string, { name: string; qty: number; revenue: number }>();
     for (const p of productArr) {
