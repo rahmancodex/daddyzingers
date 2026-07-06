@@ -727,15 +727,27 @@ export const adminOrderAuditLog = createServerFn({ method: "POST" })
 
 export const adminBranchesForOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
-  .handler(async (): Promise<{ id: string; name: string }[]> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("branches")
-      .select("id, name")
-      .order("name");
-    if (error) throw new Error(error.message);
-    return (data ?? []) as { id: string; name: string }[];
-  });
+  .handler(
+    async (): Promise<
+      { id: string; name: string; is_active: boolean; delivery_available: boolean; pickup_available: boolean; phone: string | null; address: string | null }[]
+    > => {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin
+        .from("branches")
+        .select("id, name, is_active, delivery_available, pickup_available, phone, address, sort_order")
+        .order("sort_order", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((b) => ({
+        id: b.id,
+        name: b.name,
+        is_active: b.is_active,
+        delivery_available: b.delivery_available,
+        pickup_available: b.pickup_available,
+        phone: b.phone,
+        address: b.address,
+      }));
+    },
+  );
 
 const StatsInput = z.object({ today_start: z.string().datetime().optional() }).optional();
 
