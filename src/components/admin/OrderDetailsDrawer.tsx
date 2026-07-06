@@ -750,7 +750,391 @@ function DetailSkeleton() {
   );
 }
 
-// ============ Drawer ============
+/* ============================================================
+ * ItemComposer — inline picker for adding/modifying a line.
+ * Reuses `useMenuData()` so no menu data is duplicated.
+ * ============================================================ */
+
+type ComposerResult = {
+  product_id: string;
+  qty: number;
+  unit_price_pkr: number;
+  options: {
+    size?: string;
+    customizations?: Array<{ id: string; label: string; price: number }>;
+    upgrades?: Array<{ id: string; label: string; price: number }>;
+    notes?: string;
+  };
+};
+
+type ComposerInitial = {
+  itemId: string;
+  qty: number;
+  size?: string; // size label
+  choiceIds: string[]; // customization+upgrade ids
+  notes: string;
+};
+
+function initialFromOrderItem(it: AdminOrderItem): ComposerInitial {
+  const opts = itemOpts(it.options);
+  const ids = [
+    ...(opts.customizations ?? []).map((c) => c.id),
+    ...(opts.upgrades ?? []).map((u) => u.id),
+  ];
+  return {
+    itemId: it.product_id,
+    qty: it.qty,
+    size: opts.size,
+    choiceIds: ids,
+    notes: opts.notes ?? "",
+  };
+}
+
+function ItemComposer({
+  mode,
+  open,
+  onOpenChange,
+  initial,
+  saving,
+  onSubmit,
+}: {
+  mode: "add" | "edit";
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial?: ComposerInitial | null;
+  saving: boolean;
+  onSubmit: (r: ComposerResult) => void;
+}) {
+  const menu = useMenuData();
+  const [query, setQuery] = React.useState("");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [sizeId, setSizeId] = React.useState<string | null>(null);
+  const [choiceIds, setChoiceIds] = React.useState<Set<string>>(new Set());
+  const [qty, setQty] = React.useState(1);
+  const [notes, setNotes] = React.useState("");
+
+  // Reset when dialog opens
+  React.useEffect(() => {
+    if (!open) return;
+    if (mode === "edit" && initial) {
+      setSelectedId(initial.itemId);
+      setQty(initial.qty);
+      setNotes(initial.notes);
+      setChoiceIds(new Set(initial.choiceIds));
+      // resolve sizeId from label
+      const it = menu.byId.get(initial.itemId);
+      const sid = it?.sizes?.find((s) => s.label === initial.size)?.id ?? null;
+      setSizeId(sid);
+    } else {
+      setSelectedId(null);
+      setQty(1);
+      setNotes("");
+      setChoiceIds(new Set());
+      setSizeId(null);
+      setQuery("");
+    }
+  }, [open, mode, initial, menu.byId]);
+
+  const selected: MenuItem | null = selectedId ? menu.byId.get(selectedId) ?? null : null;
+  const inactive = selected ? !selected.isAvailable : false;
+
+  const groups: OptionGroup[] = React.useMemo(
+    () => (selected ? resolveItemOptions(selected, menu.categoryOptions) : []),
+    [selected, menu.categoryOptions],
+  );
+
+  // Reset stale sub-state when switching item
+  React.useEffect(() => {
+    if (mode !== "add") return;
+    setSizeId(null);
+    setChoiceIds(new Set());
+  }, [selectedId, mode]);
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const src = menu.items.filter((i) => i.isAvailable);
+    if (!q) return src.slice(0, 60);
+    return src
+      .filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          (i.shortDescription ?? "").toLowerCase().includes(q),
+      )
+      .slice(0, 60);
+  }, [menu.items, query]);
+
+  // Compute unit price live
+  const chosenSize = selected?.sizes?.find((s) => s.id === sizeId) ?? null;
+  const basePrice = chosenSize ? chosenSize.price : selected?.price ?? 0;
+  const chosenChoices: Array<{ id: string; label: string; price: number; groupId: string }> = [];
+  for (const g of groups) {
+    if (g.id === "size") continue;
+    for (const c of g.choices) {
+      if (choiceIds.has(c.id)) {
+        chosenChoices.push({ id: c.id, label: c.label, price: c.priceDelta, groupId: g.id });
+      }
+    }
+  }
+  const addOnsTotal = chosenChoices.reduce((s, c) => s + c.price, 0);
+  const unitPrice = basePrice + addOnsTotal;
+
+  // Validation
+  const requiredMissing = groups.some((g) => {
+    if (!g.required) return false;
+    if (g.id === "size") return sizeId === null && (selected?.sizes?.length ?? 0) > 0;
+    return !g.choices.some((c) => choiceIds.has(c.id));
+  });
+
+  const toggleChoice = (g: OptionGroup, id: string) => {
+    setChoiceIds((prev) => {
+      const next = new Set(prev);
+      if (g.type === "single") {
+        // remove other choices of same group
+        for (const c of g.choices) next.delete(c.id);
+        next.add(id);
+      } else {
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const canSave = !!selected && !inactive && qty > 0 && !requiredMissing && !saving;
+
+  const handleSubmit = () => {
+    if (!selected || !canSave) return;
+    onSubmit({
+      product_id: selected.id,
+      qty,
+      unit_price_pkr: Math.max(0, Math.round(unitPrice)),
+      options: {
+        size: chosenSize?.label,
+        customizations: chosenChoices.map((c) => ({ id: c.id, label: c.label, price: c.price })),
+        notes: notes.trim() || undefined,
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-2xl p-0 sm:w-full">
+        <DialogHeader className="border-b border-border/70 px-5 py-4">
+          <DialogTitle className="text-base font-black">
+            {mode === "add" ? "Add item to order" : `Modify · ${selected?.name ?? ""}`}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid max-h-[70vh] gap-0 overflow-hidden sm:grid-cols-[1fr_1.1fr]">
+          {/* Left: item picker (add mode only) */}
+          {mode === "add" && (
+            <div className="flex min-h-0 flex-col border-r border-border/70 bg-muted/20">
+              <div className="p-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search menu…"
+                    className="h-9 pl-8"
+                    aria-label="Search menu items"
+                  />
+                </div>
+              </div>
+              <ScrollArea className="min-h-0 flex-1 px-2 pb-2">
+                <ul className="space-y-1">
+                  {filtered.map((mi) => {
+                    const active = mi.id === selectedId;
+                    return (
+                      <li key={mi.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(mi.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition",
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-transparent hover:border-border hover:bg-background",
+                          )}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-semibold">{mi.name}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {formatPKR(mi.price)}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <li className="px-2 py-6 text-center text-xs text-muted-foreground">
+                      No matching items.
+                    </li>
+                  )}
+                </ul>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Right: options + qty */}
+          <ScrollArea className="min-h-0 max-h-[70vh]">
+            <div className="space-y-4 p-4">
+              {!selected ? (
+                <div className="rounded-lg border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+                  Choose a menu item on the left to configure options.
+                </div>
+              ) : (
+                <>
+                  {inactive && (
+                    <div
+                      role="alert"
+                      className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+                    >
+                      This item is currently unavailable and cannot be added.
+                    </div>
+                  )}
+                  {groups.map((g) => (
+                    <fieldset key={g.id} className="grid gap-2">
+                      <legend className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {g.label}
+                        {g.required && <span className="ml-1 text-destructive">*</span>}
+                      </legend>
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {g.id === "size" && selected.sizes
+                          ? selected.sizes.map((s) => {
+                              const active = s.id === sizeId;
+                              return (
+                                <button
+                                  key={s.id}
+                                  type="button"
+                                  onClick={() => setSizeId(s.id)}
+                                  className={cn(
+                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
+                                    active
+                                      ? "border-primary bg-primary/10 font-semibold"
+                                      : "border-border hover:border-primary/40",
+                                  )}
+                                  aria-pressed={active}
+                                >
+                                  <span>{s.label}</span>
+                                  <span className="tabular-nums text-muted-foreground">
+                                    {formatPKR(s.price)}
+                                  </span>
+                                </button>
+                              );
+                            })
+                          : g.choices.map((c) => {
+                              const active = choiceIds.has(c.id);
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => toggleChoice(g, c.id)}
+                                  className={cn(
+                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
+                                    active
+                                      ? "border-primary bg-primary/10 font-semibold"
+                                      : "border-border hover:border-primary/40",
+                                  )}
+                                  aria-pressed={active}
+                                >
+                                  <span>{c.label}</span>
+                                  {c.priceDelta !== 0 && (
+                                    <span className="tabular-nums text-muted-foreground">
+                                      {c.priceDelta > 0 ? "+" : "−"}
+                                      {formatPKR(Math.abs(c.priceDelta))}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                      </div>
+                    </fieldset>
+                  ))}
+
+                  <FieldRow label="Notes / special instructions">
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      placeholder="No onions, extra sauce…"
+                    />
+                  </FieldRow>
+
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 rounded-md"
+                        onClick={() => setQty((q) => Math.max(1, q - 1))}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <div className="min-w-[2rem] text-center text-sm font-bold tabular-nums">
+                        {qty}
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 rounded-md"
+                        onClick={() => setQty((q) => q + 1)}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                        Line total
+                      </div>
+                      <div className="font-display text-lg font-black tabular-nums">
+                        {formatPKR(unitPrice * qty)}
+                      </div>
+                    </div>
+                  </div>
+                  {requiredMissing && (
+                    <div
+                      role="alert"
+                      aria-live="polite"
+                      className="text-xs text-destructive"
+                    >
+                      Please pick every required option.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <DialogFooter className="border-t border-border/70 px-5 py-3">
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="rounded-lg"
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSave}
+            className="rounded-lg"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {mode === "add" ? "Add to order" : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export function OrderDetailsDrawer({
   orderId,
   open,
