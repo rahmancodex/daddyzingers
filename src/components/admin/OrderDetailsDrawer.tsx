@@ -428,6 +428,15 @@ function toPatch(a: EditableFields, b: EditableFields) {
     const v = b[k];
     if (k === "delivery_fee_pkr") {
       patch[k] = Number(v) || 0;
+    } else if (k === "schedule_at") {
+      const s = typeof v === "string" ? v.trim() : "";
+      if (!s) {
+        patch[k] = null;
+      } else {
+        // datetime-local yields "YYYY-MM-DDTHH:MM"; normalize to ISO
+        const d = new Date(s);
+        patch[k] = Number.isNaN(d.getTime()) ? null : d.toISOString();
+      }
     } else if (NULLABLE_UUIDS.includes(k)) {
       patch[k] = typeof v === "string" && v.trim() !== "" ? v : null;
     } else if (typeof v === "string") {
