@@ -414,6 +414,8 @@ export const adminCancelOrder = createServerFn({ method: "POST" })
   });
 
 // ============ Editable patch ============
+const FulfillmentSchema = z.enum(["delivery", "pickup", "dinein"]);
+
 const UpdateOrderInput = z.object({
   id: z.string().uuid(),
   patch: z
@@ -431,6 +433,8 @@ const UpdateOrderInput = z.object({
       address_city: z.string().max(120).nullable().optional(),
       landmark: z.string().max(200).nullable().optional(),
       delivery_instructions: z.string().max(500).nullable().optional(),
+      fulfillment_method: FulfillmentSchema.optional(),
+      schedule_at: z.string().datetime().nullable().optional(),
     })
     .refine((v) => Object.keys(v).length > 0, "Empty patch"),
   changes_summary: z.string().max(500).optional(),
@@ -444,7 +448,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     const { data: prev, error: fetchErr } = await supabaseAdmin
       .from("orders")
       .select(
-        "notes, special_instructions, payment_method, delivery_fee_pkr, coupon_code, discount_pkr, subtotal_pkr, tax_pkr, total_pkr, address_snapshot, branch_id",
+        "notes, special_instructions, payment_method, delivery_fee_pkr, coupon_code, discount_pkr, subtotal_pkr, tax_pkr, total_pkr, address_snapshot, branch_id, fulfillment_method, schedule_at",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -459,15 +463,50 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     if (p.payment_method !== undefined) update.payment_method = p.payment_method;
     if (p.coupon_code !== undefined) update.coupon_code = p.coupon_code;
     if (p.branch_id !== undefined) update.branch_id = p.branch_id;
+    if (p.schedule_at !== undefined) update.schedule_at = p.schedule_at;
+    if (p.fulfillment_method !== undefined) update.fulfillment_method = p.fulfillment_method;
 
-    if (p.delivery_fee_pkr !== undefined) {
-      update.delivery_fee_pkr = p.delivery_fee_pkr;
-      const newTotal =
-        (Number(prevRow.subtotal_pkr) || 0) +
-        (p.delivery_fee_pkr ?? 0) +
-        (Number(prevRow.tax_pkr) || 0) -
-        (Number(prevRow.discount_pkr) || 0);
-      update.total_pkr = newTotal;
+    // Resolve effective values for validation + fee recomputation
+    const effectiveMethod =
+      (p.fulfillment_method ?? (prevRow.fulfillment_method as string | null) ?? "delivery") as
+        | "delivery" | "pickup" | "dinein";
+    const effectiveBranchId =
+      p.branch_id !== undefined ? p.branch_id : ((prevRow.branch_id as string | null) ?? null);
+
+    const prevSnap =
+      prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
+        ? (prevRow.address_snapshot as Record<string, unknown>)
+        : {};
+
+    let branchFee: number | null = null;
+    if (effectiveBranchId) {
+      const { data: b } = await supabaseAdmin
+        .from("branches")
+        .select("id, is_active, delivery_charges, delivery_available, pickup_available")
+        .eq("id", effectiveBranchId)
+        .maybeSingle();
+      if (!b) throw new Error("Selected branch does not exist");
+      if (!b.is_active) throw new Error("Selected branch is inactive");
+      if (effectiveMethod === "delivery" && !b.delivery_available) {
+        throw new Error("Selected branch does not support delivery");
+      }
+      if (effectiveMethod === "pickup" && !b.pickup_available) {
+        throw new Error("Selected branch does not support pickup");
+      }
+      branchFee = typeof b.delivery_charges === "number" ? b.delivery_charges : null;
+    }
+
+    if (effectiveMethod === "delivery") {
+      const line =
+        p.address_line !== undefined ? p.address_line : (prevSnap.address_line as string | null | undefined);
+      const city =
+        p.address_city !== undefined ? p.address_city : (prevSnap.city as string | null | undefined);
+      if (!line || !String(line).trim() || !city || !String(city).trim()) {
+        throw new Error("Delivery orders require an address (line + city)");
+      }
+      if (!effectiveBranchId) {
+        throw new Error("Delivery orders require a branch");
+      }
     }
 
     const addrKeys = [
@@ -481,11 +520,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
     ] as const;
     const hasAddr = addrKeys.some((k) => p[k] !== undefined);
     if (hasAddr) {
-      const prevSnap =
-        prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
-          ? (prevRow.address_snapshot as Record<string, unknown>)
-          : {};
-      const nextSnap = { ...prevSnap };
+      const nextSnap: Record<string, unknown> = { ...prevSnap };
       if (p.recipient_name !== undefined) nextSnap.recipient_name = p.recipient_name;
       if (p.recipient_phone !== undefined) nextSnap.phone = p.recipient_phone;
       if (p.address_line !== undefined) nextSnap.address_line = p.address_line;
@@ -496,14 +531,54 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       update.address_snapshot = nextSnap as Json;
     }
 
+    // Authoritative delivery-fee recomputation. Never keep stale delivery
+    // charges when switching to pickup. When switching to delivery or
+    // changing branch, resolve fresh from settings + branch override.
+    const methodChanged = p.fulfillment_method !== undefined && p.fulfillment_method !== prevRow.fulfillment_method;
+    const branchChanged = p.branch_id !== undefined && p.branch_id !== prevRow.branch_id;
+    const feeExplicit = p.delivery_fee_pkr !== undefined;
+
+    let newDeliveryFee = Number(prevRow.delivery_fee_pkr) || 0;
+    if (effectiveMethod !== "delivery") {
+      newDeliveryFee = 0;
+    } else if (methodChanged || branchChanged) {
+      const { data: settings } = await supabaseAdmin
+        .from("restaurant_settings")
+        .select("delivery_settings")
+        .eq("singleton", true)
+        .maybeSingle();
+      const ds = ((settings?.delivery_settings ?? {}) as Record<string, unknown>);
+      const defaultFee = typeof ds.default_fee === "number" ? ds.default_fee : 0;
+      const freeThreshold = typeof ds.free_delivery_threshold === "number" ? ds.free_delivery_threshold : 0;
+      const base = branchFee != null ? branchFee : defaultFee;
+      const subtotal = Number(prevRow.subtotal_pkr) || 0;
+      newDeliveryFee =
+        freeThreshold > 0 && subtotal >= freeThreshold ? 0 : Math.max(0, Math.round(base));
+    } else if (feeExplicit) {
+      newDeliveryFee = p.delivery_fee_pkr!;
+    }
+
+    if (newDeliveryFee !== (Number(prevRow.delivery_fee_pkr) || 0)) {
+      update.delivery_fee_pkr = newDeliveryFee;
+      const newTotal =
+        (Number(prevRow.subtotal_pkr) || 0) +
+        newDeliveryFee +
+        (Number(prevRow.tax_pkr) || 0) -
+        (Number(prevRow.discount_pkr) || 0);
+      update.total_pkr = newTotal;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return { ok: true };
+    }
+
     const { error } = await supabaseAdmin
       .from("orders")
       .update(update as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
 
-    // Build a per-field diff (old vs new) restricted to what actually changed,
-    // so audit history shows meaningful before/after instead of the raw prev row.
+    // Per-field audit diff restricted to what actually changed
     const ADDR_MAP: Record<string, string> = {
       recipient_name: "recipient_name",
       recipient_phone: "phone",
@@ -513,10 +588,6 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       landmark: "landmark",
       delivery_instructions: "notes",
     };
-    const prevSnapObj =
-      prevRow.address_snapshot && typeof prevRow.address_snapshot === "object" && !Array.isArray(prevRow.address_snapshot)
-        ? (prevRow.address_snapshot as Record<string, unknown>)
-        : {};
     const oldDiff: Record<string, unknown> = {};
     const newDiff: Record<string, unknown> = {};
     const labels: string[] = [];
@@ -525,7 +596,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
       if (v === undefined) continue;
       if (k in ADDR_MAP) {
         const snapKey = ADDR_MAP[k];
-        const before = norm(prevSnapObj[snapKey]);
+        const before = norm(prevSnap[snapKey]);
         const after = norm(v);
         if (before !== after) {
           oldDiff[k] = before;
@@ -542,6 +613,11 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
         }
       }
     }
+    if (update.delivery_fee_pkr !== undefined && !("delivery_fee_pkr" in newDiff)) {
+      oldDiff.delivery_fee_pkr = Number(prevRow.delivery_fee_pkr) || 0;
+      newDiff.delivery_fee_pkr = update.delivery_fee_pkr;
+      if (!labels.includes("delivery fee")) labels.push("delivery fee");
+    }
 
     if (Object.keys(newDiff).length > 0) {
       await writeAudit(context, {
@@ -549,7 +625,7 @@ export const adminUpdateOrder = createServerFn({ method: "POST" })
         entity_id: data.id,
         summary:
           data.changes_summary?.trim() ||
-          (labels.length ? `Updated ${labels.join(", ")}` : "Order details updated"),
+          (labels.length ? `Order edited by Admin — ${labels.join(", ")}` : "Order edited by Admin"),
         before_state: oldDiff as Json,
         after_state: newDiff as Json,
       });
@@ -651,15 +727,27 @@ export const adminOrderAuditLog = createServerFn({ method: "POST" })
 
 export const adminBranchesForOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth, requirePerm("orders.view")])
-  .handler(async (): Promise<{ id: string; name: string }[]> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("branches")
-      .select("id, name")
-      .order("name");
-    if (error) throw new Error(error.message);
-    return (data ?? []) as { id: string; name: string }[];
-  });
+  .handler(
+    async (): Promise<
+      { id: string; name: string; is_active: boolean; delivery_available: boolean; pickup_available: boolean; phone: string | null; address: string | null }[]
+    > => {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin
+        .from("branches")
+        .select("id, name, is_active, delivery_available, pickup_available, phone, address, sort_order")
+        .order("sort_order", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((b) => ({
+        id: b.id,
+        name: b.name,
+        is_active: b.is_active,
+        delivery_available: b.delivery_available,
+        pickup_available: b.pickup_available,
+        phone: b.phone,
+        address: b.address,
+      }));
+    },
+  );
 
 const StatsInput = z.object({ today_start: z.string().datetime().optional() }).optional();
 
