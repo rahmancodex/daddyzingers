@@ -37,9 +37,11 @@ import { cartActions, useCart, useCartTotal } from "@/lib/store";
 import {
   checkoutActions,
   computeTotals,
+  resolveDeliveryFee,
   useCheckout,
   type DeliveryMethod,
 } from "@/lib/checkout-store";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 import { formatPKR } from "@/lib/menu";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
