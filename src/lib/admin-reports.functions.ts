@@ -575,9 +575,10 @@ export const adminReports = createServerFn({ method: "POST" })
         total: banners?.length ?? 0,
       },
       peak: {
-        hourly: hourAgg.map((count, hour) => ({ hour, count })),
-        dow: dowAgg.map((count, day) => ({ day: DAY_NAMES[day], count })),
+        hourly: hourAgg.map((count, hour) => ({ hour, count, revenue: hourRevenue[hour] })),
+        dow: dowAgg.map((count, day) => ({ day: DAY_NAMES[day], count, revenue: dowRevenue[day] })),
         bestHour,
+        bestRevenueHour,
         bestDay: DAY_NAMES[bestDayIdx],
         heatmap,
       },
