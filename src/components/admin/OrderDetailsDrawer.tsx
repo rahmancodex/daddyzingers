@@ -63,8 +63,11 @@ import {
   adminOrderAuditLog,
   adminCancelOrder,
   adminBranchesForOrders,
+  adminAddOrderItem,
+  adminUpdateOrderItemOptions,
   CANCEL_REASONS,
   type AdminOrderDetail,
+  type AdminOrderItem,
   type AdminOrderStatus,
   type AdminOrderAuditEntry,
   type OrderCancelReason,
@@ -83,9 +86,19 @@ import {
   formatEta,
   orderPriority,
 } from "@/lib/admin-orders-derived";
+import {
+  useMenuData,
+  resolveItemOptions,
+  type MenuItem,
+  type OptionGroup,
+} from "@/lib/menu";
+import { useDeliveryPricing } from "@/lib/use-delivery-pricing";
 
 import type { Json } from "@/integrations/supabase/types";
 import { StatusPill, STATUS_TONE_CLASS } from "./ui/status-pill";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Bell } from "lucide-react";
 
 // ============ Snapshot helpers ============
 function snapField(snap: Json | null, key: string): string | null {
@@ -282,6 +295,8 @@ const AUDIT_ICON: Record<string, React.ComponentType<{ className?: string }>> = 
   order_edited: Pencil,
   item_qty_changed: ShoppingBag,
   item_removed: Trash2,
+  item_added: Plus,
+  item_edited: Pencil,
 };
 
 function AuditDiff({ entry }: { entry: AdminOrderAuditEntry }) {
@@ -564,11 +579,13 @@ function ItemsList({
   editable,
   onChangeQty,
   pendingItemId,
+  onModify,
 }: {
   detail: AdminOrderDetail;
   editable: boolean;
   onChangeQty?: (itemId: string, qty: number) => void;
   pendingItemId?: string | null;
+  onModify?: (item: AdminOrderItem) => void;
 }) {
   return (
     <ul className="divide-y divide-border/60">
@@ -633,9 +650,21 @@ function ItemsList({
                     size="icon"
                     variant="ghost"
                     disabled={isPending}
+                    onClick={() => onModify?.(it)}
+                    className="ml-auto h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                    aria-label={`Modify ${it.name}`}
+                    title="Modify options"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={isPending}
                     onClick={() => onChangeQty(it.id, 0)}
-                    className="ml-auto h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
-                    aria-label="Remove item"
+                    className="h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove ${it.name}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -735,7 +764,391 @@ function DetailSkeleton() {
   );
 }
 
-// ============ Drawer ============
+/* ============================================================
+ * ItemComposer — inline picker for adding/modifying a line.
+ * Reuses `useMenuData()` so no menu data is duplicated.
+ * ============================================================ */
+
+type ComposerResult = {
+  product_id: string;
+  qty: number;
+  unit_price_pkr: number;
+  options: {
+    size?: string;
+    customizations?: Array<{ id: string; label: string; price: number }>;
+    upgrades?: Array<{ id: string; label: string; price: number }>;
+    notes?: string;
+  };
+};
+
+type ComposerInitial = {
+  itemId: string;
+  qty: number;
+  size?: string; // size label
+  choiceIds: string[]; // customization+upgrade ids
+  notes: string;
+};
+
+function initialFromOrderItem(it: AdminOrderItem): ComposerInitial {
+  const opts = itemOpts(it.options);
+  const ids = [
+    ...(opts.customizations ?? []).map((c) => c.id),
+    ...(opts.upgrades ?? []).map((u) => u.id),
+  ];
+  return {
+    itemId: it.product_id,
+    qty: it.qty,
+    size: opts.size,
+    choiceIds: ids,
+    notes: opts.notes ?? "",
+  };
+}
+
+function ItemComposer({
+  mode,
+  open,
+  onOpenChange,
+  initial,
+  saving,
+  onSubmit,
+}: {
+  mode: "add" | "edit";
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial?: ComposerInitial | null;
+  saving: boolean;
+  onSubmit: (r: ComposerResult) => void;
+}) {
+  const menu = useMenuData();
+  const [query, setQuery] = React.useState("");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [sizeId, setSizeId] = React.useState<string | null>(null);
+  const [choiceIds, setChoiceIds] = React.useState<Set<string>>(new Set());
+  const [qty, setQty] = React.useState(1);
+  const [notes, setNotes] = React.useState("");
+
+  // Reset when dialog opens
+  React.useEffect(() => {
+    if (!open) return;
+    if (mode === "edit" && initial) {
+      setSelectedId(initial.itemId);
+      setQty(initial.qty);
+      setNotes(initial.notes);
+      setChoiceIds(new Set(initial.choiceIds));
+      // resolve sizeId from label
+      const it = menu.byId.get(initial.itemId);
+      const sid = it?.sizes?.find((s) => s.label === initial.size)?.id ?? null;
+      setSizeId(sid);
+    } else {
+      setSelectedId(null);
+      setQty(1);
+      setNotes("");
+      setChoiceIds(new Set());
+      setSizeId(null);
+      setQuery("");
+    }
+  }, [open, mode, initial, menu.byId]);
+
+  const selected: MenuItem | null = selectedId ? menu.byId.get(selectedId) ?? null : null;
+  const inactive = selected ? !selected.isAvailable : false;
+
+  const groups: OptionGroup[] = React.useMemo(
+    () => (selected ? resolveItemOptions(selected, menu.categoryOptions) : []),
+    [selected, menu.categoryOptions],
+  );
+
+  // Reset stale sub-state when switching item
+  React.useEffect(() => {
+    if (mode !== "add") return;
+    setSizeId(null);
+    setChoiceIds(new Set());
+  }, [selectedId, mode]);
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const src = menu.items.filter((i) => i.isAvailable);
+    if (!q) return src.slice(0, 60);
+    return src
+      .filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          (i.shortDescription ?? "").toLowerCase().includes(q),
+      )
+      .slice(0, 60);
+  }, [menu.items, query]);
+
+  // Compute unit price live
+  const chosenSize = selected?.sizes?.find((s) => s.id === sizeId) ?? null;
+  const basePrice = chosenSize ? chosenSize.price : selected?.price ?? 0;
+  const chosenChoices: Array<{ id: string; label: string; price: number; groupId: string }> = [];
+  for (const g of groups) {
+    if (g.id === "size") continue;
+    for (const c of g.choices) {
+      if (choiceIds.has(c.id)) {
+        chosenChoices.push({ id: c.id, label: c.label, price: c.priceDelta, groupId: g.id });
+      }
+    }
+  }
+  const addOnsTotal = chosenChoices.reduce((s, c) => s + c.price, 0);
+  const unitPrice = basePrice + addOnsTotal;
+
+  // Validation
+  const requiredMissing = groups.some((g) => {
+    if (!g.required) return false;
+    if (g.id === "size") return sizeId === null && (selected?.sizes?.length ?? 0) > 0;
+    return !g.choices.some((c) => choiceIds.has(c.id));
+  });
+
+  const toggleChoice = (g: OptionGroup, id: string) => {
+    setChoiceIds((prev) => {
+      const next = new Set(prev);
+      if (g.type === "single") {
+        // remove other choices of same group
+        for (const c of g.choices) next.delete(c.id);
+        next.add(id);
+      } else {
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const canSave = !!selected && !inactive && qty > 0 && !requiredMissing && !saving;
+
+  const handleSubmit = () => {
+    if (!selected || !canSave) return;
+    onSubmit({
+      product_id: selected.id,
+      qty,
+      unit_price_pkr: Math.max(0, Math.round(unitPrice)),
+      options: {
+        size: chosenSize?.label,
+        customizations: chosenChoices.map((c) => ({ id: c.id, label: c.label, price: c.price })),
+        notes: notes.trim() || undefined,
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-2xl p-0 sm:w-full">
+        <DialogHeader className="border-b border-border/70 px-5 py-4">
+          <DialogTitle className="text-base font-black">
+            {mode === "add" ? "Add item to order" : `Modify · ${selected?.name ?? ""}`}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid max-h-[70vh] gap-0 overflow-hidden sm:grid-cols-[1fr_1.1fr]">
+          {/* Left: item picker (add mode only) */}
+          {mode === "add" && (
+            <div className="flex min-h-0 flex-col border-r border-border/70 bg-muted/20">
+              <div className="p-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search menu…"
+                    className="h-9 pl-8"
+                    aria-label="Search menu items"
+                  />
+                </div>
+              </div>
+              <ScrollArea className="min-h-0 flex-1 px-2 pb-2">
+                <ul className="space-y-1">
+                  {filtered.map((mi) => {
+                    const active = mi.id === selectedId;
+                    return (
+                      <li key={mi.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(mi.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition",
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-transparent hover:border-border hover:bg-background",
+                          )}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-semibold">{mi.name}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {formatPKR(mi.price)}
+                            </div>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <li className="px-2 py-6 text-center text-xs text-muted-foreground">
+                      No matching items.
+                    </li>
+                  )}
+                </ul>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Right: options + qty */}
+          <ScrollArea className="min-h-0 max-h-[70vh]">
+            <div className="space-y-4 p-4">
+              {!selected ? (
+                <div className="rounded-lg border border-dashed border-border/60 px-3 py-6 text-center text-sm text-muted-foreground">
+                  Choose a menu item on the left to configure options.
+                </div>
+              ) : (
+                <>
+                  {inactive && (
+                    <div
+                      role="alert"
+                      className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+                    >
+                      This item is currently unavailable and cannot be added.
+                    </div>
+                  )}
+                  {groups.map((g) => (
+                    <fieldset key={g.id} className="grid gap-2">
+                      <legend className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {g.label}
+                        {g.required && <span className="ml-1 text-destructive">*</span>}
+                      </legend>
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {g.id === "size" && selected.sizes
+                          ? selected.sizes.map((s) => {
+                              const active = s.id === sizeId;
+                              return (
+                                <button
+                                  key={s.id}
+                                  type="button"
+                                  onClick={() => setSizeId(s.id)}
+                                  className={cn(
+                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
+                                    active
+                                      ? "border-primary bg-primary/10 font-semibold"
+                                      : "border-border hover:border-primary/40",
+                                  )}
+                                  aria-pressed={active}
+                                >
+                                  <span>{s.label}</span>
+                                  <span className="tabular-nums text-muted-foreground">
+                                    {formatPKR(s.price)}
+                                  </span>
+                                </button>
+                              );
+                            })
+                          : g.choices.map((c) => {
+                              const active = choiceIds.has(c.id);
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => toggleChoice(g, c.id)}
+                                  className={cn(
+                                    "flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition",
+                                    active
+                                      ? "border-primary bg-primary/10 font-semibold"
+                                      : "border-border hover:border-primary/40",
+                                  )}
+                                  aria-pressed={active}
+                                >
+                                  <span>{c.label}</span>
+                                  {c.priceDelta !== 0 && (
+                                    <span className="tabular-nums text-muted-foreground">
+                                      {c.priceDelta > 0 ? "+" : "−"}
+                                      {formatPKR(Math.abs(c.priceDelta))}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                      </div>
+                    </fieldset>
+                  ))}
+
+                  <FieldRow label="Notes / special instructions">
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      placeholder="No onions, extra sauce…"
+                    />
+                  </FieldRow>
+
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/40 p-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 rounded-md"
+                        onClick={() => setQty((q) => Math.max(1, q - 1))}
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </Button>
+                      <div className="min-w-[2rem] text-center text-sm font-bold tabular-nums">
+                        {qty}
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 rounded-md"
+                        onClick={() => setQty((q) => q + 1)}
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                        Line total
+                      </div>
+                      <div className="font-display text-lg font-black tabular-nums">
+                        {formatPKR(unitPrice * qty)}
+                      </div>
+                    </div>
+                  </div>
+                  {requiredMissing && (
+                    <div
+                      role="alert"
+                      aria-live="polite"
+                      className="text-xs text-destructive"
+                    >
+                      Please pick every required option.
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+
+        <DialogFooter className="border-t border-border/70 px-5 py-3">
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="rounded-lg"
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSave}
+            className="rounded-lg"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {mode === "add" ? "Add to order" : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export function OrderDetailsDrawer({
   orderId,
   open,
@@ -750,9 +1163,12 @@ export function OrderDetailsDrawer({
   const updateStatus = useServerFn(adminUpdateOrderStatus);
   const updateOrder = useServerFn(adminUpdateOrder);
   const updateItemQty = useServerFn(adminUpdateOrderItemQty);
+  const addItem = useServerFn(adminAddOrderItem);
+  const updateItemOptions = useServerFn(adminUpdateOrderItemOptions);
   const getAudit = useServerFn(adminOrderAuditLog);
   const cancelOrder = useServerFn(adminCancelOrder);
   const listBranches = useServerFn(adminBranchesForOrders);
+  const pricingQ = useDeliveryPricing();
 
   const [confirmCancel, setConfirmCancel] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState<OrderCancelReason>("customer_cancelled");
@@ -763,6 +1179,16 @@ export function OrderDetailsDrawer({
   const [pendingItemId, setPendingItemId] = React.useState<string | null>(null);
   const [internalNote, setInternalNote] = React.useState("");
   const [noteDirty, setNoteDirty] = React.useState(false);
+  const [composer, setComposer] = React.useState<
+    { mode: "add" } | { mode: "edit"; item: AdminOrderItem } | null
+  >(null);
+  const drawerOpenedAtRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (open && orderId && drawerOpenedAtRef.current === null) {
+      drawerOpenedAtRef.current = new Date().toISOString();
+    }
+    if (!open) drawerOpenedAtRef.current = null;
+  }, [open, orderId]);
 
   const orderQ = useQuery({
     queryKey: ["admin", "order", orderId],
@@ -912,7 +1338,38 @@ export function OrderDetailsDrawer({
     onError: (err: Error) => toast.error("Failed to update item", { description: err.message }),
   });
 
+  const addItemMut = useMutation({
+    mutationFn: (r: ComposerResult) =>
+      addItem({ data: { order_id: orderId!, ...r } }),
+    onSuccess: () => {
+      toast.success("Item added");
+      setComposer(null);
+      invalidate();
+    },
+    onError: (err: Error) => toast.error("Failed to add item", { description: err.message }),
+  });
+
+  const editItemMut = useMutation({
+    mutationFn: (input: { itemId: string; r: ComposerResult }) =>
+      updateItemOptions({
+        data: {
+          order_id: orderId!,
+          item_id: input.itemId,
+          qty: input.r.qty,
+          unit_price_pkr: input.r.unit_price_pkr,
+          options: input.r.options,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Item updated");
+      setComposer(null);
+      invalidate();
+    },
+    onError: (err: Error) => toast.error("Failed to update item", { description: err.message }),
+  });
+
   const upcoming = detail ? nextStatus(detail.status) : null;
+
 
   const diff = React.useMemo(() => {
     if (!detail || !form) return [];
@@ -1067,7 +1524,54 @@ export function OrderDetailsDrawer({
 
             {/* ============ Body ============ */}
             <div className="flex-1 space-y-4 overflow-y-auto bg-muted/20 px-3 py-4 sm:px-5 sm:py-5">
+              {/* Order at a glance — live summary */}
+              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/70 bg-card p-3 text-xs sm:grid-cols-4">
+                {(() => {
+                  const eta =
+                    effectiveMethod === "pickup"
+                      ? pricingQ.data?.etaPickupMinutes
+                      : pricingQ.data?.etaDeliveryMinutes;
+                  const tiles: Array<{ label: string; value: React.ReactNode }> = [
+                    {
+                      label: "Fulfillment",
+                      value: (
+                        <span className="capitalize">
+                          {effectiveMethod.replace(/_/g, " ")}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: "Branch",
+                      value: (editing && form ? branches.find((b) => b.id === form.branch_id)?.name : branchName) ?? "—",
+                    },
+                    {
+                      label: "ETA",
+                      value: eta != null ? `${eta} min` : "—",
+                    },
+                    {
+                      label: "Grand total",
+                      value: (
+                        <span className="font-black tabular-nums">
+                          {formatPKR(detail.total_pkr)}
+                        </span>
+                      ),
+                    },
+                  ];
+                  return tiles.map((t) => (
+                    <div key={t.label} className="min-w-0">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t.label}
+                      </div>
+                      <div className="mt-0.5 truncate text-sm font-semibold text-foreground">
+                        {t.value}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
               {/* Kitchen ops — big touch targets */}
+
               {detail.status !== "cancelled" && (
                 <Section icon={ChefHat} title="Kitchen operations">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1376,9 +1880,16 @@ export function OrderDetailsDrawer({
                 title={`Items · ${detail.items.length}`}
                 action={
                   editing && (
-                    <span className="text-[10.5px] font-medium text-muted-foreground">
-                      Tap qty to adjust
-                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 rounded-md"
+                      onClick={() => setComposer({ mode: "add" })}
+                      aria-label="Add item to order"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add item
+                    </Button>
                   )
                 }
               >
@@ -1387,8 +1898,10 @@ export function OrderDetailsDrawer({
                   editable={editing}
                   pendingItemId={pendingItemId}
                   onChangeQty={(itemId, qty) => itemMut.mutate({ itemId, qty })}
+                  onModify={(it) => setComposer({ mode: "edit", item: it })}
                 />
               </Section>
+
 
               {/* Payment */}
               <Section icon={Receipt} title="Payment summary">
@@ -1566,6 +2079,44 @@ export function OrderDetailsDrawer({
                 </div>
               </Section>
 
+              {/* Notification preview (session-level changes) */}
+              {(() => {
+                const since = drawerOpenedAtRef.current;
+                if (!since) return null;
+                const recent = audit.filter((a) => a.created_at > since);
+                if (recent.length === 0) return null;
+                const bullets: string[] = [];
+                for (const a of recent) {
+                  if (a.action === "status_changed") bullets.push(`Status: ${a.summary ?? "changed"}`);
+                  else if (a.action === "order_cancelled") bullets.push("Order cancelled");
+                  else if (a.action === "item_added") bullets.push(a.summary ?? "Item added");
+                  else if (a.action === "item_removed") bullets.push(a.summary ?? "Item removed");
+                  else if (a.action === "item_qty_changed") bullets.push(a.summary ?? "Quantity changed");
+                  else if (a.action === "item_edited") bullets.push(a.summary ?? "Item modified");
+                  else if (a.action === "order_edited") bullets.push(a.summary ?? "Order edited");
+                }
+                const unique = Array.from(new Set(bullets));
+                return (
+                  <Section icon={Bell} title="Customer notification preview">
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm"
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                        Preview only — no notification sent
+                      </div>
+                      <div className="font-semibold">Your order has been updated</div>
+                      <ul className="ml-4 list-disc space-y-0.5 text-xs text-muted-foreground">
+                        {unique.map((b, i) => (
+                          <li key={i}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </Section>
+                );
+              })()}
+
               {/* Audit history */}
               <Section
                 icon={History}
@@ -1578,6 +2129,7 @@ export function OrderDetailsDrawer({
               >
                 <AuditHistory audit={audit} />
               </Section>
+
             </div>
 
             {/* ============ Sticky footer ============ */}
@@ -1808,6 +2360,23 @@ export function OrderDetailsDrawer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ItemComposer
+        mode={composer?.mode ?? "add"}
+        open={!!composer}
+        onOpenChange={(v) => {
+          if (!v) setComposer(null);
+        }}
+        initial={composer?.mode === "edit" ? initialFromOrderItem(composer.item) : null}
+        saving={addItemMut.isPending || editItemMut.isPending}
+        onSubmit={(r) => {
+          if (composer?.mode === "edit") {
+            editItemMut.mutate({ itemId: composer.item.id, r });
+          } else {
+            addItemMut.mutate(r);
+          }
+        }}
+      />
     </Sheet>
   );
 }
