@@ -74,6 +74,7 @@ import {
 } from "@/components/admin/ui/date-range";
 import { ChartCard } from "@/components/admin/ui/chart-card";
 import { PageHeader } from "@/components/admin/ui/page-header";
+import { ExecutiveBI } from "@/components/admin/dashboard/ExecutiveBI";
 
 // -----------------------------------------------------------------------------
 // Primitives
@@ -1746,6 +1747,9 @@ function DashboardInner() {
       />
 
       <LiveKpiGrid />
+
+      <ExecutiveBI />
+
 
       <PromoKpiGrid />
 

@@ -110,12 +110,13 @@ export const adminReports = createServerFn({ method: "POST" })
       new Set(items.map((i) => i.product_id).filter((x): x is string => !!x)),
     );
     let productMap = new Map<string, { name: string; category_id: string | null }>();
-    if (productIds.length) {
-      const { data: menu } = await supabaseAdmin
-        .from("menu_items")
-        .select("id,name,category_id")
-        .in("id", productIds);
-      for (const m of menu ?? []) productMap.set(m.id, { name: m.name, category_id: m.category_id });
+    // Fetch all active menu items so we can compute "never ordered" in the current range.
+    const { data: allMenu } = await supabaseAdmin
+      .from("menu_items")
+      .select("id,name,category_id,is_available,is_hidden")
+      .limit(2000);
+    for (const m of allMenu ?? []) {
+      productMap.set(m.id, { name: m.name, category_id: m.category_id });
     }
     const { data: categories } = await supabaseAdmin
       .from("menu_categories")
@@ -278,6 +279,31 @@ export const adminReports = createServerFn({ method: "POST" })
     const topRevenueProducts = [...productArr].sort((a, b) => b.revenue - a.revenue).slice(0, 10);
     const lowRevenueProducts = [...productArr].sort((a, b) => a.revenue - b.revenue).slice(0, 5);
 
+    // Items never ordered in this range (from the active menu)
+    const seenProductIds = new Set(productArr.map((_p, _i) => "").filter(Boolean));
+    for (const it of filteredItems) if (it.product_id) seenProductIds.add(it.product_id);
+    const neverOrdered = (allMenu ?? [])
+      .filter((m) => !seenProductIds.has(m.id))
+      .slice(0, 20)
+      .map((m) => ({ id: m.id, name: m.name }));
+
+    // Most cancelled items — items from orders whose status is 'cancelled' in range
+    const cancelledOrderIds = new Set(
+      orderList.filter((o) => o.status === TERMINAL_CANCELLED).map((o) => o.id),
+    );
+    const cancelledAgg = new Map<string, { name: string; qty: number }>();
+    for (const it of items) {
+      if (!cancelledOrderIds.has(it.order_id)) continue;
+      const id = it.product_id ?? it.name ?? "unknown";
+      const p = productMap.get(it.product_id ?? "");
+      const cur = cancelledAgg.get(id) ?? { name: it.name ?? p?.name ?? id, qty: 0 };
+      cur.qty += it.qty ?? 0;
+      cancelledAgg.set(id, cur);
+    }
+    const mostCancelledProducts = [...cancelledAgg.values()]
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 10);
+
     // Category breakdown
     const categoryAgg = new Map<string, { name: string; qty: number; revenue: number }>();
     for (const p of productArr) {
@@ -409,6 +435,8 @@ export const adminReports = createServerFn({ method: "POST" })
     // Peak hours + best day heatmap
     const hourAgg = new Array(24).fill(0);
     const dowAgg = new Array(7).fill(0);
+    const hourRevenue = new Array(24).fill(0);
+    const dowRevenue = new Array(7).fill(0);
     const heatmap: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
     for (const o of orderList) {
       const d = new Date(o.created_at);
@@ -416,23 +444,31 @@ export const adminReports = createServerFn({ method: "POST" })
       const w = bucketByDow(d);
       hourAgg[h] += 1;
       dowAgg[w] += 1;
+      hourRevenue[h] += o.total_pkr ?? 0;
+      dowRevenue[w] += o.total_pkr ?? 0;
       heatmap[w][h] += 1;
     }
     const bestHour = hourAgg.indexOf(Math.max(...hourAgg));
     const bestDayIdx = dowAgg.indexOf(Math.max(...dowAgg));
+    const bestRevenueHour = hourRevenue.indexOf(Math.max(...hourRevenue));
     const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     // Branch analytics
-    const branchMap = new Map<string, { revenue: number; orders: number }>();
+    const branchMap = new Map<
+      string,
+      { revenue: number; orders: number; delivery: number; pickup: number }
+    >();
     for (const o of orderList) {
       const k = o.branch_id ?? "unassigned";
-      const cur = branchMap.get(k) ?? { revenue: 0, orders: 0 };
+      const cur = branchMap.get(k) ?? { revenue: 0, orders: 0, delivery: 0, pickup: 0 };
       cur.revenue += o.total_pkr ?? 0;
       cur.orders += 1;
+      if ((o.fulfillment_method ?? "").toLowerCase() === "pickup") cur.pickup += 1;
+      else cur.delivery += 1;
       branchMap.set(k, cur);
     }
     const branchStats = (branches ?? []).map((b) => {
-      const s = branchMap.get(b.id) ?? { revenue: 0, orders: 0 };
+      const s = branchMap.get(b.id) ?? { revenue: 0, orders: 0, delivery: 0, pickup: 0 };
       return {
         id: b.id,
         name: b.name,
@@ -441,6 +477,9 @@ export const adminReports = createServerFn({ method: "POST" })
         orders: s.orders,
         avg_delivery_min: b.estimated_delivery_minutes ?? 0,
         is_active: b.is_active,
+        aov: s.orders ? Math.round(s.revenue / s.orders) : 0,
+        deliveryPct: s.orders ? (s.delivery / s.orders) * 100 : 0,
+        pickupPct: s.orders ? (s.pickup / s.orders) * 100 : 0,
       };
     });
     const unassigned = branchMap.get("unassigned");
@@ -453,6 +492,9 @@ export const adminReports = createServerFn({ method: "POST" })
         orders: unassigned.orders,
         avg_delivery_min: 0,
         is_active: true,
+        aov: Math.round(unassigned.revenue / unassigned.orders),
+        deliveryPct: (unassigned.delivery / unassigned.orders) * 100,
+        pickupPct: (unassigned.pickup / unassigned.orders) * 100,
       });
     }
     branchStats.sort((a, b) => b.revenue - a.revenue);
@@ -504,6 +546,8 @@ export const adminReports = createServerFn({ method: "POST" })
         categories: categoryBreakdown,
         sizes: topSizes,
         addons: topAddons,
+        neverOrdered,
+        mostCancelled: mostCancelledProducts,
       },
       customers: {
         unique: uniqueCustomers,
@@ -531,9 +575,10 @@ export const adminReports = createServerFn({ method: "POST" })
         total: banners?.length ?? 0,
       },
       peak: {
-        hourly: hourAgg.map((count, hour) => ({ hour, count })),
-        dow: dowAgg.map((count, day) => ({ day: DAY_NAMES[day], count })),
+        hourly: hourAgg.map((count, hour) => ({ hour, count, revenue: hourRevenue[hour] })),
+        dow: dowAgg.map((count, day) => ({ day: DAY_NAMES[day], count, revenue: dowRevenue[day] })),
         bestHour,
+        bestRevenueHour,
         bestDay: DAY_NAMES[bestDayIdx],
         heatmap,
       },
