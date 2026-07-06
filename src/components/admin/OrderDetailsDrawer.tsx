@@ -2313,6 +2313,23 @@ export function OrderDetailsDrawer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ItemComposer
+        mode={composer?.mode ?? "add"}
+        open={!!composer}
+        onOpenChange={(v) => {
+          if (!v) setComposer(null);
+        }}
+        initial={composer?.mode === "edit" ? initialFromOrderItem(composer.item) : null}
+        saving={addItemMut.isPending || editItemMut.isPending}
+        onSubmit={(r) => {
+          if (composer?.mode === "edit") {
+            editItemMut.mutate({ itemId: composer.item.id, r });
+          } else {
+            addItemMut.mutate(r);
+          }
+        }}
+      />
     </Sheet>
   );
 }
