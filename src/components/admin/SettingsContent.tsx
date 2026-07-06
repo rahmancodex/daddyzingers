@@ -756,14 +756,37 @@ function DeliverySection({ initial }: { initial: Settings }) {
     <>
       <SectionCard
         title="Delivery Settings"
-        description="Default delivery configuration across all branches. Branch-level values override these."
+        description="Global delivery configuration. Per-branch delivery charges override the default fee below."
         icon={Truck}
       >
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Enable Delivery</div>
+              <div className="text-xs text-muted-foreground">Customers can choose delivery at checkout.</div>
+            </div>
+            <Switch
+              checked={b(form.delivery_enabled, true)}
+              onCheckedChange={(v) => setField("delivery_enabled", v)}
+            />
+          </label>
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background px-4 py-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Enable Pickup</div>
+              <div className="text-xs text-muted-foreground">Customers can choose pickup at checkout.</div>
+            </div>
+            <Switch
+              checked={b(form.pickup_enabled, true)}
+              onCheckedChange={(v) => setField("pickup_enabled", v)}
+            />
+          </label>
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label={`Default Delivery Fee (${currency})`}>
+          <Field label={`Default Delivery Charge (${currency})`} hint="Used when a branch has no delivery_charges of its own.">
             <Input
               type="number"
-              step="0.01"
+              step="1"
               min={0}
               inputMode="decimal"
               value={n(form.default_fee)}
@@ -777,13 +800,35 @@ function DeliverySection({ initial }: { initial: Settings }) {
           >
             <Input
               type="number"
-              step="0.01"
+              step="1"
               min={0}
               inputMode="decimal"
               value={n(form.free_delivery_threshold)}
               onChange={(e) =>
                 setField("free_delivery_threshold", parseFloat(e.target.value) || 0)
               }
+              className="h-10 tabular-nums"
+            />
+          </Field>
+          <Field label={`Minimum Order Amount (${currency})`} hint="Set 0 to disable.">
+            <Input
+              type="number"
+              step="1"
+              min={0}
+              inputMode="decimal"
+              value={n(form.min_order)}
+              onChange={(e) => setField("min_order", parseFloat(e.target.value) || 0)}
+              className="h-10 tabular-nums"
+            />
+          </Field>
+          <Field label="Maximum Delivery Radius (km)">
+            <Input
+              type="number"
+              step="0.1"
+              min={0}
+              inputMode="decimal"
+              value={n(form.max_radius_km, 10)}
+              onChange={(e) => setField("max_radius_km", parseFloat(e.target.value) || 0)}
               className="h-10 tabular-nums"
             />
           </Field>
@@ -799,14 +844,15 @@ function DeliverySection({ initial }: { initial: Settings }) {
               className="h-10 tabular-nums"
             />
           </Field>
-          <Field label="Maximum Delivery Radius (km)">
+          <Field label="Estimated Pickup Time (minutes)">
             <Input
               type="number"
-              step="0.1"
               min={0}
-              inputMode="decimal"
-              value={n(form.max_radius_km, 10)}
-              onChange={(e) => setField("max_radius_km", parseFloat(e.target.value) || 0)}
+              inputMode="numeric"
+              value={n(form.estimated_pickup_minutes, 15)}
+              onChange={(e) =>
+                setField("estimated_pickup_minutes", parseInt(e.target.value) || 0)
+              }
               className="h-10 tabular-nums"
             />
           </Field>
@@ -817,6 +863,7 @@ function DeliverySection({ initial }: { initial: Settings }) {
     </>
   );
 }
+
 
 // -----------------------------
 // Tax
