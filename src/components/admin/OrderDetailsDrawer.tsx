@@ -650,9 +650,21 @@ function ItemsList({
                     size="icon"
                     variant="ghost"
                     disabled={isPending}
+                    onClick={() => onModify?.(it)}
+                    className="ml-auto h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+                    aria-label={`Modify ${it.name}`}
+                    title="Modify options"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    disabled={isPending}
                     onClick={() => onChangeQty(it.id, 0)}
-                    className="ml-auto h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
-                    aria-label="Remove item"
+                    className="h-7 w-7 rounded-md text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove ${it.name}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
