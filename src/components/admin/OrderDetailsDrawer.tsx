@@ -1591,20 +1591,38 @@ export function OrderDetailsDrawer({
                       setForm(null);
                     }}
                     className="rounded-lg"
+                    aria-label="Discard changes"
                   >
                     Discard
                   </Button>
                   <div className="flex-1" />
                   <div className="hidden text-xs text-muted-foreground sm:block">
-                    {diff.length === 0
-                      ? "No changes yet"
-                      : `${diff.length} change${diff.length === 1 ? "" : "s"}`}
+                    {(() => {
+                      if (!form) return null;
+                      if (form.fulfillment_method === "delivery") {
+                        if (!form.branch_id) return <span className="text-destructive">Branch required</span>;
+                        if (!form.address_line.trim() || !form.address_city.trim())
+                          return <span className="text-destructive">Address required</span>;
+                      }
+                      return diff.length === 0
+                        ? "No changes yet"
+                        : `${diff.length} change${diff.length === 1 ? "" : "s"}`;
+                    })()}
                   </div>
                   <Button
-                    disabled={diff.length === 0 || saveMut.isPending}
+                    disabled={
+                      diff.length === 0 ||
+                      saveMut.isPending ||
+                      (form?.fulfillment_method === "delivery" &&
+                        (!form.branch_id ||
+                          !form.address_line.trim() ||
+                          !form.address_city.trim()))
+                    }
                     onClick={() => setConfirmSave(true)}
                     className="rounded-lg"
+                    aria-label="Review and save changes"
                   >
+                    <Save className="h-4 w-4" />
                     Review &amp; save
                   </Button>
                 </>
