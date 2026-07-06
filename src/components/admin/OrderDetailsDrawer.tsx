@@ -370,6 +370,8 @@ type EditableFields = {
   special_instructions: string;
   delivery_fee_pkr: number;
   coupon_code: string;
+  fulfillment_method: "delivery" | "pickup" | "dinein";
+  schedule_at: string; // "" = ASAP; otherwise ISO string
 };
 
 function fromDetail(d: AdminOrderDetail): EditableFields {
@@ -386,6 +388,8 @@ function fromDetail(d: AdminOrderDetail): EditableFields {
     special_instructions: d.special_instructions ?? "",
     delivery_fee_pkr: d.delivery_fee_pkr ?? 0,
     coupon_code: d.coupon_code ?? "",
+    fulfillment_method: (d.fulfillment_method as EditableFields["fulfillment_method"]) ?? "delivery",
+    schedule_at: d.schedule_at ?? "",
   };
 }
 
@@ -402,6 +406,8 @@ const FIELD_LABEL: Record<keyof EditableFields, string> = {
   special_instructions: "Kitchen notes",
   delivery_fee_pkr: "Delivery fee",
   coupon_code: "Coupon code",
+  fulfillment_method: "Fulfillment method",
+  schedule_at: "Scheduled time",
 };
 
 function diffFields(a: EditableFields, b: EditableFields) {
