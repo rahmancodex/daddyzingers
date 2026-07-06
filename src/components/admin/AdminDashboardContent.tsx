@@ -1748,6 +1748,9 @@ function DashboardInner() {
 
       <LiveKpiGrid />
 
+      <ExecutiveBI />
+
+
       <PromoKpiGrid />
 
       <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
