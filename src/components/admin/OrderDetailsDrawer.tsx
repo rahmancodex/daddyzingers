@@ -1819,9 +1819,16 @@ export function OrderDetailsDrawer({
                 title={`Items · ${detail.items.length}`}
                 action={
                   editing && (
-                    <span className="text-[10.5px] font-medium text-muted-foreground">
-                      Tap qty to adjust
-                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 rounded-md"
+                      onClick={() => setComposer({ mode: "add" })}
+                      aria-label="Add item to order"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add item
+                    </Button>
                   )
                 }
               >
@@ -1830,8 +1837,10 @@ export function OrderDetailsDrawer({
                   editable={editing}
                   pendingItemId={pendingItemId}
                   onChangeQty={(itemId, qty) => itemMut.mutate({ itemId, qty })}
+                  onModify={(it) => setComposer({ mode: "edit", item: it })}
                 />
               </Section>
+
 
               {/* Payment */}
               <Section icon={Receipt} title="Payment summary">
