@@ -1354,6 +1354,9 @@ export function OrderDetailsDrawer({
     onError: (err: Error) => toast.error("Failed to update item", { description: err.message }),
   });
 
+  const upcoming = detail ? nextStatus(detail.status) : null;
+
+
   const diff = React.useMemo(() => {
     if (!detail || !form) return [];
     return diffFields(fromDetail(detail), form);
