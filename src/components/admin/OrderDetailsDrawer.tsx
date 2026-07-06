@@ -1079,7 +1079,7 @@ export function OrderDetailsDrawer({
                         { s: "delivered" as AdminOrderStatus, label: isPickup ? "Picked up" : "Delivered", icon: CheckCircle2, forMethods: ["delivery", "pickup", "dinein"] },
                       ] as const
                     )
-                      .filter((b) => b.forMethods.includes(effectiveMethod))
+                      .filter((b) => (b.forMethods as readonly string[]).includes(effectiveMethod))
                       .map((b) => {
                         const Icon = b.icon;
                         const active = detail.status === b.s;
