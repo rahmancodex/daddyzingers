@@ -924,7 +924,14 @@ export function OrderDetailsDrawer({
     return toPatch(fromDetail(detail), form);
   }, [detail, form]);
 
-  const isDelivery = detail?.fulfillment_method === "delivery";
+  // Effective method reflects the in-progress edit while editing, otherwise the saved value.
+  const effectiveMethod = (editing && form ? form.fulfillment_method : detail?.fulfillment_method) ?? "delivery";
+  const isDelivery = effectiveMethod === "delivery";
+  const isPickup = effectiveMethod === "pickup";
+  const pickupBranch =
+    isPickup && detail?.branch_id
+      ? branches.find((b) => b.id === (editing && form ? form.branch_id : detail.branch_id)) ?? null
+      : null;
   const lat = detail ? snapNumber(detail.address_snapshot, ["lat", "latitude"]) : null;
   const lng = detail ? snapNumber(detail.address_snapshot, ["lng", "longitude", "long"]) : null;
   const mapsHref =
