@@ -58,7 +58,10 @@ export const Route = createFileRoute("/")({
 function Home() {
   return (
     <div className="min-h-dvh bg-background text-foreground pb-20 md:pb-0">
-      {/* Ordering experience leads the homepage (includes header + promo carousel) */}
+      {/* Hero Slider — sourced entirely from Supabase CMS (Admin → Content → Hero Slider) */}
+      <HeroSlider />
+
+      {/* Ordering experience (header + promo carousel) */}
       <OrderingExperience />
 
       {/* Marketing sections below */}
