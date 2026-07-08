@@ -170,6 +170,354 @@ export type Database = {
         }
         Relationships: []
       }
+      cms_customer_reviews: {
+        Row: {
+          avatar_url: string | null
+          entry_id: string
+          quote: string
+          rating: number
+          reviewer_name: string
+          reviewer_role: string | null
+          source: string | null
+          verified: boolean
+        }
+        Insert: {
+          avatar_url?: string | null
+          entry_id: string
+          quote: string
+          rating?: number
+          reviewer_name: string
+          reviewer_role?: string | null
+          source?: string | null
+          verified?: boolean
+        }
+        Update: {
+          avatar_url?: string | null
+          entry_id?: string
+          quote?: string
+          rating?: number
+          reviewer_name?: string
+          reviewer_role?: string | null
+          source?: string | null
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_customer_reviews_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_customer_reviews_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          locale: string
+          meta: Json
+          module: Database["public"]["Enums"]["cms_module"]
+          publish_at: string | null
+          published_at: string | null
+          slug: string | null
+          sort_order: number
+          status: Database["public"]["Enums"]["cms_status"]
+          tags: string[]
+          title: string
+          unpublish_at: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          locale?: string
+          meta?: Json
+          module: Database["public"]["Enums"]["cms_module"]
+          publish_at?: string | null
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["cms_status"]
+          tags?: string[]
+          title?: string
+          unpublish_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          locale?: string
+          meta?: Json
+          module?: Database["public"]["Enums"]["cms_module"]
+          publish_at?: string | null
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["cms_status"]
+          tags?: string[]
+          title?: string
+          unpublish_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      cms_hero_slides: {
+        Row: {
+          cta_href: string | null
+          cta_label: string | null
+          entry_id: string
+          eyebrow: string | null
+          headline: string
+          image_url: string | null
+          mobile_image_url: string | null
+          overlay_opacity: number
+          secondary_cta_href: string | null
+          secondary_cta_label: string | null
+          subheadline: string | null
+          text_align: string
+          theme: string
+          video_url: string | null
+        }
+        Insert: {
+          cta_href?: string | null
+          cta_label?: string | null
+          entry_id: string
+          eyebrow?: string | null
+          headline?: string
+          image_url?: string | null
+          mobile_image_url?: string | null
+          overlay_opacity?: number
+          secondary_cta_href?: string | null
+          secondary_cta_label?: string | null
+          subheadline?: string | null
+          text_align?: string
+          theme?: string
+          video_url?: string | null
+        }
+        Update: {
+          cta_href?: string | null
+          cta_label?: string | null
+          entry_id?: string
+          eyebrow?: string | null
+          headline?: string
+          image_url?: string | null
+          mobile_image_url?: string | null
+          overlay_opacity?: number
+          secondary_cta_href?: string | null
+          secondary_cta_label?: string | null
+          subheadline?: string | null
+          text_align?: string
+          theme?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_hero_slides_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_hero_slides_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_homepage_sections: {
+        Row: {
+          entry_id: string
+          heading: string | null
+          layout_variant: string
+          props: Json
+          section_key: string
+          subheading: string | null
+        }
+        Insert: {
+          entry_id: string
+          heading?: string | null
+          layout_variant?: string
+          props?: Json
+          section_key: string
+          subheading?: string | null
+        }
+        Update: {
+          entry_id?: string
+          heading?: string | null
+          layout_variant?: string
+          props?: Json
+          section_key?: string
+          subheading?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_homepage_sections_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_homepage_sections_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_layout_configs: {
+        Row: {
+          blocks: Json
+          entry_id: string
+          target: string
+          theme_tokens: Json
+        }
+        Insert: {
+          blocks?: Json
+          entry_id: string
+          target: string
+          theme_tokens?: Json
+        }
+        Update: {
+          blocks?: Json
+          entry_id?: string
+          target?: string
+          theme_tokens?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_layout_configs_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_layout_configs_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_media_assets: {
+        Row: {
+          alt_text: string | null
+          bucket: string
+          entry_id: string
+          height: number | null
+          mime_type: string | null
+          origin_module: Database["public"]["Enums"]["cms_module"] | null
+          path: string
+          size_bytes: number | null
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          bucket: string
+          entry_id: string
+          height?: number | null
+          mime_type?: string | null
+          origin_module?: Database["public"]["Enums"]["cms_module"] | null
+          path: string
+          size_bytes?: number | null
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          bucket?: string
+          entry_id?: string
+          height?: number | null
+          mime_type?: string | null
+          origin_module?: Database["public"]["Enums"]["cms_module"] | null
+          path?: string
+          size_bytes?: number | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_media_assets_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_media_assets_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cms_video_testimonials: {
+        Row: {
+          duration_seconds: number | null
+          entry_id: string
+          headline: string | null
+          person_name: string
+          poster_url: string | null
+          provider: string
+          video_url: string
+        }
+        Insert: {
+          duration_seconds?: number | null
+          entry_id: string
+          headline?: string | null
+          person_name: string
+          poster_url?: string | null
+          provider?: string
+          video_url: string
+        }
+        Update: {
+          duration_seconds?: number | null
+          entry_id?: string
+          headline?: string | null
+          person_name?: string
+          poster_url?: string | null
+          provider?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cms_video_testimonials_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cms_video_testimonials_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "cms_entries_with_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupon_redemptions: {
         Row: {
           coupon_id: string
@@ -1247,9 +1595,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      cms_entries_with_status: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effective_status: Database["public"]["Enums"]["cms_status"] | null
+          id: string | null
+          is_active: boolean | null
+          locale: string | null
+          meta: Json | null
+          module: Database["public"]["Enums"]["cms_module"] | null
+          publish_at: string | null
+          published_at: string | null
+          slug: string | null
+          sort_order: number | null
+          status: Database["public"]["Enums"]["cms_status"] | null
+          tags: string[] | null
+          title: string | null
+          unpublish_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_status?: never
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          meta?: Json | null
+          module?: Database["public"]["Enums"]["cms_module"] | null
+          publish_at?: string | null
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: Database["public"]["Enums"]["cms_status"] | null
+          tags?: string[] | null
+          title?: string | null
+          unpublish_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_status?: never
+          id?: string | null
+          is_active?: boolean | null
+          locale?: string | null
+          meta?: Json | null
+          module?: Database["public"]["Enums"]["cms_module"] | null
+          publish_at?: string | null
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number | null
+          status?: Database["public"]["Enums"]["cms_status"] | null
+          tags?: string[] | null
+          title?: string | null
+          unpublish_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      cms_effective_status: {
+        Args: {
+          _is_active: boolean
+          _publish_at: string
+          _status: Database["public"]["Enums"]["cms_status"]
+          _unpublish_at: string
+        }
+        Returns: Database["public"]["Enums"]["cms_status"]
+      }
+      cms_promote_scheduled: { Args: never; Returns: number }
       current_user_top_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1281,6 +1701,17 @@ export type Database = {
         | "rider"
         | "support"
         | "customer"
+        | "cms_editor"
+      cms_module:
+        | "homepage"
+        | "hero_slide"
+        | "homepage_section"
+        | "customer_review"
+        | "video_testimonial"
+        | "layout_desktop"
+        | "layout_mobile"
+        | "media_asset"
+      cms_status: "draft" | "scheduled" | "published" | "inactive" | "archived"
       order_status:
         | "pending"
         | "confirmed"
@@ -1425,7 +1856,19 @@ export const Constants = {
         "rider",
         "support",
         "customer",
+        "cms_editor",
       ],
+      cms_module: [
+        "homepage",
+        "hero_slide",
+        "homepage_section",
+        "customer_review",
+        "video_testimonial",
+        "layout_desktop",
+        "layout_mobile",
+        "media_asset",
+      ],
+      cms_status: ["draft", "scheduled", "published", "inactive", "archived"],
       order_status: [
         "pending",
         "confirmed",

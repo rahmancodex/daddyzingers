@@ -8,6 +8,7 @@ export type AppRole =
   | "cashier"
   | "rider"
   | "support"
+  | "cms_editor"
   | "customer";
 
 export const STAFF_ROLES: AppRole[] = [
@@ -18,6 +19,7 @@ export const STAFF_ROLES: AppRole[] = [
   "cashier",
   "rider",
   "support",
+  "cms_editor",
 ];
 
 export const ROLE_ORDER: Record<AppRole, number> = {
@@ -28,7 +30,8 @@ export const ROLE_ORDER: Record<AppRole, number> = {
   kitchen: 5,
   rider: 6,
   support: 7,
-  customer: 8,
+  cms_editor: 8,
+  customer: 9,
 };
 
 export type Permission =
@@ -50,7 +53,10 @@ export type Permission =
   | "staff.manage"
   | "audit.view"
   | "deliveries.view"
-  | "production.manage";
+  | "production.manage"
+  | "cms.view"
+  | "cms.manage"
+  | "cms.publish";
 
 
 const FULL: Permission[] = [
@@ -73,6 +79,9 @@ const FULL: Permission[] = [
   "audit.view",
   "deliveries.view",
   "production.manage",
+  "cms.view",
+  "cms.manage",
+  "cms.publish",
 ];
 
 export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
@@ -94,6 +103,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   cashier: ["dashboard.view", "orders.view", "orders.update", "orders.refund"],
   rider: ["dashboard.view", "deliveries.view", "orders.view"],
   support: ["dashboard.view", "customers.view", "orders.view"],
+  cms_editor: ["dashboard.view", "cms.view", "cms.manage", "cms.publish"],
   customer: [],
 };
 
@@ -128,6 +138,7 @@ export const ROLE_LABEL: Record<AppRole, string> = {
   cashier: "Cashier",
   rider: "Rider",
   support: "Support",
+  cms_editor: "CMS Editor",
   customer: "Customer",
 };
 
@@ -139,6 +150,7 @@ export const ROLE_BADGE_CLASS: Record<AppRole, string> = {
   cashier: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
   rider: "bg-purple-500/15 text-purple-600 border-purple-500/30",
   support: "bg-cyan-500/15 text-cyan-600 border-cyan-500/30",
+  cms_editor: "bg-pink-500/15 text-pink-600 border-pink-500/30",
   customer: "bg-muted text-muted-foreground border-border",
 };
 
@@ -159,4 +171,14 @@ export const ROUTE_PERMISSION: Record<string, Permission> = {
   "/admin/audit-logs": "audit.view",
   "/admin/production": "production.manage",
   "/admin/launch": "production.manage",
+  "/admin/content": "cms.view",
+  "/admin/content/homepage": "cms.manage",
+  "/admin/content/hero-slider": "cms.manage",
+  "/admin/content/sections": "cms.manage",
+  "/admin/content/reviews": "cms.manage",
+  "/admin/content/video-testimonials": "cms.manage",
+  "/admin/content/layout/homepage": "cms.manage",
+  "/admin/content/layout/mobile": "cms.manage",
+  "/admin/content/layout/desktop": "cms.manage",
+  "/admin/content/media": "cms.manage",
 };
