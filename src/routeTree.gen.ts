@@ -38,7 +38,14 @@ import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminAuditLogsRouteImport } from './routes/admin.audit-logs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AdminContentIndexRouteImport } from './routes/admin.content.index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard.index'
+import { Route as AdminContentVideoTestimonialsRouteImport } from './routes/admin.content.video-testimonials'
+import { Route as AdminContentSectionsRouteImport } from './routes/admin.content.sections'
+import { Route as AdminContentReviewsRouteImport } from './routes/admin.content.reviews'
+import { Route as AdminContentMediaRouteImport } from './routes/admin.content.media'
+import { Route as AdminContentHomepageRouteImport } from './routes/admin.content.homepage'
+import { Route as AdminContentHeroSliderRouteImport } from './routes/admin.content.hero-slider'
 import { Route as AuthenticatedDashboardSecurityRouteImport } from './routes/_authenticated/dashboard.security'
 import { Route as AuthenticatedDashboardRewardsRouteImport } from './routes/_authenticated/dashboard.rewards'
 import { Route as AuthenticatedDashboardProfileRouteImport } from './routes/_authenticated/dashboard.profile'
@@ -47,6 +54,9 @@ import { Route as AuthenticatedDashboardOrdersRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardNotificationsRouteImport } from './routes/_authenticated/dashboard.notifications'
 import { Route as AuthenticatedDashboardFavoritesRouteImport } from './routes/_authenticated/dashboard.favorites'
 import { Route as AuthenticatedDashboardAddressesRouteImport } from './routes/_authenticated/dashboard.addresses'
+import { Route as AdminContentLayoutMobileRouteImport } from './routes/admin.content.layout.mobile'
+import { Route as AdminContentLayoutHomepageRouteImport } from './routes/admin.content.layout.homepage'
+import { Route as AdminContentLayoutDesktopRouteImport } from './routes/admin.content.layout.desktop'
 import { Route as AuthenticatedDashboardOrdersOrderIdRouteImport } from './routes/_authenticated/dashboard.orders.$orderId'
 
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -193,12 +203,48 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AdminContentIndexRoute = AdminContentIndexRouteImport.update({
+  id: '/admin/content/',
+  path: '/admin/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AdminContentVideoTestimonialsRoute =
+  AdminContentVideoTestimonialsRouteImport.update({
+    id: '/admin/content/video-testimonials',
+    path: '/admin/content/video-testimonials',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminContentSectionsRoute = AdminContentSectionsRouteImport.update({
+  id: '/admin/content/sections',
+  path: '/admin/content/sections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminContentReviewsRoute = AdminContentReviewsRouteImport.update({
+  id: '/admin/content/reviews',
+  path: '/admin/content/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminContentMediaRoute = AdminContentMediaRouteImport.update({
+  id: '/admin/content/media',
+  path: '/admin/content/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminContentHomepageRoute = AdminContentHomepageRouteImport.update({
+  id: '/admin/content/homepage',
+  path: '/admin/content/homepage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminContentHeroSliderRoute = AdminContentHeroSliderRouteImport.update({
+  id: '/admin/content/hero-slider',
+  path: '/admin/content/hero-slider',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardSecurityRoute =
   AuthenticatedDashboardSecurityRouteImport.update({
     id: '/security',
@@ -247,6 +293,24 @@ const AuthenticatedDashboardAddressesRoute =
     path: '/addresses',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AdminContentLayoutMobileRoute =
+  AdminContentLayoutMobileRouteImport.update({
+    id: '/admin/content/layout/mobile',
+    path: '/admin/content/layout/mobile',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminContentLayoutHomepageRoute =
+  AdminContentLayoutHomepageRouteImport.update({
+    id: '/admin/content/layout/homepage',
+    path: '/admin/content/layout/homepage',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AdminContentLayoutDesktopRoute =
+  AdminContentLayoutDesktopRouteImport.update({
+    id: '/admin/content/layout/desktop',
+    path: '/admin/content/layout/desktop',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedDashboardOrdersOrderIdRoute =
   AuthenticatedDashboardOrdersOrderIdRouteImport.update({
     id: '/$orderId',
@@ -291,8 +355,18 @@ export interface FileRoutesByFullPath {
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/dashboard/security': typeof AuthenticatedDashboardSecurityRoute
+  '/admin/content/hero-slider': typeof AdminContentHeroSliderRoute
+  '/admin/content/homepage': typeof AdminContentHomepageRoute
+  '/admin/content/media': typeof AdminContentMediaRoute
+  '/admin/content/reviews': typeof AdminContentReviewsRoute
+  '/admin/content/sections': typeof AdminContentSectionsRoute
+  '/admin/content/video-testimonials': typeof AdminContentVideoTestimonialsRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/admin/content/': typeof AdminContentIndexRoute
   '/dashboard/orders/$orderId': typeof AuthenticatedDashboardOrdersOrderIdRoute
+  '/admin/content/layout/desktop': typeof AdminContentLayoutDesktopRoute
+  '/admin/content/layout/homepage': typeof AdminContentLayoutHomepageRoute
+  '/admin/content/layout/mobile': typeof AdminContentLayoutMobileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -330,8 +404,18 @@ export interface FileRoutesByTo {
   '/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/dashboard/security': typeof AuthenticatedDashboardSecurityRoute
+  '/admin/content/hero-slider': typeof AdminContentHeroSliderRoute
+  '/admin/content/homepage': typeof AdminContentHomepageRoute
+  '/admin/content/media': typeof AdminContentMediaRoute
+  '/admin/content/reviews': typeof AdminContentReviewsRoute
+  '/admin/content/sections': typeof AdminContentSectionsRoute
+  '/admin/content/video-testimonials': typeof AdminContentVideoTestimonialsRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/admin/content': typeof AdminContentIndexRoute
   '/dashboard/orders/$orderId': typeof AuthenticatedDashboardOrdersOrderIdRoute
+  '/admin/content/layout/desktop': typeof AdminContentLayoutDesktopRoute
+  '/admin/content/layout/homepage': typeof AdminContentLayoutHomepageRoute
+  '/admin/content/layout/mobile': typeof AdminContentLayoutMobileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -372,8 +456,18 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/profile': typeof AuthenticatedDashboardProfileRoute
   '/_authenticated/dashboard/rewards': typeof AuthenticatedDashboardRewardsRoute
   '/_authenticated/dashboard/security': typeof AuthenticatedDashboardSecurityRoute
+  '/admin/content/hero-slider': typeof AdminContentHeroSliderRoute
+  '/admin/content/homepage': typeof AdminContentHomepageRoute
+  '/admin/content/media': typeof AdminContentMediaRoute
+  '/admin/content/reviews': typeof AdminContentReviewsRoute
+  '/admin/content/sections': typeof AdminContentSectionsRoute
+  '/admin/content/video-testimonials': typeof AdminContentVideoTestimonialsRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/admin/content/': typeof AdminContentIndexRoute
   '/_authenticated/dashboard/orders/$orderId': typeof AuthenticatedDashboardOrdersOrderIdRoute
+  '/admin/content/layout/desktop': typeof AdminContentLayoutDesktopRoute
+  '/admin/content/layout/homepage': typeof AdminContentLayoutHomepageRoute
+  '/admin/content/layout/mobile': typeof AdminContentLayoutMobileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -414,8 +508,18 @@ export interface FileRouteTypes {
     | '/dashboard/profile'
     | '/dashboard/rewards'
     | '/dashboard/security'
+    | '/admin/content/hero-slider'
+    | '/admin/content/homepage'
+    | '/admin/content/media'
+    | '/admin/content/reviews'
+    | '/admin/content/sections'
+    | '/admin/content/video-testimonials'
     | '/dashboard/'
+    | '/admin/content/'
     | '/dashboard/orders/$orderId'
+    | '/admin/content/layout/desktop'
+    | '/admin/content/layout/homepage'
+    | '/admin/content/layout/mobile'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -453,8 +557,18 @@ export interface FileRouteTypes {
     | '/dashboard/profile'
     | '/dashboard/rewards'
     | '/dashboard/security'
+    | '/admin/content/hero-slider'
+    | '/admin/content/homepage'
+    | '/admin/content/media'
+    | '/admin/content/reviews'
+    | '/admin/content/sections'
+    | '/admin/content/video-testimonials'
     | '/dashboard'
+    | '/admin/content'
     | '/dashboard/orders/$orderId'
+    | '/admin/content/layout/desktop'
+    | '/admin/content/layout/homepage'
+    | '/admin/content/layout/mobile'
   id:
     | '__root__'
     | '/'
@@ -494,8 +608,18 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/profile'
     | '/_authenticated/dashboard/rewards'
     | '/_authenticated/dashboard/security'
+    | '/admin/content/hero-slider'
+    | '/admin/content/homepage'
+    | '/admin/content/media'
+    | '/admin/content/reviews'
+    | '/admin/content/sections'
+    | '/admin/content/video-testimonials'
     | '/_authenticated/dashboard/'
+    | '/admin/content/'
     | '/_authenticated/dashboard/orders/$orderId'
+    | '/admin/content/layout/desktop'
+    | '/admin/content/layout/homepage'
+    | '/admin/content/layout/mobile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -526,6 +650,16 @@ export interface RootRouteChildren {
   AdminStaffRoute: typeof AdminStaffRoute
   OrderSuccessNumberRoute: typeof OrderSuccessNumberRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminContentHeroSliderRoute: typeof AdminContentHeroSliderRoute
+  AdminContentHomepageRoute: typeof AdminContentHomepageRoute
+  AdminContentMediaRoute: typeof AdminContentMediaRoute
+  AdminContentReviewsRoute: typeof AdminContentReviewsRoute
+  AdminContentSectionsRoute: typeof AdminContentSectionsRoute
+  AdminContentVideoTestimonialsRoute: typeof AdminContentVideoTestimonialsRoute
+  AdminContentIndexRoute: typeof AdminContentIndexRoute
+  AdminContentLayoutDesktopRoute: typeof AdminContentLayoutDesktopRoute
+  AdminContentLayoutHomepageRoute: typeof AdminContentLayoutHomepageRoute
+  AdminContentLayoutMobileRoute: typeof AdminContentLayoutMobileRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -733,12 +867,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/admin/content/': {
+      id: '/admin/content/'
+      path: '/admin/content'
+      fullPath: '/admin/content/'
+      preLoaderRoute: typeof AdminContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/admin/content/video-testimonials': {
+      id: '/admin/content/video-testimonials'
+      path: '/admin/content/video-testimonials'
+      fullPath: '/admin/content/video-testimonials'
+      preLoaderRoute: typeof AdminContentVideoTestimonialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/sections': {
+      id: '/admin/content/sections'
+      path: '/admin/content/sections'
+      fullPath: '/admin/content/sections'
+      preLoaderRoute: typeof AdminContentSectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/reviews': {
+      id: '/admin/content/reviews'
+      path: '/admin/content/reviews'
+      fullPath: '/admin/content/reviews'
+      preLoaderRoute: typeof AdminContentReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/media': {
+      id: '/admin/content/media'
+      path: '/admin/content/media'
+      fullPath: '/admin/content/media'
+      preLoaderRoute: typeof AdminContentMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/homepage': {
+      id: '/admin/content/homepage'
+      path: '/admin/content/homepage'
+      fullPath: '/admin/content/homepage'
+      preLoaderRoute: typeof AdminContentHomepageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/hero-slider': {
+      id: '/admin/content/hero-slider'
+      path: '/admin/content/hero-slider'
+      fullPath: '/admin/content/hero-slider'
+      preLoaderRoute: typeof AdminContentHeroSliderRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard/security': {
       id: '/_authenticated/dashboard/security'
@@ -795,6 +978,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/addresses'
       preLoaderRoute: typeof AuthenticatedDashboardAddressesRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/admin/content/layout/mobile': {
+      id: '/admin/content/layout/mobile'
+      path: '/admin/content/layout/mobile'
+      fullPath: '/admin/content/layout/mobile'
+      preLoaderRoute: typeof AdminContentLayoutMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/layout/homepage': {
+      id: '/admin/content/layout/homepage'
+      path: '/admin/content/layout/homepage'
+      fullPath: '/admin/content/layout/homepage'
+      preLoaderRoute: typeof AdminContentLayoutHomepageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/content/layout/desktop': {
+      id: '/admin/content/layout/desktop'
+      path: '/admin/content/layout/desktop'
+      fullPath: '/admin/content/layout/desktop'
+      preLoaderRoute: typeof AdminContentLayoutDesktopRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard/orders/$orderId': {
       id: '/_authenticated/dashboard/orders/$orderId'
@@ -902,6 +1106,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminStaffRoute: AdminStaffRoute,
   OrderSuccessNumberRoute: OrderSuccessNumberRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminContentHeroSliderRoute: AdminContentHeroSliderRoute,
+  AdminContentHomepageRoute: AdminContentHomepageRoute,
+  AdminContentMediaRoute: AdminContentMediaRoute,
+  AdminContentReviewsRoute: AdminContentReviewsRoute,
+  AdminContentSectionsRoute: AdminContentSectionsRoute,
+  AdminContentVideoTestimonialsRoute: AdminContentVideoTestimonialsRoute,
+  AdminContentIndexRoute: AdminContentIndexRoute,
+  AdminContentLayoutDesktopRoute: AdminContentLayoutDesktopRoute,
+  AdminContentLayoutHomepageRoute: AdminContentLayoutHomepageRoute,
+  AdminContentLayoutMobileRoute: AdminContentLayoutMobileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
