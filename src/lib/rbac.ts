@@ -8,6 +8,7 @@ export type AppRole =
   | "cashier"
   | "rider"
   | "support"
+  | "cms_editor"
   | "customer";
 
 export const STAFF_ROLES: AppRole[] = [
@@ -18,6 +19,7 @@ export const STAFF_ROLES: AppRole[] = [
   "cashier",
   "rider",
   "support",
+  "cms_editor",
 ];
 
 export const ROLE_ORDER: Record<AppRole, number> = {
@@ -28,7 +30,8 @@ export const ROLE_ORDER: Record<AppRole, number> = {
   kitchen: 5,
   rider: 6,
   support: 7,
-  customer: 8,
+  cms_editor: 8,
+  customer: 9,
 };
 
 export type Permission =
