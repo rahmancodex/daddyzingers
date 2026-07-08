@@ -407,6 +407,7 @@ function SaveBar({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button
+          type="button"
           variant="ghost"
           size="sm"
           onClick={onDiscard}
@@ -416,8 +417,19 @@ function SaveBar({
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Discard
         </Button>
         <Button
+          type="button"
           size="sm"
-          onClick={onSave}
+          onClick={() => {
+            if (saving) return;
+            try {
+              onSave();
+            } catch (err) {
+              console.error("[settings] onSave threw", err);
+              toast.error("Couldn't save settings", {
+                description: (err as Error)?.message ?? "Please try again.",
+              });
+            }
+          }}
           disabled={!dirty || saving}
           variant={destructive ? "destructive" : "default"}
           className="h-9 min-w-[130px]"
