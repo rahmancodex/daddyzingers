@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Hero } from "@/components/site/Hero";
+import { HeroSlider } from "@/components/site/HeroSlider";
 import { OrderingExperience } from "@/components/order/OrderingExperience";
 import { Categories } from "@/components/site/Categories";
 import { Bestsellers } from "@/components/site/Bestsellers";
