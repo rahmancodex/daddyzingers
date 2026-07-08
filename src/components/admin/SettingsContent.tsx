@@ -271,19 +271,43 @@ function useSaveSettings() {
   const updateFn = useServerFn(adminUpdateSettings);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (patch: Partial<Settings>) => updateFn({ data: patch as never }),
+    mutationFn: async (patch: Partial<Settings>) => {
+      const result = await updateFn({ data: patch as never });
+      return result;
+    },
     onSuccess: (data) => {
-      qc.setQueryData(["admin", "settings"], data);
+      if (data) qc.setQueryData(["admin", "settings"], data);
+      // Force a refetch so every tab shows the latest server values and any
+      // derived public reads (delivery pricing, etc.) also refresh.
+      qc.invalidateQueries({ queryKey: ["admin", "settings"] });
+      qc.invalidateQueries({ queryKey: ["public", "delivery-pricing"] });
       toast.success("Settings saved", { description: "Changes are live on your site." });
     },
-    onError: (e: Error) =>
-      toast.error("Couldn't save settings", { description: e.message ?? "Please try again." }),
+    onError: (e: Error) => {
+      console.error("[settings] save failed", e);
+      toast.error("Couldn't save settings", { description: e?.message ?? "Please try again." });
+    },
   });
 }
 
 function useDirtyState<T>(initial: T) {
   const [value, setValue] = React.useState<T>(initial);
-  const baselineRef = React.useRef<string>(JSON.stringify(initial ?? {}));
+  const initialJson = React.useMemo(() => JSON.stringify(initial ?? {}), [initial]);
+  const baselineRef = React.useRef<string>(initialJson);
+  // Re-baseline (and re-hydrate the form) whenever the server data changes
+  // AND the user has no unsaved edits. Keeps every tab in sync after a
+  // successful save + refetch, without clobbering in-progress edits.
+  React.useEffect(() => {
+    if (JSON.stringify(value ?? {}) === baselineRef.current) {
+      baselineRef.current = initialJson;
+      try {
+        setValue(JSON.parse(initialJson) as T);
+      } catch {
+        setValue(initial);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialJson]);
   const dirty = React.useMemo(
     () => JSON.stringify(value ?? {}) !== baselineRef.current,
     [value],
@@ -383,6 +407,7 @@ function SaveBar({
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <Button
+          type="button"
           variant="ghost"
           size="sm"
           onClick={onDiscard}
@@ -392,8 +417,19 @@ function SaveBar({
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Discard
         </Button>
         <Button
+          type="button"
           size="sm"
-          onClick={onSave}
+          onClick={() => {
+            if (saving) return;
+            try {
+              onSave();
+            } catch (err) {
+              console.error("[settings] onSave threw", err);
+              toast.error("Couldn't save settings", {
+                description: (err as Error)?.message ?? "Please try again.",
+              });
+            }
+          }}
           disabled={!dirty || saving}
           variant={destructive ? "destructive" : "default"}
           className="h-9 min-w-[130px]"
