@@ -170,7 +170,7 @@ export const cmsSetStatus = createServerFn({ method: "POST" })
     if (data.status === "published") patch.published_at = new Date().toISOString();
     const { data: updated, error } = await supabase
       .from("cms_entries")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id)
       .select("*")
       .single();
