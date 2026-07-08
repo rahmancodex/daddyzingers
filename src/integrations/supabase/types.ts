@@ -1281,6 +1281,7 @@ export type Database = {
         | "rider"
         | "support"
         | "customer"
+        | "cms_editor"
       order_status:
         | "pending"
         | "confirmed"
@@ -1425,6 +1426,7 @@ export const Constants = {
         "rider",
         "support",
         "customer",
+        "cms_editor",
       ],
       order_status: [
         "pending",
